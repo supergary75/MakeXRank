@@ -21,13 +21,13 @@ export function StatsCards({ eventType, highestSingleMatchScore = 0, teamCount, 
   }, 0);
   const fastestTimeSeconds =
     teams
-      .filter((team) => (team.attempt1Score ?? 0) > 0 && (team.attempt1TimeSeconds ?? 0) > 0)
+      .filter((team) => (team.attempt1Score ?? 0) >= 800 && (team.attempt1TimeSeconds ?? 0) > 0)
       .map((team) => team.attempt1TimeSeconds)
       .filter((value): value is number => value != null)
       .sort((left, right) => left - right)[0] ?? null;
   const fastestRandomTimeSeconds =
     teams
-      .filter((team) => (team.attempt2Score ?? 0) > 0 && (team.attempt2TimeSeconds ?? 0) > 0)
+      .filter((team) => (team.attempt2Score ?? 0) >= 200 && (team.attempt2TimeSeconds ?? 0) > 0)
       .map((team) => team.attempt2TimeSeconds)
       .filter((value): value is number => value != null)
       .sort((left, right) => left - right)[0] ?? null;
