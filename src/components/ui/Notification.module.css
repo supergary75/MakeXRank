@@ -10,13 +10,14 @@
 
 .notification {
   padding: 14px 20px;
-  background: white;
+  background: var(--bg-steel-soft);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   font-weight: 500;
   font-size: 0.9em;
   animation: slideIn 0.25s ease;
   max-width: 360px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .success {

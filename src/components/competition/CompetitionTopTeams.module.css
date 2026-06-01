@@ -1,0 +1,162 @@
+.section {
+  margin-top: 30px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(225, 184, 90, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(225, 184, 90, 0.08), transparent 28%),
+    rgba(61, 20, 18, 0.82);
+  box-shadow: var(--shadow-md);
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.header h3 {
+  color: var(--gray-800);
+  font-size: 1.4rem;
+}
+
+.count {
+  color: var(--gray-400);
+  font-size: 0.92rem;
+}
+
+.emptyState {
+  padding: 28px 18px;
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(225, 184, 90, 0.18);
+  text-align: center;
+  color: var(--gray-500);
+  background: rgba(47, 15, 14, 0.4);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(225, 184, 90, 0.14);
+  background:
+    linear-gradient(160deg, rgba(225, 184, 90, 0.06), transparent 50%),
+    rgba(43, 15, 14, 0.76);
+}
+
+.rankPill {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
+  color: #34170b;
+  font-weight: 800;
+  box-shadow: var(--glow-amber);
+}
+
+.cardBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.topRow h4 {
+  color: var(--gray-800);
+  font-size: 1.08rem;
+  line-height: 1.35;
+}
+
+.competitionName {
+  margin-top: 6px;
+  color: var(--gray-400);
+  font-size: 0.88rem;
+}
+
+.epaBlock {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.epaLabel {
+  display: block;
+  color: var(--gray-300);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.epaBlock strong {
+  color: var(--accent);
+  font-size: 1.24rem;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 14px;
+}
+
+.metaRow span {
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(225, 184, 90, 0.08);
+  color: var(--gray-600);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 18px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .section {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .topRow {
+    flex-direction: column;
+  }
+
+  .epaBlock {
+    text-align: left;
+  }
+}

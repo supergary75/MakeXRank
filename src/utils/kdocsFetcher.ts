@@ -115,7 +115,7 @@ export async function fetchKDocsData(url: string): Promise<FetchResult> {
     // Try to extract table data from the fetched content
     const tableText = extractTableFromHtml(html);
     if (tableText) {
-      const teams = parseTableData(tableText);
+      const teams = parseTableData(tableText, 'MakeX Explorer');
       if (teams.length > 0) {
         return {
           success: true,

@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import type { TeamRanked } from '../../types';
+import type { EventType, TeamRanked } from '../../types';
+import { formatSecondsAsClock } from '../../utils/time';
 import { Modal } from '../ui/Modal';
 import styles from './FeaturedTeams.module.css';
 
 interface Props {
+  eventType: EventType;
   teams: TeamRanked[];
   featuredNames: string[];
   onAdd: (name: string) => void;
@@ -11,9 +13,17 @@ interface Props {
   allTeamNames: string[];
 }
 
-export function FeaturedTeams({ teams, featuredNames, onAdd, onRemove, allTeamNames }: Props) {
+export function FeaturedTeams({
+  eventType,
+  teams,
+  featuredNames,
+  onAdd,
+  onRemove,
+  allTeamNames,
+}: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [input, setInput] = useState('');
+  const isInspire = eventType === 'MakeX Inspire';
 
   const featuredData = featuredNames
     .map((name) => {
@@ -58,30 +68,71 @@ export function FeaturedTeams({ teams, featuredNames, onAdd, onRemove, allTeamNa
                     </div>
                   </div>
                   <div className={styles.stats}>
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>胜负分</span>
-                      <span className={`${styles.statValue} ${styles.highlight}`}>{team.totalWinLossScore}</span>
-                    </div>
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>净胜分</span>
-                      <span className={styles.statValue} style={{ color: netColor }}>{netText}</span>
-                    </div>
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>胜场</span>
-                      <span className={styles.statValue}>{team.wins}</span>
-                    </div>
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>负场</span>
-                      <span className={styles.statValue}>{team.losses}</span>
-                    </div>
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>胜率</span>
-                      <span className={styles.statValue}>{team.winRate}%</span>
-                    </div>
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>EPA</span>
-                      <span className={styles.statValue} style={{ color: '#667eea', fontWeight: 600 }}>{team.epa}</span>
-                    </div>
+                    {isInspire ? (
+                      <>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>常规任务最高分</span>
+                          <span className={`${styles.statValue} ${styles.highlight}`}>{team.attempt1Score ?? 0}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>常规任务用时</span>
+                          <span className={styles.statValue}>
+                            {team.attempt1TimeText || formatSecondsAsClock(team.attempt1TimeSeconds)}
+                          </span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>随机任务最高分</span>
+                          <span className={`${styles.statValue} ${styles.highlight}`}>{team.attempt2Score ?? 0}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>随机任务用时</span>
+                          <span className={styles.statValue}>
+                            {team.attempt2TimeText || formatSecondsAsClock(team.attempt2TimeSeconds)}
+                          </span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>总得分</span>
+                          <span className={`${styles.statValue} ${styles.highlight}`}>{team.totalScore}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>总用时</span>
+                          <span className={styles.statValue} style={{ color: '#667eea', fontWeight: 600 }}>
+                            {team.bestTimeText || formatSecondsAsClock(team.bestTimeSeconds)}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>胜负分</span>
+                          <span className={`${styles.statValue} ${styles.highlight}`}>{team.totalWinLossScore}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>净胜分</span>
+                          <span className={styles.statValue} style={{ color: netColor }}>{netText}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>胜场</span>
+                          <span className={styles.statValue}>{team.wins}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>负场</span>
+                          <span className={styles.statValue}>{team.losses}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>平局场</span>
+                          <span className={styles.statValue}>{team.draws}</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>胜率</span>
+                          <span className={styles.statValue}>{team.winRate}%</span>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>EPA</span>
+                          <span className={styles.statValue} style={{ color: '#667eea', fontWeight: 600 }}>{team.epa}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               );

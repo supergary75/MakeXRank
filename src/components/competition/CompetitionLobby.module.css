@@ -1,0 +1,250 @@
+.lobby {
+  padding: 28px 28px 36px;
+}
+
+.creator {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  padding: 28px;
+  border-bottom: 1px solid rgba(225, 184, 90, 0.14);
+  background:
+    linear-gradient(135deg, rgba(130, 32, 30, 0.18), rgba(225, 184, 90, 0.08)),
+    rgba(72, 24, 22, 0.46);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 244, 217, 0.06);
+}
+
+.creatorCopy h2 {
+  color: var(--gray-800);
+  font-size: 1.7rem;
+  margin-bottom: 10px;
+}
+
+.creatorHint {
+  color: var(--gray-500);
+  max-width: 620px;
+}
+
+.creatorEyebrow {
+  margin-bottom: 12px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.creatorForm {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+
+.nameInput {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  background: rgba(49, 17, 16, 0.58);
+  color: var(--gray-800);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.nameInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(225, 184, 90, 0.14);
+}
+
+.nameInput::placeholder {
+  color: var(--gray-300);
+}
+
+.createButton {
+  min-height: 52px;
+  border: 1px solid rgba(255, 244, 217, 0.12);
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
+  color: #34170b;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.createButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-amber);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 28px 2px 16px;
+}
+
+.sectionTitle h3 {
+  color: var(--gray-800);
+  font-size: 1.25rem;
+}
+
+.sectionTitle span {
+  color: var(--gray-400);
+  font-size: 0.92rem;
+}
+
+.emptyState {
+  padding: 42px 24px;
+  border: 1px dashed rgba(225, 184, 90, 0.22);
+  border-radius: var(--radius-lg);
+  background: rgba(69, 22, 20, 0.32);
+  text-align: center;
+  color: var(--gray-500);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(225, 184, 90, 0.16);
+  background:
+    linear-gradient(160deg, rgba(124, 33, 31, 0.26), transparent 42%),
+    rgba(57, 19, 18, 0.88);
+  box-shadow: var(--shadow-md);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardLabel {
+  color: var(--gray-300);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.card h4 {
+  color: var(--gray-800);
+  font-size: 1.28rem;
+  line-height: 1.35;
+}
+
+.deleteButton {
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 244, 217, 0.12);
+  background: rgba(99, 24, 24, 0.46);
+  color: var(--gray-600);
+  cursor: pointer;
+}
+
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 18px;
+  color: var(--gray-500);
+  font-size: 0.92rem;
+}
+
+.workspacePreview {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(225, 184, 90, 0.12);
+  background:
+    linear-gradient(145deg, rgba(226, 190, 120, 0.08), transparent 56%),
+    rgba(35, 12, 12, 0.42);
+}
+
+.previewTitle {
+  color: var(--gray-800);
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.previewTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.previewTags span {
+  padding: 7px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(225, 184, 90, 0.12);
+  color: var(--gray-700);
+  font-size: 0.82rem;
+}
+
+.cardActions {
+  margin-top: 18px;
+}
+
+.enterButton {
+  width: 100%;
+  min-height: 46px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 244, 217, 0.12);
+  background: linear-gradient(145deg, #b24f3b 0%, #7c221f 100%);
+  color: var(--gray-800);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.enterButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 24px rgba(178, 79, 59, 0.24);
+}
+
+@media (max-width: 900px) {
+  .creator {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .lobby {
+    padding: 18px 16px 24px;
+  }
+
+  .creator {
+    padding: 20px;
+  }
+
+  .creatorCopy h2 {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .lobby {
+    padding: 14px 12px 18px;
+  }
+
+  .creator {
+    padding: 16px;
+    gap: 18px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+}
