@@ -96,6 +96,7 @@ export type SortField =
 export type SortOrder = 'asc' | 'desc';
 
 export type NotificationType = 'success' | 'error' | 'info';
+export type StorageMode = 'local' | 'supabase';
 
 export type EventType = 'MakeX Inspire' | 'MakeX Explorer' | 'MakeX Challenge';
 export type TabName = 'ranking' | 'playoff';

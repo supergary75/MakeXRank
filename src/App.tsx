@@ -5,9 +5,9 @@ import type {
   EventType,
   SortField,
   SortOrder,
+  StorageMode,
   TabName,
   TeamRanked,
-  TeamRaw,
   ViewMode,
 } from './types';
 import {
@@ -15,6 +15,15 @@ import {
   getHighestSingleMatchScoreFromSourceText,
   parseTableData,
 } from './utils/dataParser';
+import {
+  cacheCompetitionsLocally,
+  deleteCompetitionRecord,
+  fetchRemoteCompetitions,
+  getPreferredStorageMode,
+  isSupabaseConfigured,
+  loadCachedCompetitions,
+  saveCompetitionRecord,
+} from './services/competitionStorage';
 import { calculateRanking, sortTeams } from './utils/rankingAlgorithm';
 import { useNotification } from './hooks/useNotification';
 import { useFeaturedTeams } from './hooks/useFeaturedTeams';
@@ -36,13 +45,8 @@ import { NotificationContainer } from './components/ui/Notification';
 
 import styles from './App.module.css';
 
-const STORAGE_KEY = 'competitive-ranking-board::competitions';
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
 const EVENT_TYPES: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
-
-function isEventType(value: unknown): value is EventType {
-  return typeof value === 'string' && EVENT_TYPES.includes(value as EventType);
-}
 
 function getDefaultSortField(eventType: EventType): SortField {
   return eventType === 'MakeX Inspire' ? 'attempt1Score' : 'totalWinLossScore';
@@ -74,48 +78,8 @@ function createCompetitionRecord(name: string, eventType: EventType): Competitio
   };
 }
 
-function loadCompetitions(): CompetitionRecord[] {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .filter((item): item is CompetitionRecord => {
-        return (
-          item &&
-          typeof item.id === 'string' &&
-          (typeof item.eventType === 'undefined' || isEventType(item.eventType)) &&
-          typeof item.name === 'string' &&
-          typeof item.createdAt === 'string' &&
-          typeof item.updatedAt === 'string' &&
-          typeof item.lastUpdate === 'string' &&
-          typeof item.sourceText === 'string' &&
-          Array.isArray(item.teamsData)
-        );
-      })
-      .map((item) => ({
-        ...item,
-        eventType: isEventType(item.eventType) ? item.eventType : DEFAULT_EVENT_TYPE,
-        teamsData: item.teamsData as TeamRaw[],
-      }));
-  } catch {
-    return [];
-  }
-}
-
 export default function App() {
-  const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCompetitions());
+  const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCachedCompetitions());
   const [viewMode, setViewMode] = useState<ViewMode>('event-types');
   const [activeCompetitionId, setActiveCompetitionId] = useState<string | null>(null);
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(null);
@@ -124,6 +88,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabName>('ranking');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [awaitingPaste, setAwaitingPaste] = useState(false);
+  const [storageMode, setStorageMode] = useState<StorageMode>(() => getPreferredStorageMode());
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const { notifications, showNotification } = useNotification();
@@ -231,10 +196,42 @@ export default function App() {
     .slice(0, 20);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(competitions));
-    }
+    cacheCompetitionsLocally(competitions);
   }, [competitions]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setStorageMode('local');
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const remoteCompetitions = await fetchRemoteCompetitions();
+        if (cancelled) {
+          return;
+        }
+
+        setCompetitions(remoteCompetitions);
+        setStorageMode('supabase');
+        showNotification('已连接 Supabase 云端数据，当前设备会与共享比赛库同步。', 'success');
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : '未知错误';
+        setStorageMode('local');
+        showNotification(`Supabase 连接失败，已回退到本地存储。原因：${message}`, 'error');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showNotification]);
 
   useEffect(() => {
     if (viewMode === 'competition' && !activeCompetition) {
@@ -254,19 +251,53 @@ export default function App() {
     }
   }, [activeCompetition]);
 
-  const updateActiveCompetition = useCallback(
-    (updater: (competition: CompetitionRecord) => CompetitionRecord) => {
-      if (!activeCompetitionId) {
+  const syncCompetition = useCallback(
+    async (competition: CompetitionRecord) => {
+      if (storageMode !== 'supabase') {
         return;
       }
 
+      try {
+        await saveCompetitionRecord(competition);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`Supabase 保存失败，本次改动仅保留在当前浏览器。原因：${message}`, 'error');
+      }
+    },
+    [showNotification, storageMode],
+  );
+
+  const removeCompetitionFromCloud = useCallback(
+    async (id: string) => {
+      if (storageMode !== 'supabase') {
+        return;
+      }
+
+      try {
+        await deleteCompetitionRecord(id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`Supabase 删除失败，云端可能仍保留这场比赛。原因：${message}`, 'error');
+      }
+    },
+    [showNotification, storageMode],
+  );
+
+  const updateActiveCompetition = useCallback(
+    (updater: (competition: CompetitionRecord) => CompetitionRecord) => {
+      if (!activeCompetition) {
+        return;
+      }
+
+      const nextCompetition = updater(activeCompetition);
       setCompetitions((previous) =>
         previous.map((competition) =>
-          competition.id === activeCompetitionId ? updater(competition) : competition,
+          competition.id === nextCompetition.id ? nextCompetition : competition,
         ),
       );
+      void syncCompetition(nextCompetition);
     },
-    [activeCompetitionId],
+    [activeCompetition, syncCompetition],
   );
 
   const handleCreateCompetition = useCallback(
@@ -286,9 +317,10 @@ export default function App() {
       setCompetitions((previous) => [competition, ...previous]);
       setSortField(getDefaultSortField(selectedEventType));
       setSortOrder('desc');
+      void syncCompetition(competition);
       showNotification(`已在 ${selectedEventType} 下创建比赛卡片：${trimmedName}`, 'success');
     },
-    [selectedEventType, showNotification],
+    [selectedEventType, showNotification, syncCompetition],
   );
 
   const handleOpenCompetition = useCallback(
@@ -337,6 +369,7 @@ export default function App() {
     (id: string) => {
       const competition = competitions.find((item) => item.id === id);
       setCompetitions((previous) => previous.filter((item) => item.id !== id));
+      void removeCompetitionFromCloud(id);
 
       if (activeCompetitionId === id) {
         setActiveCompetitionId(null);
@@ -348,7 +381,7 @@ export default function App() {
         'info',
       );
     },
-    [activeCompetitionId, competitions, showNotification],
+    [activeCompetitionId, competitions, removeCompetitionFromCloud, showNotification],
   );
 
   const parseAndApplyTable = useCallback(
@@ -620,7 +653,7 @@ export default function App() {
               onSelect={handleSelectEventType}
             />
 
-            <Footer lastUpdate="" isLobby />
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
           </>
         ) : viewMode === 'lobby' && selectedEventType ? (
           <>
@@ -644,7 +677,7 @@ export default function App() {
               topEpaTeams={topEpaTeams}
             />
 
-            <Footer lastUpdate="" isLobby />
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
           </>
         ) : activeCompetition ? (
           <>
@@ -689,6 +722,7 @@ export default function App() {
               autoRefreshInterval={autoRefresh.interval}
               onAutoRefreshToggle={handleAutoRefreshToggle}
               onIntervalChange={autoRefresh.setInterval}
+              storageMode={storageMode}
             />
 
             <TabNavigation
@@ -742,7 +776,7 @@ export default function App() {
               <PlayoffView teamsData={teamsData} showNotification={showNotification} />
             )}
 
-            <Footer lastUpdate={activeCompetition.lastUpdate} />
+            <Footer lastUpdate={activeCompetition.lastUpdate} storageMode={storageMode} />
           </>
         ) : null}
       </div>

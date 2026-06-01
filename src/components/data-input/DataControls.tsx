@@ -1,3 +1,4 @@
+import type { StorageMode } from '../../types';
 import styles from './DataControls.module.css';
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
   autoRefreshInterval: number;
   onAutoRefreshToggle: (enabled: boolean) => void;
   onIntervalChange: (interval: number) => void;
+  storageMode: StorageMode;
 }
 
 export function DataControls({
@@ -16,13 +18,21 @@ export function DataControls({
   autoRefreshInterval,
   onAutoRefreshToggle,
   onIntervalChange,
+  storageMode,
 }: Props) {
   return (
     <div className={styles.controls}>
       <div className={styles.topRow}>
         <div className={styles.sourceBadge}>
-          <span className={styles.sourceLabel}>数据模式</span>
+          <span className={styles.sourceLabel}>导入方式</span>
           <span className={styles.sourceValue}>仅剪贴板导入</span>
+        </div>
+
+        <div className={styles.sourceBadge}>
+          <span className={styles.sourceLabel}>存储位置</span>
+          <span className={styles.sourceValue}>
+            {storageMode === 'supabase' ? 'Supabase 云端共享' : '浏览器本地存储'}
+          </span>
         </div>
 
         <div className={styles.actions}>
