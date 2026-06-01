@@ -78,6 +78,47 @@ function createCompetitionRecord(name: string, eventType: EventType): Competitio
   };
 }
 
+function sortCompetitionsByCreatedAt(competitions: CompetitionRecord[]): CompetitionRecord[] {
+  return [...competitions].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+function getTimestamp(value: string): number {
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function mergeCompetitionsForSync(
+  localCompetitions: CompetitionRecord[],
+  remoteCompetitions: CompetitionRecord[],
+): {
+  mergedCompetitions: CompetitionRecord[];
+  competitionsToUpload: CompetitionRecord[];
+} {
+  const mergedById = new Map(remoteCompetitions.map((competition) => [competition.id, competition]));
+  const remoteById = new Map(remoteCompetitions.map((competition) => [competition.id, competition]));
+  const competitionsToUpload: CompetitionRecord[] = [];
+
+  for (const localCompetition of localCompetitions) {
+    const remoteCompetition = remoteById.get(localCompetition.id);
+
+    if (!remoteCompetition) {
+      mergedById.set(localCompetition.id, localCompetition);
+      competitionsToUpload.push(localCompetition);
+      continue;
+    }
+
+    if (getTimestamp(localCompetition.updatedAt) > getTimestamp(remoteCompetition.updatedAt)) {
+      mergedById.set(localCompetition.id, localCompetition);
+      competitionsToUpload.push(localCompetition);
+    }
+  }
+
+  return {
+    mergedCompetitions: sortCompetitionsByCreatedAt(Array.from(mergedById.values())),
+    competitionsToUpload,
+  };
+}
+
 export default function App() {
   const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCachedCompetitions());
   const [viewMode, setViewMode] = useState<ViewMode>('event-types');
@@ -209,14 +250,36 @@ export default function App() {
 
     void (async () => {
       try {
+        const localCompetitions = loadCachedCompetitions();
         const remoteCompetitions = await fetchRemoteCompetitions();
+        const { mergedCompetitions, competitionsToUpload } = mergeCompetitionsForSync(
+          localCompetitions,
+          remoteCompetitions,
+        );
+
+        if (competitionsToUpload.length > 0) {
+          await Promise.all(
+            competitionsToUpload.map((competition) => saveCompetitionRecord(competition)),
+          );
+        }
+
+        const syncedCompetitions =
+          competitionsToUpload.length > 0
+            ? await fetchRemoteCompetitions()
+            : mergedCompetitions;
+
         if (cancelled) {
           return;
         }
 
-        setCompetitions(remoteCompetitions);
+        setCompetitions(sortCompetitionsByCreatedAt(syncedCompetitions));
         setStorageMode('supabase');
-        showNotification('已连接 Supabase 云端数据，当前设备会与共享比赛库同步。', 'success');
+        showNotification(
+          competitionsToUpload.length > 0
+            ? `已将当前设备的 ${competitionsToUpload.length} 场本地比赛同步到 Supabase，其他设备刷新后即可看到。`
+            : '已连接 Supabase 云端数据，当前设备会与共享比赛库同步。',
+          'success',
+        );
       } catch (error) {
         if (cancelled) {
           return;
