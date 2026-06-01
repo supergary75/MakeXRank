@@ -1,28 +1,6 @@
 import styles from './CompetitionTopTeams.module.css';
-import type { EventType } from '../../types';
+import type { CompetitionTopTeam, EventType } from '../../types';
 import { formatSecondsAsClock } from '../../utils/time';
-
-interface CompetitionTopTeam {
-  attempt1Score?: number;
-  attempt1TimeSeconds?: number | null;
-  attempt1TimeText?: string;
-  attempt2Score?: number;
-  attempt2TimeSeconds?: number | null;
-  attempt2TimeText?: string;
-  bestTimeSeconds?: number | null;
-  bestTimeText?: string;
-  competitionId: string;
-  competitionName: string;
-  draws: number;
-  epa: string;
-  losses: number;
-  netScore: number;
-  rankInCompetition: number;
-  team: string;
-  totalScore: number;
-  totalWinLossScore: number;
-  wins: number;
-}
 
 interface Props {
   eventType: EventType;

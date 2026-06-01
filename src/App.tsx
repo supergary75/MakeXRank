@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   CompetitionRecord,
+  CompetitionTopTeam,
   EventType,
   SortField,
   SortOrder,
@@ -38,28 +39,6 @@ import styles from './App.module.css';
 const STORAGE_KEY = 'competitive-ranking-board::competitions';
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
 const EVENT_TYPES: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
-
-interface CompetitionTopTeam {
-  attempt1Score?: number;
-  attempt1TimeSeconds?: number | null;
-  attempt1TimeText?: string;
-  attempt2Score?: number;
-  attempt2TimeSeconds?: number | null;
-  attempt2TimeText?: string;
-  bestTimeSeconds?: number | null;
-  bestTimeText?: string;
-  competitionId: string;
-  competitionName: string;
-  draws: number;
-  eventType: EventType;
-  epa: string;
-  losses: number;
-  netScore: number;
-  rankInCompetition: number;
-  team: string;
-  totalWinLossScore: number;
-  wins: number;
-}
 
 function isEventType(value: unknown): value is EventType {
   return typeof value === 'string' && EVENT_TYPES.includes(value as EventType);

@@ -54,6 +54,29 @@ export interface CompetitionRecord {
   teamsData: TeamRaw[];
 }
 
+export interface CompetitionTopTeam {
+  attempt1Score?: number;
+  attempt1TimeSeconds?: number | null;
+  attempt1TimeText?: string;
+  attempt2Score?: number;
+  attempt2TimeSeconds?: number | null;
+  attempt2TimeText?: string;
+  bestTimeSeconds?: number | null;
+  bestTimeText?: string;
+  competitionId: string;
+  competitionName: string;
+  draws: number;
+  epa: string;
+  eventType: EventType;
+  losses: number;
+  netScore: number;
+  rankInCompetition: number;
+  team: string;
+  totalScore: number;
+  totalWinLossScore: number;
+  wins: number;
+}
+
 export type SortField =
   | 'wins'
   | 'draws'

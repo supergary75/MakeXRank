@@ -1,28 +1,7 @@
 import { useState } from 'react';
-import type { CompetitionRecord, EventType } from '../../types';
+import type { CompetitionRecord, CompetitionTopTeam, EventType } from '../../types';
 import { CompetitionTopTeams } from './CompetitionTopTeams';
 import styles from './CompetitionLobby.module.css';
-
-interface CompetitionTopTeam {
-  competitionId: string;
-  competitionName: string;
-  attempt1Score?: number;
-  attempt1TimeSeconds?: number | null;
-  attempt1TimeText?: string;
-  attempt2Score?: number;
-  attempt2TimeSeconds?: number | null;
-  attempt2TimeText?: string;
-  bestTimeSeconds?: number | null;
-  bestTimeText?: string;
-  draws: number;
-  epa: string;
-  losses: number;
-  netScore: number;
-  rankInCompetition: number;
-  team: string;
-  totalWinLossScore: number;
-  wins: number;
-}
 
 interface Props {
   competitions: CompetitionRecord[];
