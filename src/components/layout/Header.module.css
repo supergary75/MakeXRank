@@ -46,8 +46,73 @@
   gap: 24px;
 }
 
+.brandBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+}
+
+.logoBadge {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(225, 184, 90, 0.34);
+  background:
+    linear-gradient(145deg, rgba(255, 245, 220, 0.12), rgba(85, 24, 22, 0.72)),
+    linear-gradient(180deg, rgba(125, 32, 31, 0.92), rgba(52, 17, 18, 0.92));
+  box-shadow:
+    0 10px 24px rgba(24, 6, 7, 0.32),
+    inset 0 1px 0 rgba(255, 244, 217, 0.18);
+  flex-shrink: 0;
+}
+
+.logoMark {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #f4d78e 0%, #d2a34e 58%, #8f5620 100%);
+  color: #4b170f;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 8px 18px rgba(47, 14, 11, 0.28);
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.logoText strong {
+  color: #fff1c4;
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+}
+
+.logoText span {
+  color: rgba(255, 241, 196, 0.78);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .copy {
   flex: 1;
+  min-width: 0;
 }
 
 .eyebrow {
@@ -100,6 +165,11 @@
     gap: 18px;
   }
 
+  .brandBlock {
+    flex-direction: column;
+    gap: 14px;
+  }
+
   .header h1 {
     font-size: 1.8em;
   }
@@ -129,5 +199,16 @@
   .eyebrow {
     font-size: 0.78rem;
     letter-spacing: 0.14em;
+  }
+
+  .logoBadge {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .logoMark {
+    width: 42px;
+    height: 42px;
+    font-size: 0.92rem;
   }
 }
