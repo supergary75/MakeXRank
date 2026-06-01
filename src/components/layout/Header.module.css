@@ -60,54 +60,91 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px 10px 10px;
-  border-radius: 18px;
-  border: 1px solid rgba(225, 184, 90, 0.34);
+  padding: 10px 18px 10px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 104, 104, 0.42);
   background:
-    linear-gradient(145deg, rgba(255, 245, 220, 0.12), rgba(85, 24, 22, 0.72)),
-    linear-gradient(180deg, rgba(125, 32, 31, 0.92), rgba(52, 17, 18, 0.92));
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 44%),
+    linear-gradient(145deg, rgba(141, 21, 24, 0.96), rgba(55, 10, 13, 0.96));
   box-shadow:
-    0 10px 24px rgba(24, 6, 7, 0.32),
-    inset 0 1px 0 rgba(255, 244, 217, 0.18);
+    0 12px 28px rgba(24, 6, 7, 0.4),
+    inset 0 1px 0 rgba(255, 196, 196, 0.14);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.logoBadge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(115deg, transparent 0, transparent 16px, rgba(255, 124, 124, 0.15) 16px, rgba(255, 124, 124, 0.15) 18px, transparent 18px),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 18px,
+      rgba(255, 120, 120, 0.06) 18px,
+      rgba(255, 120, 120, 0.06) 20px
+    );
+  pointer-events: none;
 }
 
 .logoMark {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #f4d78e 0%, #d2a34e 58%, #8f5620 100%);
-  color: #4b170f;
-  font-size: 1rem;
+  clip-path: polygon(18% 0, 100% 0, 100% 72%, 82% 100%, 0 100%, 0 28%);
+  background:
+    linear-gradient(160deg, #ff5f67 0%, #c81929 48%, #6d0d17 100%);
+  color: #fff5f5;
+  font-size: 0.96rem;
   font-weight: 900;
-  letter-spacing: 0.14em;
-  text-indent: 0.14em;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    0 8px 18px rgba(47, 14, 11, 0.28);
+    inset 0 1px 0 rgba(255, 228, 228, 0.32),
+    inset -6px -8px 14px rgba(88, 9, 18, 0.36),
+    0 8px 18px rgba(47, 14, 11, 0.34);
+  text-shadow:
+    0 0 6px rgba(255, 255, 255, 0.28),
+    0 0 18px rgba(255, 85, 85, 0.18);
+  transform: skewX(-10deg);
 }
 
 .logoText {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   line-height: 1.1;
+  position: relative;
+  z-index: 1;
 }
 
-.logoText strong {
-  color: #fff1c4;
-  font-size: 1rem;
-  letter-spacing: 0.18em;
-}
-
-.logoText span {
-  color: rgba(255, 241, 196, 0.78);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+.logoTitle {
+  color: #ffd7d7;
+  font-size: 1.04rem;
+  font-weight: 900;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-style: italic;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  transform: skewX(-12deg);
+  transform-origin: left center;
+  text-shadow:
+    0 0 8px rgba(255, 115, 115, 0.22),
+    0 3px 12px rgba(41, 3, 7, 0.4);
+}
+
+.logoSub {
+  color: rgba(255, 214, 214, 0.76);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .copy {
@@ -210,5 +247,13 @@
     width: 42px;
     height: 42px;
     font-size: 0.92rem;
+  }
+
+  .logoTitle {
+    font-size: 0.95rem;
+  }
+
+  .logoSub {
+    font-size: 0.63rem;
   }
 }

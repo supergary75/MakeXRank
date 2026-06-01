@@ -16,8 +16,8 @@ export function Header({ title, subtitle, eyebrow, action }: Props) {
           <div className={styles.logoBadge} aria-label="KCLUB logo">
             <span className={styles.logoMark}>KC</span>
             <div className={styles.logoText}>
-              <strong>KCLUB</strong>
-              <span>Competition Lab</span>
+              <strong className={styles.logoTitle}>KCLUB</strong>
+              <span className={styles.logoSub}>Competition Lab</span>
             </div>
           </div>
 
