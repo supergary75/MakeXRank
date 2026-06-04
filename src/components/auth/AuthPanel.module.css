@@ -1,0 +1,327 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 6, 7, 0.68);
+  backdrop-filter: blur(8px);
+}
+
+.panel {
+  width: min(1080px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border-radius: 24px;
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 244, 217, 0.05), transparent 26%),
+    linear-gradient(180deg, rgba(102, 30, 28, 0.96), rgba(46, 12, 13, 0.98));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 244, 217, 0.08);
+}
+
+.header,
+.adminHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.header {
+  padding: 28px 30px 16px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: rgba(255, 232, 189, 0.78);
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.header h2,
+.card h3,
+.adminArea h3 {
+  margin: 0;
+  color: #fff3d6;
+}
+
+.closeButton,
+.primaryButton,
+.secondaryButton,
+.inlineButton {
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.closeButton {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 244, 217, 0.14);
+  background: rgba(58, 19, 18, 0.74);
+  color: #fff0cf;
+}
+
+.notice,
+.tip {
+  margin: 0 30px 20px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  color: #ffe9be;
+}
+
+.notice {
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  background: rgba(225, 184, 90, 0.1);
+}
+
+.tip {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 0 30px 26px;
+}
+
+.card,
+.adminArea {
+  border: 1px solid rgba(225, 184, 90, 0.14);
+  border-radius: 18px;
+  background: rgba(51, 15, 16, 0.62);
+}
+
+.card {
+  padding: 20px;
+}
+
+.helper {
+  margin: 10px 0 0;
+  color: rgba(255, 238, 211, 0.82);
+  line-height: 1.7;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.field span {
+  color: rgba(255, 238, 211, 0.78);
+  font-size: 0.92rem;
+}
+
+.field input,
+.field select {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  background: rgba(22, 7, 8, 0.52);
+  color: #fff4dc;
+  font: inherit;
+}
+
+.profileCard {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 18px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 238, 211, 0.82);
+}
+
+.profileCard strong,
+.userCard strong {
+  color: #fff4dc;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 46px;
+  padding: 0 16px;
+  font-weight: 700;
+}
+
+.primaryButton {
+  border: 1px solid rgba(255, 244, 217, 0.12);
+  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
+  color: #34170b;
+}
+
+.secondaryButton,
+.inlineButton {
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  background: rgba(225, 184, 90, 0.08);
+  color: #f4d28c;
+}
+
+.primaryButton:hover,
+.secondaryButton:hover,
+.inlineButton:hover,
+.closeButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.inlineButton:disabled,
+.closeButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.adminArea {
+  margin: 0 30px 30px;
+  padding: 22px;
+}
+
+.scopeEditor,
+.scopeBlock {
+  display: grid;
+  gap: 12px;
+}
+
+.scopeEditor {
+  margin-top: 18px;
+}
+
+.scopeLabel {
+  color: rgba(255, 238, 211, 0.82);
+  font-size: 0.92rem;
+}
+
+.scopeHint {
+  margin: 0;
+  color: rgba(255, 238, 211, 0.62);
+  font-size: 0.84rem;
+}
+
+.checkboxRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.checkboxTag {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff1d0;
+}
+
+.checkboxTag input {
+  accent-color: #d8bd84;
+}
+
+.userForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.buttonRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.userList {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.userCard,
+.userMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.userCard {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.userCardHeader,
+.userActionRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.existingUserGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.userCard span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 238, 211, 0.72);
+  font-size: 0.9rem;
+}
+
+.inlineButton {
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+@media (max-width: 900px) {
+  .columns,
+  .userForm,
+  .existingUserGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .userCardHeader,
+  .userActionRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 10px;
+  }
+
+  .header,
+  .columns,
+  .adminArea {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .notice,
+  .tip {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}

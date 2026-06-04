@@ -10,6 +10,8 @@ interface Props {
   onOpenCompetition: (id: string) => void;
   onDeleteCompetition: (id: string) => void;
   topEpaTeams: CompetitionTopTeam[];
+  canCreateCompetition?: boolean;
+  canDeleteCompetition?: boolean;
 }
 
 function formatCardTime(value: string): string {
@@ -35,8 +37,17 @@ export function CompetitionLobby({
   onOpenCompetition,
   onDeleteCompetition,
   topEpaTeams,
+  canCreateCompetition = true,
+  canDeleteCompetition = false,
 }: Props) {
   const [competitionName, setCompetitionName] = useState('');
+
+  const handleCreate = () => {
+    onCreateCompetition(competitionName);
+    if (competitionName.trim()) {
+      setCompetitionName('');
+    }
+  };
 
   return (
     <section className={styles.lobby}>
@@ -45,7 +56,7 @@ export function CompetitionLobby({
           <p className={styles.creatorEyebrow}>新建赛事</p>
           <h2>{eventType} 赛事大厅</h2>
           <p className={styles.creatorHint}>
-            为 {eventType} 赛项下的每场比赛单独建立一个入口，后续粘贴进来的表格数据会保存在对应卡片里。
+            同一赛项下的每场比赛都会独立建卡，后续粘贴进来的表格数据会保存在对应卡片里。
           </p>
         </div>
 
@@ -54,25 +65,23 @@ export function CompetitionLobby({
             className={styles.nameInput}
             type="text"
             value={competitionName}
-            placeholder={`输入 ${eventType} 比赛名称，例如：新加坡培训赛 2026`}
+            disabled={!canCreateCompetition}
+            placeholder={`输入 ${eventType} 比赛名称，例如：广东区域赛 2026`}
             onChange={(event) => setCompetitionName(event.target.value)}
             onKeyDown={(event) => {
+              if (!canCreateCompetition) {
+                return;
+              }
+
               if (event.key === 'Enter') {
-                onCreateCompetition(competitionName);
-                if (competitionName.trim()) {
-                  setCompetitionName('');
-                }
+                handleCreate();
               }
             }}
           />
           <button
             className={styles.createButton}
-            onClick={() => {
-              onCreateCompetition(competitionName);
-              if (competitionName.trim()) {
-                setCompetitionName('');
-              }
-            }}
+            disabled={!canCreateCompetition}
+            onClick={handleCreate}
           >
             生成比赛卡片
           </button>
@@ -100,6 +109,7 @@ export function CompetitionLobby({
                 </div>
                 <button
                   className={styles.deleteButton}
+                  disabled={!canDeleteCompetition}
                   onClick={() => onDeleteCompetition(competition.id)}
                   title="删除赛事卡片"
                 >
@@ -109,12 +119,12 @@ export function CompetitionLobby({
 
               <div className={styles.cardMeta}>
                 <span>{competition.teamsData.length} 支队伍</span>
-                <span>{competition.lastUpdate ? `最近更新 ${competition.lastUpdate}` : '尚未导入数据'}</span>
+                <span>{competition.lastUpdate ? `最近更新：${competition.lastUpdate}` : '尚未导入数据'}</span>
                 <span>创建于 {formatCardTime(competition.createdAt)}</span>
               </div>
 
               <div className={styles.workspacePreview}>
-                <p className={styles.previewTitle}>已接入排行榜页面</p>
+                <p className={styles.previewTitle}>已接入工作台</p>
                 <div className={styles.previewTags}>
                   <span>剪贴板导入</span>
                   <span>排行榜</span>

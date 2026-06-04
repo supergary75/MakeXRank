@@ -31,16 +31,39 @@ export interface Alliance {
   name: string;
   team1: string;
   team2: string;
+  team1Code?: string;
+  team2Code?: string;
+  team1Seed?: number;
+  team2Seed?: number;
   team1EPA: string;
   team2EPA: string;
   totalEPA: string;
+  totalNetScore: number;
+  totalWinLossScore: number;
+  totalScore: number;
+  powerScore: number;
+  outlook: string;
 }
 
 export interface PlayoffMatch {
+  roundName: string;
   alliance1: Alliance;
   alliance2: Alliance;
-  winner: Alliance | null;
-  epaDiff: string;
+  winner: Alliance;
+  loser: Alliance;
+  alliance1WinRate: number;
+  alliance2WinRate: number;
+  strengthDiff: number;
+  reason: string;
+}
+
+export interface PlayoffPrediction {
+  semifinals: PlayoffMatch[];
+  final: PlayoffMatch | null;
+  bronze: PlayoffMatch | null;
+  champion: Alliance | null;
+  runnerUp: Alliance | null;
+  thirdPlace: Alliance | null;
 }
 
 export interface CompetitionRecord {
@@ -97,7 +120,18 @@ export type SortOrder = 'asc' | 'desc';
 
 export type NotificationType = 'success' | 'error' | 'info';
 export type StorageMode = 'local' | 'supabase';
-
+export type UserRole = 'admin' | 'editor' | 'viewer';
 export type EventType = 'MakeX Inspire' | 'MakeX Explorer' | 'MakeX Challenge';
+
+export interface AuthUserProfile {
+  authUserId: string;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+  allowedEventTypes: EventType[] | null;
+  allowedCompetitionIds: string[] | null;
+}
 export type TabName = 'ranking' | 'playoff';
 export type ViewMode = 'event-types' | 'lobby' | 'competition';

@@ -9,6 +9,7 @@ interface Props {
   onAutoRefreshToggle: (enabled: boolean) => void;
   onIntervalChange: (interval: number) => void;
   storageMode: StorageMode;
+  editingEnabled?: boolean;
 }
 
 export function DataControls({
@@ -19,6 +20,7 @@ export function DataControls({
   onAutoRefreshToggle,
   onIntervalChange,
   storageMode,
+  editingEnabled = true,
 }: Props) {
   return (
     <div className={styles.controls}>
@@ -35,11 +37,26 @@ export function DataControls({
           </span>
         </div>
 
+        {!editingEnabled && (
+          <div className={styles.sourceBadge}>
+            <span className={styles.sourceLabel}>当前权限</span>
+            <span className={styles.sourceValue}>只读查看</span>
+          </div>
+        )}
+
         <div className={styles.actions}>
-          <button className={`${styles.btn} ${styles.clipboardBtn}`} onClick={onQuickRead}>
+          <button
+            className={`${styles.btn} ${styles.clipboardBtn}`}
+            onClick={onQuickRead}
+            disabled={!editingEnabled}
+          >
             读取并解析剪贴板
           </button>
-          <button className={`${styles.btn} ${styles.refreshBtn}`} onClick={onRefresh}>
+          <button
+            className={`${styles.btn} ${styles.refreshBtn}`}
+            onClick={onRefresh}
+            disabled={!editingEnabled}
+          >
             刷新排名
           </button>
         </div>
@@ -49,6 +66,7 @@ export function DataControls({
             <input
               type="checkbox"
               checked={autoRefreshEnabled}
+              disabled={!editingEnabled}
               onChange={(event) => onAutoRefreshToggle(event.target.checked)}
               className={styles.checkbox}
             />
@@ -56,6 +74,7 @@ export function DataControls({
           </label>
           <select
             value={autoRefreshInterval}
+            disabled={!editingEnabled}
             onChange={(event) => onIntervalChange(Number(event.target.value))}
             className={styles.intervalSelect}
           >

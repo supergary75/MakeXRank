@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
+  AuthUserProfile,
   CompetitionRecord,
   CompetitionTopTeam,
   EventType,
@@ -8,6 +9,7 @@ import type {
   StorageMode,
   TabName,
   TeamRanked,
+  UserRole,
   ViewMode,
 } from './types';
 import {
@@ -24,6 +26,18 @@ import {
   loadCachedCompetitions,
   saveCompetitionRecord,
 } from './services/competitionStorage';
+import {
+  bootstrapAdminUser,
+  createManagedUser,
+  fetchManagedUsers,
+  getStoredAccessToken,
+  isAuthAvailable,
+  resetManagedUserPassword,
+  restoreAuthUser,
+  signInWithUsername,
+  signOutCurrentUser,
+  updateManagedUser,
+} from './services/authService';
 import { calculateRanking, sortTeams } from './utils/rankingAlgorithm';
 import { useNotification } from './hooks/useNotification';
 import { useFeaturedTeams } from './hooks/useFeaturedTeams';
@@ -41,12 +55,44 @@ import { FeaturedTeams } from './components/ranking/FeaturedTeams';
 import { SearchBox } from './components/ranking/SearchBox';
 import { RankingTable } from './components/ranking/RankingTable';
 import { PlayoffView } from './components/playoff/PlayoffView';
+import { AuthPanel } from './components/auth/AuthPanel';
 import { NotificationContainer } from './components/ui/Notification';
 
 import styles from './App.module.css';
 
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
 const EVENT_TYPES: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
+
+function hasEventAccess(user: AuthUserProfile | null, eventType: EventType): boolean {
+  if (!user || user.role === 'admin') {
+    return true;
+  }
+
+  if (!user.allowedEventTypes || user.allowedEventTypes.length === 0) {
+    return true;
+  }
+
+  return user.allowedEventTypes.includes(eventType);
+}
+
+function hasCompetitionAccess(
+  user: AuthUserProfile | null,
+  competition: CompetitionRecord,
+): boolean {
+  if (!hasEventAccess(user, competition.eventType)) {
+    return false;
+  }
+
+  if (!user || user.role === 'admin') {
+    return true;
+  }
+
+  if (!user.allowedCompetitionIds || user.allowedCompetitionIds.length === 0) {
+    return true;
+  }
+
+  return user.allowedCompetitionIds.includes(competition.id);
+}
 
 function getDefaultSortField(eventType: EventType): SortField {
   return eventType === 'MakeX Inspire' ? 'attempt1Score' : 'totalWinLossScore';
@@ -130,6 +176,11 @@ export default function App() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [awaitingPaste, setAwaitingPaste] = useState(false);
   const [storageMode, setStorageMode] = useState<StorageMode>(() => getPreferredStorageMode());
+  const [authUser, setAuthUser] = useState<AuthUserProfile | null>(null);
+  const [managedUsers, setManagedUsers] = useState<AuthUserProfile[]>([]);
+  const [authPanelOpen, setAuthPanelOpen] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const { notifications, showNotification } = useNotification();
@@ -137,12 +188,21 @@ export default function App() {
 
   const activeCompetition =
     competitions.find((competition) => competition.id === activeCompetitionId) ?? null;
+  const authEnabled = isAuthAvailable();
+  const accessibleEventTypes = EVENT_TYPES.filter((eventType) => hasEventAccess(authUser, eventType));
+  const canEdit = authEnabled ? authUser?.role === 'admin' || authUser?.role === 'editor' : true;
+  const canDeleteCompetition = authEnabled ? authUser?.role === 'admin' : true;
+  const canManageUsers = authEnabled ? authUser?.role === 'admin' : false;
   const activeEventType = activeCompetition?.eventType ?? selectedEventType ?? DEFAULT_EVENT_TYPE;
   const lobbyCompetitions = selectedEventType
-    ? competitions.filter((competition) => competition.eventType === selectedEventType)
+    ? competitions.filter((competition) =>
+      competition.eventType === selectedEventType && hasCompetitionAccess(authUser, competition))
     : [];
   const competitionCounts = EVENT_TYPES.reduce<Record<EventType, number>>((counts, eventType) => {
-    counts[eventType] = competitions.filter((competition) => competition.eventType === eventType).length;
+    counts[eventType] = competitions.filter(
+      (competition) =>
+        competition.eventType === eventType && hasCompetitionAccess(authUser, competition),
+    ).length;
     return counts;
   }, {
     'MakeX Inspire': 0,
@@ -195,7 +255,15 @@ export default function App() {
         rankInCompetition: index + 1,
       }));
     })
-    .filter((team) => !selectedEventType || team.eventType === selectedEventType)
+    .filter((team) => {
+      const relatedCompetition = competitions.find((competition) => competition.id === team.competitionId);
+      if (!relatedCompetition) {
+        return false;
+      }
+
+      return (!selectedEventType || team.eventType === selectedEventType)
+        && hasCompetitionAccess(authUser, relatedCompetition);
+    })
     .sort((left, right) => {
       if (left.eventType === 'MakeX Inspire' && right.eventType === 'MakeX Inspire') {
         const leftRegularScore = left.attempt1Score ?? 0;
@@ -239,6 +307,63 @@ export default function App() {
   useEffect(() => {
     cacheCompetitionsLocally(competitions);
   }, [competitions]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      if (!authEnabled) {
+        if (!cancelled) {
+          setAuthReady(true);
+        }
+        return;
+      }
+
+      const restoredUser = await restoreAuthUser();
+      if (cancelled) {
+        return;
+      }
+
+      setAuthUser(restoredUser);
+      setAuthReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authEnabled]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      if (!canManageUsers) {
+        setManagedUsers(authUser ? [authUser] : []);
+        return;
+      }
+
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        return;
+      }
+
+      try {
+        const users = await fetchManagedUsers(accessToken);
+        if (!cancelled) {
+          setManagedUsers(users);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : '未知错误';
+          showNotification(`读取账号列表失败：${message}`, 'error');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, canManageUsers, showNotification]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -314,6 +439,231 @@ export default function App() {
     }
   }, [activeCompetition]);
 
+  useEffect(() => {
+    if (!activeCompetition) {
+      return;
+    }
+
+    if (hasCompetitionAccess(authUser, activeCompetition)) {
+      return;
+    }
+
+    setActiveCompetitionId(null);
+    setViewMode(selectedEventType ? 'lobby' : 'event-types');
+    showNotification('当前账号无权访问这场比赛，已返回可见范围。', 'error');
+  }, [activeCompetition, authUser, selectedEventType, showNotification]);
+
+  useEffect(() => {
+    if (!selectedEventType) {
+      return;
+    }
+
+    if (accessibleEventTypes.includes(selectedEventType)) {
+      return;
+    }
+
+    setSelectedEventType(accessibleEventTypes[0] ?? null);
+    setViewMode('event-types');
+  }, [accessibleEventTypes, selectedEventType]);
+
+  const ensureEditorAccess = useCallback(() => {
+    if (canEdit) {
+      return true;
+    }
+
+    showNotification('请先用 editor 或 admin 账号登录后再修改比赛数据。', 'error');
+    return false;
+  }, [canEdit, showNotification]);
+
+  const runAuthTask = useCallback(
+    async (task: () => Promise<void>) => {
+      setAuthBusy(true);
+      try {
+        await task();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(message, 'error');
+      } finally {
+        setAuthBusy(false);
+      }
+    },
+    [showNotification],
+  );
+
+  const handleLogin = useCallback(
+    async (username: string, password: string) => {
+      await runAuthTask(async () => {
+        const profile = await signInWithUsername(username, password);
+        setAuthUser(profile);
+        setAuthPanelOpen(false);
+        showNotification(`欢迎回来，${profile.displayName}。`, 'success');
+      });
+    },
+    [runAuthTask, showNotification],
+  );
+
+  const handleLogout = useCallback(
+    async () => {
+      await runAuthTask(async () => {
+        await signOutCurrentUser();
+        setAuthUser(null);
+        setManagedUsers([]);
+        showNotification('已退出当前账号。', 'info');
+      });
+    },
+    [runAuthTask, showNotification],
+  );
+
+  const handleBootstrapAdmin = useCallback(
+    async (input: {
+      username: string;
+      displayName: string;
+      password: string;
+      role: UserRole;
+      allowedEventTypes?: EventType[] | null;
+      allowedCompetitionIds?: string[] | null;
+    }) => {
+      await runAuthTask(async () => {
+        const profile = await bootstrapAdminUser(input);
+        setAuthUser(profile);
+        setAuthPanelOpen(false);
+        showNotification(`首个管理员 ${profile.displayName} 已创建并登录。`, 'success');
+      });
+    },
+    [runAuthTask, showNotification],
+  );
+
+  const handleCreateManagedUser = useCallback(
+    async (input: {
+      username: string;
+      displayName: string;
+      password: string;
+      role: UserRole;
+      allowedEventTypes?: EventType[] | null;
+      allowedCompetitionIds?: string[] | null;
+    }) => {
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        showNotification('当前登录状态已失效，请重新登录管理员账号。', 'error');
+        return;
+      }
+
+      await runAuthTask(async () => {
+        const profile = await createManagedUser(accessToken, input);
+        setManagedUsers((previous) => [...previous, profile]);
+        showNotification(`已创建账号：${profile.username}`, 'success');
+      });
+    },
+    [runAuthTask, showNotification],
+  );
+
+  const handleUpdateManagedUser = useCallback(
+    async (
+      authUserId: string,
+      input: {
+        displayName?: string;
+        role?: UserRole;
+        allowedEventTypes?: EventType[] | null;
+        allowedCompetitionIds?: string[] | null;
+      },
+    ) => {
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        showNotification('当前登录状态已失效，请重新登录管理员账号。', 'error');
+        return;
+      }
+
+      await runAuthTask(async () => {
+        await updateManagedUser(accessToken, authUserId, input);
+        setManagedUsers((previous) =>
+          previous.map((user) =>
+            user.authUserId === authUserId
+              ? {
+                ...user,
+                displayName: input.displayName ?? user.displayName,
+                role: input.role ?? user.role,
+                allowedEventTypes:
+                  'allowedEventTypes' in input
+                    ? input.allowedEventTypes ?? null
+                    : user.allowedEventTypes,
+                allowedCompetitionIds:
+                  'allowedCompetitionIds' in input
+                    ? input.allowedCompetitionIds ?? null
+                    : user.allowedCompetitionIds,
+              }
+              : user,
+          ),
+        );
+
+        if (authUser?.authUserId === authUserId) {
+          setAuthUser((previous) => (
+            previous
+              ? {
+                ...previous,
+                displayName: input.displayName ?? previous.displayName,
+                role: input.role ?? previous.role,
+                allowedEventTypes:
+                  'allowedEventTypes' in input
+                    ? input.allowedEventTypes ?? null
+                    : previous.allowedEventTypes,
+                allowedCompetitionIds:
+                  'allowedCompetitionIds' in input
+                    ? input.allowedCompetitionIds ?? null
+                    : previous.allowedCompetitionIds,
+              }
+              : previous
+          ));
+        }
+
+        showNotification('账号权限已更新。', 'success');
+      });
+    },
+    [authUser, runAuthTask, showNotification],
+  );
+
+  const handleResetManagedUserPassword = useCallback(
+    async (authUserId: string, nextPassword: string) => {
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        showNotification('当前登录状态已失效，请重新登录管理员账号。', 'error');
+        return;
+      }
+
+      await runAuthTask(async () => {
+        await resetManagedUserPassword(accessToken, authUserId, nextPassword);
+        showNotification('新密码已保存。', 'success');
+      });
+    },
+    [runAuthTask, showNotification],
+  );
+
+  const handleToggleUserActive = useCallback(
+    async (authUserId: string, isActive: boolean) => {
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        showNotification('当前登录状态已失效，请重新登录管理员账号。', 'error');
+        return;
+      }
+
+      await runAuthTask(async () => {
+        await updateManagedUser(accessToken, authUserId, { isActive });
+        setManagedUsers((previous) =>
+          previous.map((user) =>
+            user.authUserId === authUserId ? { ...user, isActive } : user,
+          ),
+        );
+        if (authUser?.authUserId === authUserId && !isActive) {
+          await signOutCurrentUser();
+          setAuthUser(null);
+          setManagedUsers([]);
+          setAuthPanelOpen(false);
+        }
+        showNotification(isActive ? '账号已启用。' : '账号已停用。', 'success');
+      });
+    },
+    [authUser?.authUserId, runAuthTask, showNotification],
+  );
+
   const syncCompetition = useCallback(
     async (competition: CompetitionRecord) => {
       if (storageMode !== 'supabase') {
@@ -365,8 +715,17 @@ export default function App() {
 
   const handleCreateCompetition = useCallback(
     (name: string) => {
+      if (!ensureEditorAccess()) {
+        return;
+      }
+
       if (!selectedEventType) {
         showNotification('请先选择一个赛项。', 'error');
+        return;
+      }
+
+      if (!hasEventAccess(authUser, selectedEventType)) {
+        showNotification('当前账号无权在这个赛项下创建比赛。', 'error');
         return;
       }
 
@@ -383,7 +742,7 @@ export default function App() {
       void syncCompetition(competition);
       showNotification(`已在 ${selectedEventType} 下创建比赛卡片：${trimmedName}`, 'success');
     },
-    [selectedEventType, showNotification, syncCompetition],
+    [authUser, ensureEditorAccess, selectedEventType, showNotification, syncCompetition],
   );
 
   const handleOpenCompetition = useCallback(
@@ -391,6 +750,11 @@ export default function App() {
       const competition = competitions.find((item) => item.id === id);
       if (!competition) {
         showNotification('没有找到这场比赛。', 'error');
+        return;
+      }
+
+      if (!hasCompetitionAccess(authUser, competition)) {
+        showNotification('当前账号无权打开这场比赛。', 'error');
         return;
       }
 
@@ -402,10 +766,15 @@ export default function App() {
       setActiveTab('ranking');
       setSearchKeyword('');
     },
-    [competitions, showNotification],
+    [authUser, competitions, showNotification],
   );
 
   const handleSelectEventType = useCallback((eventType: EventType) => {
+    if (!hasEventAccess(authUser, eventType)) {
+      showNotification('当前账号无权访问这个赛项。', 'error');
+      return;
+    }
+
     setSelectedEventType(eventType);
     setSortField(getDefaultSortField(eventType));
     setSortOrder('desc');
@@ -413,7 +782,7 @@ export default function App() {
     setActiveCompetitionId(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
-  }, []);
+  }, [authUser, showNotification]);
 
   const handleBackToLobby = useCallback(() => {
     setViewMode('lobby');
@@ -430,6 +799,11 @@ export default function App() {
 
   const handleDeleteCompetition = useCallback(
     (id: string) => {
+      if (!canDeleteCompetition) {
+        showNotification('当前账号没有删除赛事卡片的权限。', 'error');
+        return;
+      }
+
       const competition = competitions.find((item) => item.id === id);
       setCompetitions((previous) => previous.filter((item) => item.id !== id));
       void removeCompetitionFromCloud(id);
@@ -444,7 +818,7 @@ export default function App() {
         'info',
       );
     },
-    [activeCompetitionId, competitions, removeCompetitionFromCloud, showNotification],
+    [activeCompetitionId, canDeleteCompetition, competitions, removeCompetitionFromCloud, showNotification],
   );
 
   const parseAndApplyTable = useCallback(
@@ -516,6 +890,10 @@ export default function App() {
 
   const handleSourceTextChange = useCallback(
     (text: string) => {
+      if (!canEdit) {
+        return;
+      }
+
       if (awaitingPaste && text.trim()) {
         setAwaitingPaste(false);
       }
@@ -526,7 +904,7 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       }));
     },
-    [awaitingPaste, updateActiveCompetition],
+    [awaitingPaste, canEdit, updateActiveCompetition],
   );
 
   useEffect(() => {
@@ -574,6 +952,10 @@ export default function App() {
   const autoRefresh = useAutoRefresh(handleAutoRefresh);
 
   const handleClearCompetitionData = useCallback(() => {
+    if (!ensureEditorAccess()) {
+      return;
+    }
+
     if (!activeCompetition) {
       showNotification('请先从赛事大厅进入一个比赛。', 'error');
       return;
@@ -601,9 +983,13 @@ export default function App() {
     setSearchKeyword('');
     autoRefresh.setEnabled(false);
     showNotification(`已清空 ${activeCompetition.name} 的导入数据。`, 'success');
-  }, [activeCompetition, autoRefresh, showNotification, updateActiveCompetition]);
+  }, [activeCompetition, autoRefresh, ensureEditorAccess, showNotification, updateActiveCompetition]);
 
   const handleParseClipboard = useCallback(async () => {
+    if (!ensureEditorAccess()) {
+      return;
+    }
+
     if (!activeCompetition) {
       showNotification('请先从赛事大厅进入一个比赛。', 'error');
       return;
@@ -653,9 +1039,13 @@ export default function App() {
         ? `系统剪贴板读取受限，已改为解析输入框中的内容并更新 ${activeCompetition.name}。`
         : `已解析输入框中的内容并更新 ${activeCompetition.name}。`,
     );
-  }, [activeCompetition, parseAndApplyTable, showNotification, updateActiveCompetition]);
+  }, [activeCompetition, ensureEditorAccess, parseAndApplyTable, showNotification, updateActiveCompetition]);
 
   const handleRefresh = useCallback(() => {
+    if (!ensureEditorAccess()) {
+      return;
+    }
+
     if (!activeCompetition || activeCompetition.teamsData.length === 0) {
       showNotification('当前还没有可刷新的排名数据。', 'error');
       return;
@@ -667,7 +1057,7 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     }));
     showNotification('当前排名已刷新。', 'success');
-  }, [activeCompetition, showNotification, updateActiveCompetition]);
+  }, [activeCompetition, ensureEditorAccess, showNotification, updateActiveCompetition]);
 
   const handleSort = useCallback(
     (field: SortField) => {
@@ -684,6 +1074,10 @@ export default function App() {
 
   const handleAutoRefreshToggle = useCallback(
     (enabled: boolean) => {
+      if (enabled && !ensureEditorAccess()) {
+        return;
+      }
+
       if (enabled && (!activeCompetition || activeCompetition.teamsData.length === 0)) {
         showNotification('请先解析一份数据，再开启自动刷新。', 'error');
         return;
@@ -697,7 +1091,30 @@ export default function App() {
         enabled ? 'success' : 'info',
       );
     },
-    [activeCompetition, autoRefresh, showNotification],
+    [activeCompetition, autoRefresh, ensureEditorAccess, showNotification],
+  );
+
+  const accountAction = (
+    <div className={styles.accountActions}>
+      {authEnabled ? (
+        <>
+          {authReady && authUser ? (
+            <div className={styles.accountChip}>
+              <strong>{authUser.displayName}</strong>
+              <span>{authUser.role}</span>
+            </div>
+          ) : (
+            <div className={styles.accountChip}>
+              <strong>{authReady ? '未登录' : '账号恢复中'}</strong>
+              <span>{authReady ? 'viewer mode' : 'syncing'}</span>
+            </div>
+          )}
+          <button className={styles.accountButton} onClick={() => setAuthPanelOpen(true)}>
+            {authUser ? '账号管理' : '登录'}
+          </button>
+        </>
+      ) : null}
+    </div>
   );
 
   return (
@@ -709,11 +1126,13 @@ export default function App() {
               eyebrow="Event Selection"
               title="赛项选择"
               subtitle="先选赛项，再进入对应的二级赛事大厅。每个赛项都会独立保存自己的比赛卡片和数据。"
+              action={accountAction}
             />
 
             <EventTypeSelector
               competitionCounts={competitionCounts}
               onSelect={handleSelectEventType}
+              visibleEventTypes={accessibleEventTypes}
             />
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />
@@ -725,9 +1144,12 @@ export default function App() {
               title={selectedEventType}
               subtitle="这里是该赛项的二级赛事大厅。先创建比赛卡片，再进入对应的排行榜工作台。"
               action={
-                <button className={styles.backButton} onClick={handleBackToEventTypes}>
-                  返回赛项选择
-                </button>
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToEventTypes}>
+                    返回赛项选择
+                  </button>
+                  {accountAction}
+                </div>
               }
             />
 
@@ -738,6 +1160,8 @@ export default function App() {
               onOpenCompetition={handleOpenCompetition}
               onDeleteCompetition={handleDeleteCompetition}
               topEpaTeams={topEpaTeams}
+              canCreateCompetition={canEdit}
+              canDeleteCompetition={canDeleteCompetition}
             />
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />
@@ -753,9 +1177,12 @@ export default function App() {
                   : '剪贴板导入 · 排行榜与淘汰赛预测工作台'
               }
               action={
-                <button className={styles.backButton} onClick={handleBackToLobby}>
-                  返回赛事大厅
-                </button>
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToLobby}>
+                    返回赛事大厅
+                  </button>
+                  {accountAction}
+                </div>
               }
             />
 
@@ -786,6 +1213,7 @@ export default function App() {
               onAutoRefreshToggle={handleAutoRefreshToggle}
               onIntervalChange={autoRefresh.setInterval}
               storageMode={storageMode}
+              editingEnabled={canEdit}
             />
 
             <TabNavigation
@@ -802,6 +1230,7 @@ export default function App() {
                   onClearData={handleClearCompetitionData}
                   awaitingPaste={awaitingPaste}
                   pasteAreaRef={pasteAreaRef}
+                  readOnly={!canEdit}
                 />
 
                 <StatsCards
@@ -836,13 +1265,34 @@ export default function App() {
             )}
 
             {activeTab === 'playoff' && activeCompetition.eventType !== 'MakeX Inspire' && (
-              <PlayoffView teamsData={teamsData} showNotification={showNotification} />
+              <PlayoffView
+                eventType={activeCompetition.eventType}
+                teamsData={teamsData}
+                showNotification={showNotification}
+              />
             )}
 
             <Footer lastUpdate={activeCompetition.lastUpdate} storageMode={storageMode} />
           </>
         ) : null}
       </div>
+
+      {authPanelOpen && (
+        <AuthPanel
+          authAvailable={authEnabled}
+          currentUser={authUser}
+          managedUsers={managedUsers}
+          busy={authBusy}
+          onClose={() => setAuthPanelOpen(false)}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+          onBootstrapAdmin={handleBootstrapAdmin}
+          onCreateUser={handleCreateManagedUser}
+          onUpdateUser={handleUpdateManagedUser}
+          onResetPassword={handleResetManagedUserPassword}
+          onToggleUserActive={handleToggleUserActive}
+        />
+      )}
 
       <NotificationContainer notifications={notifications} />
     </div>

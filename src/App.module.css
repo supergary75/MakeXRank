@@ -98,6 +98,53 @@
   box-shadow: var(--glow-amber);
 }
 
+.headerActions,
+.accountActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.accountChip {
+  display: grid;
+  gap: 2px;
+  min-width: 112px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(225, 184, 90, 0.16);
+  background: rgba(68, 20, 18, 0.46);
+  color: var(--gray-800);
+}
+
+.accountChip strong {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.accountChip span {
+  color: var(--gray-400);
+  font-size: 0.74rem;
+  text-transform: lowercase;
+}
+
+.accountButton {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 244, 217, 0.14);
+  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
+  color: #34170b;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.accountButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-amber);
+}
+
 .workspaceSummary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -149,6 +196,11 @@
     grid-template-columns: 1fr;
     padding: 16px 16px 6px;
   }
+
+  .headerActions,
+  .accountActions {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 480px) {
@@ -162,5 +214,15 @@
 
   .workspaceSummary {
     padding: 12px 12px 4px;
+  }
+
+  .headerActions,
+  .accountActions {
+    width: 100%;
+  }
+
+  .accountButton,
+  .backButton {
+    width: 100%;
   }
 }

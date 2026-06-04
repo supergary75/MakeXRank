@@ -32,9 +32,14 @@ const EVENT_TYPE_OPTIONS: EventTypeOption[] = [
 interface Props {
   competitionCounts: Record<EventType, number>;
   onSelect: (eventType: EventType) => void;
+  visibleEventTypes?: EventType[];
 }
 
-export function EventTypeSelector({ competitionCounts, onSelect }: Props) {
+export function EventTypeSelector({ competitionCounts, onSelect, visibleEventTypes }: Props) {
+  const visibleOptions = visibleEventTypes?.length
+    ? EVENT_TYPE_OPTIONS.filter((option) => visibleEventTypes.includes(option.eventType))
+    : EVENT_TYPE_OPTIONS;
+
   return (
     <section className={styles.selector}>
       <div className={styles.intro}>
@@ -47,7 +52,7 @@ export function EventTypeSelector({ competitionCounts, onSelect }: Props) {
       </div>
 
       <div className={styles.grid}>
-        {EVENT_TYPE_OPTIONS.map((option) => (
+        {visibleOptions.map((option) => (
           <article key={option.eventType} className={styles.card}>
             <div className={styles.cardTop}>
               <div>
