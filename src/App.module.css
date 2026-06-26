@@ -145,6 +145,114 @@
   box-shadow: var(--glow-amber);
 }
 
+.portalSection {
+  padding: 24px;
+  display: grid;
+  gap: 22px;
+}
+
+.portalIntro {
+  padding: 26px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(225, 184, 90, 0.14);
+  background:
+    linear-gradient(145deg, rgba(225, 184, 90, 0.08), transparent 52%),
+    rgba(53, 18, 18, 0.56);
+}
+
+.portalEyebrow {
+  margin: 0 0 12px;
+  color: var(--gray-300);
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.portalIntro h2 {
+  margin: 0;
+  color: var(--gray-800);
+}
+
+.portalHint {
+  margin: 14px 0 0;
+  color: var(--gray-400);
+  line-height: 1.8;
+  max-width: 760px;
+}
+
+.portalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.portalCard {
+  padding: 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(225, 184, 90, 0.14);
+  background:
+    linear-gradient(145deg, rgba(225, 184, 90, 0.06), transparent 52%),
+    rgba(51, 15, 16, 0.62);
+  display: grid;
+  gap: 16px;
+}
+
+.portalCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.portalCardTop h3 {
+  margin: 6px 0 0;
+  color: var(--gray-800);
+}
+
+.portalCardLabel {
+  margin: 0;
+  color: var(--gray-300);
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.portalBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  background: rgba(225, 184, 90, 0.12);
+  border: 1px solid rgba(225, 184, 90, 0.14);
+  color: var(--gray-700);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.portalCardText {
+  margin: 0;
+  color: var(--gray-400);
+  line-height: 1.8;
+}
+
+.portalButton {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 244, 217, 0.12);
+  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
+  color: #34170b;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.portalButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-amber);
+}
+
 .workspaceSummary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -156,6 +264,10 @@
 @media (max-width: 1080px) {
   .workspaceSummary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portalGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -195,6 +307,10 @@
   .workspaceSummary {
     grid-template-columns: 1fr;
     padding: 16px 16px 6px;
+  }
+
+  .portalSection {
+    padding: 16px;
   }
 
   .headerActions,

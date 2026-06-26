@@ -29,10 +29,15 @@ interface ResetPasswordRequest {
   password: string;
 }
 
+interface DeleteUserRequest {
+  authUserId: string;
+}
+
 type ManageUserRequest =
   | ({ action: 'bootstrap_admin' } & CreateLikeRequest)
   | ({ action: 'create_user' } & CreateLikeRequest)
-  | ({ action: 'reset_password' } & ResetPasswordRequest);
+  | ({ action: 'reset_password' } & ResetPasswordRequest)
+  | ({ action: 'delete_user' } & DeleteUserRequest);
 
 function jsonResponse(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
@@ -112,6 +117,14 @@ function validateResetPayload(payload: Partial<ResetPasswordRequest>): string | 
   return null;
 }
 
+function validateDeletePayload(payload: Partial<DeleteUserRequest>): string | null {
+  if (!payload.authUserId?.trim()) {
+    return '缺少目标用户 ID。';
+  }
+
+  return null;
+}
+
 async function ensureActiveAdmin(
   adminClient: ReturnType<typeof createClient>,
   userClient: ReturnType<typeof createClient>,
@@ -132,7 +145,7 @@ async function ensureActiveAdmin(
   }
 
   if (!operatorProfile || operatorProfile.role !== 'admin' || !operatorProfile.is_active) {
-    return jsonResponse(403, { message: 'Only an active admin can create users.' });
+    return jsonResponse(403, { message: 'Only an active admin can manage users.' });
   }
 
   return { authUserId: authData.user.id };
@@ -245,22 +258,57 @@ Deno.serve(async (request) => {
     });
   }
 
-  const validationError = validateResetPayload(payload);
+  if (payload.action === 'reset_password') {
+    const validationError = validateResetPayload(payload);
+    if (validationError) {
+      return jsonResponse(400, { message: validationError });
+    }
+
+    const adminCheck = await ensureActiveAdmin(adminClient, userClient);
+    if (adminCheck instanceof Response) {
+      return jsonResponse(403, { message: 'Only an active admin can reset passwords.' });
+    }
+
+    const { error: resetError } = await adminClient.auth.admin.updateUserById(payload.authUserId, {
+      password: payload.password,
+    });
+
+    if (resetError) {
+      return jsonResponse(400, { message: resetError.message });
+    }
+
+    return jsonResponse(200, { success: true });
+  }
+
+  const validationError = validateDeletePayload(payload);
   if (validationError) {
     return jsonResponse(400, { message: validationError });
   }
 
   const adminCheck = await ensureActiveAdmin(adminClient, userClient);
   if (adminCheck instanceof Response) {
-    return jsonResponse(403, { message: 'Only an active admin can reset passwords.' });
+    return jsonResponse(403, { message: 'Only an active admin can delete users.' });
   }
 
-  const { error: resetError } = await adminClient.auth.admin.updateUserById(payload.authUserId, {
-    password: payload.password,
-  });
+  if (adminCheck.authUserId === payload.authUserId) {
+    return jsonResponse(400, { message: 'Admin cannot delete the currently logged-in account.' });
+  }
 
-  if (resetError) {
-    return jsonResponse(400, { message: resetError.message });
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(payload.authUserId);
+  const deleteMessage = deleteError?.message?.toLowerCase() ?? '';
+  const authUserMissing = deleteMessage.includes('user not found');
+
+  if (deleteError && !authUserMissing) {
+    return jsonResponse(400, { message: deleteError.message });
+  }
+
+  const { error: profileDeleteError } = await adminClient
+    .from(profileTable)
+    .delete()
+    .eq('auth_user_id', payload.authUserId);
+
+  if (profileDeleteError) {
+    return jsonResponse(400, { message: profileDeleteError.message });
   }
 
   return jsonResponse(200, { success: true });

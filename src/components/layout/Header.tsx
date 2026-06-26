@@ -9,6 +9,9 @@ interface Props {
 }
 
 export function Header({ title, subtitle, eyebrow, action }: Props) {
+  const resolvedEyebrow = eyebrow === 'Event Selection' ? 'Event Analytics' : eyebrow;
+  const resolvedTitle = eyebrow === 'Event Selection' ? '赛事数据分析' : title;
+
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -22,8 +25,8 @@ export function Header({ title, subtitle, eyebrow, action }: Props) {
           </div>
 
           <div className={styles.copy}>
-            {eyebrow && <p className={styles.eyebrow}>{eyebrow}</p>}
-            <h1>{title}</h1>
+            {resolvedEyebrow && <p className={styles.eyebrow}>{resolvedEyebrow}</p>}
+            <h1>{resolvedTitle}</h1>
             <p className={styles.subtitle}>{subtitle}</p>
           </div>
         </div>

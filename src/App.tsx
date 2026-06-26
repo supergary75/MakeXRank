@@ -29,6 +29,7 @@ import {
 import {
   bootstrapAdminUser,
   createManagedUser,
+  deleteManagedUser,
   fetchManagedUsers,
   getStoredAccessToken,
   isAuthAvailable,
@@ -167,7 +168,7 @@ function mergeCompetitionsForSync(
 
 export default function App() {
   const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCachedCompetitions());
-  const [viewMode, setViewMode] = useState<ViewMode>('event-types');
+  const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [activeCompetitionId, setActiveCompetitionId] = useState<string | null>(null);
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(null);
   const [sortField, setSortField] = useState<SortField>('totalWinLossScore');
@@ -495,6 +496,7 @@ export default function App() {
       await runAuthTask(async () => {
         const profile = await signInWithUsername(username, password);
         setAuthUser(profile);
+        setViewMode('home');
         setAuthPanelOpen(false);
         showNotification(`欢迎回来，${profile.displayName}。`, 'success');
       });
@@ -526,6 +528,7 @@ export default function App() {
       await runAuthTask(async () => {
         const profile = await bootstrapAdminUser(input);
         setAuthUser(profile);
+        setViewMode('home');
         setAuthPanelOpen(false);
         showNotification(`首个管理员 ${profile.displayName} 已创建并登录。`, 'success');
       });
@@ -550,7 +553,8 @@ export default function App() {
 
       await runAuthTask(async () => {
         const profile = await createManagedUser(accessToken, input);
-        setManagedUsers((previous) => [...previous, profile]);
+        const users = await fetchManagedUsers(accessToken);
+        setManagedUsers(users);
         showNotification(`已创建账号：${profile.username}`, 'success');
       });
     },
@@ -632,6 +636,23 @@ export default function App() {
       await runAuthTask(async () => {
         await resetManagedUserPassword(accessToken, authUserId, nextPassword);
         showNotification('新密码已保存。', 'success');
+      });
+    },
+    [runAuthTask, showNotification],
+  );
+
+  const handleDeleteManagedUser = useCallback(
+    async (authUserId: string) => {
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        showNotification('当前登录状态已失效，请重新登录管理员账号。', 'error');
+        return;
+      }
+
+      await runAuthTask(async () => {
+        await deleteManagedUser(accessToken, authUserId);
+        setManagedUsers((previous) => previous.filter((user) => user.authUserId !== authUserId));
+        showNotification('用户已删除。', 'success');
       });
     },
     [runAuthTask, showNotification],
@@ -792,6 +813,27 @@ export default function App() {
 
   const handleBackToEventTypes = useCallback(() => {
     setViewMode('event-types');
+    setActiveCompetitionId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+  }, []);
+
+  const handleOpenDataAnalysis = useCallback(() => {
+    setViewMode('event-types');
+    setActiveCompetitionId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+  }, []);
+
+  const handleOpenLogistics = useCallback(() => {
+    setViewMode('logistics');
+    setActiveCompetitionId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+  }, []);
+
+  const handleBackToHome = useCallback(() => {
+    setViewMode('home');
     setActiveCompetitionId(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
@@ -1109,7 +1151,18 @@ export default function App() {
               <span>{authReady ? 'viewer mode' : 'syncing'}</span>
             </div>
           )}
-          <button className={styles.accountButton} onClick={() => setAuthPanelOpen(true)}>
+          <button
+            className={styles.accountButton}
+            onClick={() => {
+              if (authUser) {
+                setAuthPanelOpen(true);
+                return;
+              }
+
+              setViewMode('login');
+              setAuthPanelOpen(true);
+            }}
+          >
             {authUser ? '账号管理' : '登录'}
           </button>
         </>
@@ -1120,7 +1173,69 @@ export default function App() {
   return (
     <div className={styles.app}>
       <div className={styles.container}>
-        {viewMode === 'event-types' ? (
+        {viewMode === 'home' || viewMode === 'login' ? (
+          <>
+            <Header
+              eyebrow="Operations Hub"
+              title="赛事管理中心"
+              subtitle="先在首页登录，再根据工作内容进入对应入口。当前已提供赛事后勤管理与赛事数据分析两个工作台入口。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              <div className={styles.portalIntro}>
+                <p className={styles.portalEyebrow}>Home</p>
+                <h2>选择工作入口</h2>
+                <p className={styles.portalHint}>
+                  主页负责统一登录和功能分流。进入赛事数据分析后，才会继续选择赛项、创建比赛卡片并做排名与淘汰赛分析。
+                </p>
+              </div>
+
+              <div className={styles.portalGrid}>
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>入口一</p>
+                      <h3>赛事后勤管理</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Logistics</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    用于后勤协同、物资记录、人员安排与现场事务管理。当前先提供独立入口页，后续可继续扩展成完整后勤系统。
+                  </p>
+                  <button className={styles.portalButton} onClick={handleOpenLogistics}>
+                    进入赛事后勤管理
+                  </button>
+                </article>
+
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>入口二</p>
+                      <h3>赛事数据分析</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Analytics</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    进入赛项选择、赛事大厅、比赛详情与排名分析工作台，继续完成表格导入、EPA 排名、淘汰赛预测等操作。
+                  </p>
+                  <button className={styles.portalButton} onClick={handleOpenDataAnalysis}>
+                    进入赛事数据分析
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'event-types' ? (
           <>
             <Header
               eyebrow="Event Selection"
@@ -1137,6 +1252,52 @@ export default function App() {
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />
           </>
+        ) : viewMode === 'logistics' ? (
+          <>
+            <Header
+              eyebrow="Logistics Workspace"
+              title="赛事后勤管理"
+              subtitle="这里是后勤管理的独立二级页面。当前先保留统一入口，后续可以继续扩展为物资、人员、日程与现场支持管理。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              <div className={styles.portalIntro}>
+                <p className={styles.portalEyebrow}>Logistics</p>
+                <h2>后勤管理工作台</h2>
+                <p className={styles.portalHint}>
+                  这个入口已经独立出来，后面你可以继续往里接物资清单、人员分工、场地布置、签到流程或任务排班功能。
+                </p>
+              </div>
+
+              <div className={styles.portalGrid}>
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>当前状态</p>
+                      <h3>模块已预留</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Coming Next</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    你后面如果要做后勤系统，我可以直接继续在这个二级页里补卡片、表单、清单、状态流转和上传能力。
+                  </p>
+                  <button className={styles.portalButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
         ) : viewMode === 'lobby' && selectedEventType ? (
           <>
             <Header
@@ -1145,6 +1306,9 @@ export default function App() {
               subtitle="这里是该赛项的二级赛事大厅。先创建比赛卡片，再进入对应的排行榜工作台。"
               action={
                 <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回主页面
+                  </button>
                   <button className={styles.backButton} onClick={handleBackToEventTypes}>
                     返回赛项选择
                   </button>
@@ -1178,6 +1342,9 @@ export default function App() {
               }
               action={
                 <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回主页面
+                  </button>
                   <button className={styles.backButton} onClick={handleBackToLobby}>
                     返回赛事大厅
                   </button>
@@ -1277,19 +1444,25 @@ export default function App() {
         ) : null}
       </div>
 
-      {authPanelOpen && (
+      {(authPanelOpen || viewMode === 'login') && (
         <AuthPanel
           authAvailable={authEnabled}
-          currentUser={authUser}
+          currentUser={viewMode === 'login' ? null : authUser}
           managedUsers={managedUsers}
           busy={authBusy}
-          onClose={() => setAuthPanelOpen(false)}
+          onClose={() => {
+            setAuthPanelOpen(false);
+            if (!authUser) {
+              setViewMode('home');
+            }
+          }}
           onLogin={handleLogin}
           onLogout={handleLogout}
           onBootstrapAdmin={handleBootstrapAdmin}
           onCreateUser={handleCreateManagedUser}
           onUpdateUser={handleUpdateManagedUser}
           onResetPassword={handleResetManagedUserPassword}
+          onDeleteUser={handleDeleteManagedUser}
           onToggleUserActive={handleToggleUserActive}
         />
       )}

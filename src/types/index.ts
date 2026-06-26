@@ -134,4 +134,4 @@ export interface AuthUserProfile {
   allowedCompetitionIds: string[] | null;
 }
 export type TabName = 'ranking' | 'playoff';
-export type ViewMode = 'event-types' | 'lobby' | 'competition';
+export type ViewMode = 'home' | 'login' | 'event-types' | 'logistics' | 'lobby' | 'competition';

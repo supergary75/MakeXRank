@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { AuthUserProfile, EventType, UserRole } from '../../types';
 import styles from './AuthPanel.module.css';
 
@@ -45,13 +45,17 @@ interface Props {
     allowedEventTypes?: EventType[] | null;
     allowedCompetitionIds?: string[] | null;
   }) => Promise<void> | void;
-  onUpdateUser: (authUserId: string, input: {
-    displayName?: string;
-    role?: UserRole;
-    allowedEventTypes?: EventType[] | null;
-    allowedCompetitionIds?: string[] | null;
-  }) => Promise<void> | void;
+  onUpdateUser: (
+    authUserId: string,
+    input: {
+      displayName?: string;
+      role?: UserRole;
+      allowedEventTypes?: EventType[] | null;
+      allowedCompetitionIds?: string[] | null;
+    },
+  ) => Promise<void> | void;
   onResetPassword: (authUserId: string, password: string) => Promise<void> | void;
+  onDeleteUser: (authUserId: string) => Promise<void> | void;
   onToggleUserActive: (authUserId: string, isActive: boolean) => Promise<void> | void;
 }
 
@@ -93,27 +97,20 @@ export function AuthPanel({
   onClose,
   onLogin,
   onLogout,
-  onBootstrapAdmin,
+  onBootstrapAdmin: _onBootstrapAdmin,
   onCreateUser,
   onUpdateUser,
   onResetPassword,
+  onDeleteUser,
   onToggleUserActive,
 }: Props) {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [bootstrapForm, setBootstrapForm] = useState<ManagedUserForm>({
-    ...DEFAULT_USER_FORM,
-    role: 'admin',
-  });
   const [userForm, setUserForm] = useState<ManagedUserForm>(DEFAULT_USER_FORM);
   const [editingUsers, setEditingUsers] = useState<Record<string, ExistingUserForm>>({});
 
-  const hasAdmin = useMemo(
-    () => managedUsers.some((user) => user.role === 'admin'),
-    [managedUsers],
-  );
-
   const canManageUsers = currentUser?.role === 'admin';
+  const visibleManagedUsers = managedUsers.filter((user) => user.authUserId !== currentUser?.authUserId);
 
   const getUserDraft = (user: AuthUserProfile): ExistingUserForm =>
     editingUsers[user.authUserId] ?? {
@@ -124,7 +121,10 @@ export function AuthPanel({
       resetPassword: '',
     };
 
-  const updateUserDraft = (authUserId: string, updater: (draft: ExistingUserForm) => ExistingUserForm) => {
+  const updateUserDraft = (
+    authUserId: string,
+    updater: (draft: ExistingUserForm) => ExistingUserForm,
+  ) => {
     setEditingUsers((previous) => {
       const current = previous[authUserId] ?? {
         displayName: '',
@@ -141,10 +141,7 @@ export function AuthPanel({
     });
   };
 
-  const toggleEventType = (
-    selected: EventType[],
-    eventType: EventType,
-  ): EventType[] => (
+  const toggleEventType = (selected: EventType[], eventType: EventType): EventType[] => (
     selected.includes(eventType)
       ? selected.filter((item) => item !== eventType)
       : [...selected, eventType]
@@ -182,6 +179,15 @@ export function AuthPanel({
     }));
   };
 
+  const handleDeleteUser = async (user: AuthUserProfile) => {
+    const shouldDelete = window.confirm(`确认彻底删除用户 ${user.username} 吗？此操作不可撤销。`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    await onDeleteUser(user.authUserId);
+  };
+
   return (
     <div className={styles.overlay}>
       <div className={styles.panel}>
@@ -206,14 +212,14 @@ export function AuthPanel({
             <section className={styles.card}>
               <h3>用户登录</h3>
               <p className={styles.helper}>
-                用户只输入你分配的用户名和密码即可登录，系统内部会自动映射账号，不需要用户接触邮箱。
+                现在登录页只保留用户名和密码登录。管理员账号已经存在，不再开放“初始化管理员”入口。
               </p>
               <label className={styles.field}>
                 <span>用户名</span>
                 <input
                   value={loginUsername}
                   onChange={(event) => setLoginUsername(event.target.value)}
-                  placeholder="例如：guangdong_admin"
+                  placeholder="例如：supergary"
                 />
               </label>
               <label className={styles.field}>
@@ -222,7 +228,7 @@ export function AuthPanel({
                   type="password"
                   value={loginPassword}
                   onChange={(event) => setLoginPassword(event.target.value)}
-                  placeholder="输入分配的密码"
+                  placeholder="输入管理员或分配给你的密码"
                 />
               </label>
               <button
@@ -231,57 +237,6 @@ export function AuthPanel({
                 onClick={() => onLogin(loginUsername, loginPassword)}
               >
                 登录
-              </button>
-            </section>
-
-            <section className={styles.card}>
-              <h3>初始化管理员</h3>
-              <p className={styles.helper}>
-                第一次接入时，在这里创建首个管理员。后面的账号都由管理员继续分配，不再依赖邮箱验证。
-              </p>
-              {hasAdmin && (
-                <div className={styles.tip}>
-                  系统里已经检测到管理员账号。如果你只是登录，请用左侧用户名密码直接进入。
-                </div>
-              )}
-              <label className={styles.field}>
-                <span>管理员用户名</span>
-                <input
-                  value={bootstrapForm.username}
-                  onChange={(event) => setBootstrapForm((previous) => ({ ...previous, username: event.target.value }))}
-                  placeholder="例如：admin"
-                />
-              </label>
-              <label className={styles.field}>
-                <span>显示名称</span>
-                <input
-                  value={bootstrapForm.displayName}
-                  onChange={(event) => setBootstrapForm((previous) => ({ ...previous, displayName: event.target.value }))}
-                  placeholder="例如：赛事总管理员"
-                />
-              </label>
-              <label className={styles.field}>
-                <span>初始密码</span>
-                <input
-                  type="password"
-                  value={bootstrapForm.password}
-                  onChange={(event) => setBootstrapForm((previous) => ({ ...previous, password: event.target.value }))}
-                  placeholder="建议至少 8 位"
-                />
-              </label>
-              <button
-                className={styles.secondaryButton}
-                disabled={busy || !authAvailable}
-                onClick={() => onBootstrapAdmin({
-                  username: bootstrapForm.username,
-                  displayName: bootstrapForm.displayName,
-                  password: bootstrapForm.password,
-                  role: 'admin',
-                  allowedEventTypes: null,
-                  allowedCompetitionIds: null,
-                })}
-              >
-                创建首个管理员
               </button>
             </section>
           </div>
@@ -304,7 +259,7 @@ export function AuthPanel({
             <section className={styles.card}>
               <h3>账号说明</h3>
               <p className={styles.helper}>
-                现在这版支持管理员直接重置密码，并且可以限制某个用户只看或只编辑指定赛项、指定比赛。
+                当前版本支持管理员直接重置密码、删除用户，并且可以限制某个用户只看指定赛项或指定比赛。
                 赛项留空表示可见全部；比赛 ID 留空表示不再单独限制比赛卡片。
               </p>
               {!canManageUsers && (
@@ -411,7 +366,12 @@ export function AuthPanel({
             </div>
 
             <div className={styles.userList}>
-              {managedUsers.map((user) => {
+              {visibleManagedUsers.length === 0 && (
+                <div className={styles.tip}>
+                  还没有其他用户。创建成功后，新账号会直接显示在这里。
+                </div>
+              )}
+              {visibleManagedUsers.map((user) => {
                 const draft = getUserDraft(user);
 
                 return (
@@ -517,6 +477,13 @@ export function AuthPanel({
                         onClick={() => handleResetPassword(user)}
                       >
                         重置密码
+                      </button>
+                      <button
+                        className={styles.inlineButton}
+                        disabled={busy || user.authUserId === currentUser.authUserId}
+                        onClick={() => handleDeleteUser(user)}
+                      >
+                        删除用户
                       </button>
                     </div>
                   </article>

@@ -55,7 +55,7 @@ export interface ManagedUserUpdate {
   allowedCompetitionIds?: string[] | null;
 }
 
-type UserManagementAction = 'bootstrap_admin' | 'create_user' | 'reset_password';
+type UserManagementAction = 'bootstrap_admin' | 'create_user' | 'reset_password' | 'delete_user';
 
 function isConfigured(): boolean {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -183,6 +183,10 @@ function humanizeAuthError(message: string): string {
     return '只有已启用的管理员账号可以重置别人的密码。';
   }
 
+  if (lowerMessage.includes('only an active admin can delete users')) {
+    return '只有已启用的管理员账号可以删除用户。';
+  }
+
   if (lowerMessage.includes('admin account already exists')) {
     return '系统里已经存在管理员账号，请直接登录管理员。';
   }
@@ -290,7 +294,7 @@ async function callUserManagementFunction(
   },
 ): Promise<ManagedUserFunctionResponse> {
   const payload =
-    action === 'reset_password'
+    action === 'reset_password' || action === 'delete_user'
       ? {
         action,
         authUserId: options.authUserId,
@@ -420,7 +424,7 @@ export async function signOutCurrentUser(): Promise<void> {
 export async function fetchManagedUsers(accessToken: string): Promise<AuthUserProfile[]> {
   const params = new URLSearchParams({
     select: '*',
-    order: 'created_at.asc',
+    order: 'created_at.desc',
   });
 
   const rows = await requestJson<ProfileRow[]>(
@@ -472,6 +476,20 @@ export async function resetManagedUserPassword(
     accessToken,
     authUserId,
     password: nextPassword,
+  });
+}
+
+export async function deleteManagedUser(
+  accessToken: string,
+  authUserId: string,
+): Promise<void> {
+  if (!authUserId.trim()) {
+    throw new Error('缺少要删除的用户 ID。');
+  }
+
+  await callUserManagementFunction('delete_user', {
+    accessToken,
+    authUserId,
   });
 }
 
