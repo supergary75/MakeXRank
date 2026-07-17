@@ -79,6 +79,7 @@
   padding: 12px;
   transition: all var(--transition-fast);
   user-select: none;
+  position: relative;
 }
 
 .teamClickable:hover {
@@ -91,6 +92,112 @@
   font-size: 0.85em;
   margin-left: 4px;
   animation: pulse 2s infinite;
+}
+
+.teamNameLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.teamTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(0, 218, 255, 0.22), rgba(255, 42, 109, 0.18));
+  border: 1px solid rgba(225, 184, 90, 0.28);
+  color: #fff4dc;
+  font-size: 0.78em;
+  font-weight: 900;
+}
+
+.tagPicker {
+  display: grid;
+  gap: 10px;
+  min-width: 260px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(225, 184, 90, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(34, 8, 8, 0.96);
+  box-shadow: var(--shadow-lg);
+  color: #fff4dc;
+}
+
+.tagPicker strong {
+  color: #f4d28c;
+  font-size: 0.9em;
+}
+
+.tagPickerHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.tagPickerHeader button {
+  min-height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 130, 112, 0.34);
+  background: rgba(255, 130, 112, 0.1);
+  color: #ffd1ca;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78em;
+  font-weight: 900;
+  padding: 0 9px;
+}
+
+.tagPickerHeader button:hover {
+  background: rgba(255, 130, 112, 0.2);
+}
+
+.tagOptions,
+.customTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagOptions button,
+.customTagRow button {
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(225, 184, 90, 0.22);
+  background: rgba(225, 184, 90, 0.1);
+  color: #fff4dc;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82em;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.tagOptions button:hover,
+.customTagRow button:hover,
+.activeTagOption {
+  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%) !important;
+  color: #34170b !important;
+}
+
+.clearTagOption {
+  border-color: rgba(255, 130, 112, 0.38) !important;
+  color: #ffd1ca !important;
+}
+
+.customTagRow input {
+  flex: 1 1 130px;
+  min-height: 32px;
+  min-width: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(225, 184, 90, 0.22);
+  background: rgba(10, 3, 3, 0.6);
+  color: #fff4dc;
+  font: inherit;
+  padding: 0 10px;
 }
 
 @keyframes pulse {

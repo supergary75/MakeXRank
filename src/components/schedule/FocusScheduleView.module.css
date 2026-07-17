@@ -1,0 +1,662 @@
+.container {
+  display: grid;
+  gap: 24px;
+  padding: 28px 24px 36px;
+}
+
+.hero,
+.panel,
+.resultPanel,
+.scheduleCard {
+  background:
+    linear-gradient(135deg, rgba(255, 244, 217, 0.06), transparent 28%),
+    linear-gradient(160deg, rgba(123, 35, 27, 0.9), rgba(62, 16, 14, 0.96));
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) auto;
+  gap: 22px;
+  align-items: start;
+  padding: 28px 30px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: rgba(255, 231, 184, 0.78);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.hero h2,
+.panel h3,
+.resultPanel h3,
+.scheduleHeader h4 {
+  margin: 0;
+  color: #fff2d1;
+}
+
+.description,
+.panelHeader p {
+  margin: 10px 0 0;
+  color: rgba(255, 238, 211, 0.82);
+  line-height: 1.7;
+}
+
+.heroStats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.heroStats span,
+.queryLabel,
+.matchBadge {
+  border-radius: 999px;
+  border: 1px solid rgba(216, 189, 132, 0.22);
+  background: rgba(216, 189, 132, 0.12);
+  color: #f4d28c;
+  font-size: 0.88rem;
+}
+
+.heroStats span {
+  padding: 8px 12px;
+}
+
+.panel,
+.resultPanel {
+  padding: 24px 26px 28px;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.actions,
+.actionFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inputGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(280px, 1.25fr);
+  gap: 18px;
+}
+
+.inputBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.inputBlock span {
+  color: #f4d28c;
+  font-weight: 700;
+}
+
+.textarea {
+  min-height: 220px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(225, 184, 90, 0.2);
+  background: rgba(34, 8, 8, 0.58);
+  color: #fff4dc;
+  font: inherit;
+  line-height: 1.6;
+  padding: 14px 16px;
+}
+
+.textarea::placeholder {
+  color: rgba(255, 238, 211, 0.42);
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.primaryButton {
+  padding: 0 18px;
+  border: 1px solid rgba(255, 245, 217, 0.14);
+  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
+  color: #34170b;
+}
+
+.secondaryButton {
+  padding: 0 16px;
+  border: 1px solid rgba(225, 184, 90, 0.18);
+  background: rgba(225, 184, 90, 0.08);
+  color: #f4d28c;
+}
+
+.primaryButton:hover,
+.secondaryButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.actionFooter {
+  margin-top: 16px;
+}
+
+.emptyState,
+.notFound {
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(225, 184, 90, 0.26);
+  background: rgba(53, 15, 14, 0.44);
+  color: rgba(255, 238, 211, 0.78);
+  line-height: 1.7;
+}
+
+.emptyState {
+  padding: 22px;
+}
+
+.notFound {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+}
+
+.resultPanel {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 42, 109, 0.22), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(0, 218, 255, 0.24), transparent 32%),
+    linear-gradient(135deg, #080913 0%, #12101d 48%, #090a14 100%);
+  border-color: rgba(0, 218, 255, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(255, 42, 109, 0.18),
+    0 22px 60px rgba(0, 0, 0, 0.34),
+    inset 0 0 34px rgba(0, 218, 255, 0.08);
+}
+
+.resultPanel h3,
+.scheduleHeader h4 {
+  color: #f8fbff;
+  text-shadow: 0 0 14px rgba(0, 218, 255, 0.34);
+}
+
+.resultPanel .panelHeader p {
+  color: rgba(230, 244, 255, 0.78);
+}
+
+.scheduleList {
+  display: grid;
+  gap: 18px;
+}
+
+.scheduleCard {
+  background:
+    linear-gradient(135deg, rgba(255, 42, 109, 0.08), transparent 28%),
+    linear-gradient(225deg, rgba(0, 218, 255, 0.08), transparent 28%),
+    rgba(8, 10, 22, 0.9);
+  border-color: rgba(0, 218, 255, 0.26);
+  padding: 18px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 42, 109, 0.12),
+    0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.scheduleHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.queryLabel {
+  display: inline-flex;
+  padding: 5px 10px;
+  margin-bottom: 8px;
+  background: rgba(0, 218, 255, 0.12);
+  border-color: rgba(0, 218, 255, 0.38);
+  color: #8ff6ff;
+  text-shadow: 0 0 10px rgba(0, 218, 255, 0.35);
+}
+
+.matchBadge {
+  padding: 7px 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.complete {
+  color: #2d1809;
+  background: #d8bd84;
+}
+
+.warning {
+  color: #3b2209;
+  background: #f1c15f;
+}
+
+.empty {
+  color: #ffe4e0;
+  background: rgba(184, 50, 40, 0.4);
+  border-color: rgba(255, 130, 112, 0.34);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 860px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 218, 255, 0.34);
+  border-radius: var(--radius-md);
+  background: rgba(5, 7, 18, 0.92);
+  box-shadow:
+    0 0 24px rgba(0, 218, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 42, 109, 0.12);
+}
+
+.table th,
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(121, 219, 255, 0.18);
+  text-align: left;
+}
+
+.table th {
+  background: linear-gradient(180deg, rgba(15, 24, 48, 0.98), rgba(8, 10, 24, 0.98));
+  color: #dffbff;
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(0, 218, 255, 0.5);
+}
+
+.table td {
+  color: #f8fbff;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.redAlliance,
+.blueAlliance {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.redAlliance {
+  background: rgba(255, 73, 64, 0.2);
+  color: #ffc7c1;
+}
+
+.blueAlliance {
+  background: rgba(73, 179, 255, 0.2);
+  color: #c5e8ff;
+}
+
+.allianceTeams {
+  display: grid;
+  gap: 8px;
+  min-width: 210px;
+}
+
+.taggedTeam {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+}
+
+.teamPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.teamPill:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+}
+
+.inlineTag {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 243, 107, 0.28), rgba(0, 218, 255, 0.2));
+  border: 1px solid rgba(255, 243, 107, 0.5);
+  color: #fffbd0;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.tagPicker {
+  display: grid;
+  gap: 10px;
+  min-width: 260px;
+  padding: 12px;
+  border: 1px solid rgba(0, 218, 255, 0.38);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 42, 109, 0.12), rgba(0, 218, 255, 0.1)),
+    rgba(5, 7, 18, 0.98);
+  box-shadow:
+    0 0 24px rgba(0, 218, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 42, 109, 0.12);
+  color: #e2fbff;
+  z-index: 2;
+}
+
+.tagPicker strong {
+  color: #8ff6ff;
+  font-size: 0.88rem;
+  text-shadow: 0 0 10px rgba(0, 218, 255, 0.36);
+}
+
+.tagPickerHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.tagPickerHeader button {
+  min-height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 42, 109, 0.4);
+  background: rgba(255, 42, 109, 0.12);
+  color: #ffdce7;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 900;
+  padding: 0 9px;
+}
+
+.tagPickerHeader button:hover {
+  background: rgba(255, 42, 109, 0.22);
+  box-shadow: 0 0 12px rgba(255, 42, 109, 0.2);
+}
+
+.tagOptions,
+.customTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagOptions button,
+.customTagRow button {
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 218, 255, 0.32);
+  background: rgba(0, 218, 255, 0.1);
+  color: #e2fbff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0 10px;
+}
+
+.tagOptions button:hover,
+.customTagRow button:hover,
+.activeTagOption {
+  background: linear-gradient(135deg, #ff2a6d, #00daff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(0, 218, 255, 0.28);
+}
+
+.clearTagOption {
+  border-color: rgba(255, 176, 57, 0.55) !important;
+  color: #ffdd9a !important;
+}
+
+.customTagRow input {
+  flex: 1 1 130px;
+  min-height: 32px;
+  min-width: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 218, 255, 0.32);
+  background: rgba(5, 7, 18, 0.82);
+  color: #e2fbff;
+  font: inherit;
+  padding: 0 10px;
+}
+
+.redTeam {
+  background: rgba(25, 4, 12, 0.74);
+  border: 1px solid rgba(255, 91, 127, 0.72);
+  color: #ffe9ef;
+  text-shadow: 0 0 9px rgba(255, 42, 109, 0.44);
+}
+
+.blueTeam {
+  background: rgba(3, 16, 30, 0.78);
+  border: 1px solid rgba(0, 218, 255, 0.72);
+  color: #e2fbff;
+  text-shadow: 0 0 9px rgba(0, 218, 255, 0.44);
+}
+
+.redAllianceCell {
+  background:
+    linear-gradient(135deg, rgba(255, 42, 109, 0.34), rgba(73, 8, 25, 0.9)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 12px);
+  box-shadow: inset 5px 0 0 rgba(255, 42, 109, 0.9);
+}
+
+.blueAllianceCell {
+  background:
+    linear-gradient(135deg, rgba(0, 218, 255, 0.34), rgba(4, 24, 52, 0.9)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 12px);
+  box-shadow: inset 5px 0 0 rgba(0, 218, 255, 0.9);
+}
+
+.sameAllianceRow .redAllianceCell,
+.headToHeadRow .redAllianceCell {
+  background:
+    linear-gradient(135deg, rgba(255, 42, 109, 0.36), rgba(73, 8, 25, 0.92)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 12px);
+}
+
+.sameAllianceRow .blueAllianceCell,
+.headToHeadRow .blueAllianceCell {
+  background:
+    linear-gradient(135deg, rgba(0, 218, 255, 0.36), rgba(4, 24, 52, 0.92)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 12px);
+}
+
+.focusTeam {
+  border-color: #fff36b;
+  box-shadow:
+    0 0 0 2px rgba(255, 243, 107, 0.18),
+    0 0 18px rgba(255, 243, 107, 0.5);
+  color: #fffbd0;
+  font-weight: 950;
+}
+
+.otherFocusTeam {
+  border-color: #39ffb6;
+  box-shadow:
+    0 0 0 2px rgba(57, 255, 182, 0.14),
+    0 0 16px rgba(57, 255, 182, 0.42);
+  color: #ddfff4;
+  font-weight: 950;
+}
+
+.sameAllianceRow td {
+  background: rgba(57, 255, 182, 0.1);
+  border-top: 2px solid rgba(57, 255, 182, 0.85);
+  border-bottom: 2px solid rgba(57, 255, 182, 0.85);
+}
+
+.headToHeadRow td {
+  background: rgba(255, 176, 57, 0.12);
+  border-top: 2px solid rgba(255, 176, 57, 0.95);
+  border-bottom: 2px solid rgba(255, 176, 57, 0.95);
+}
+
+.sameAllianceRow td:first-child {
+  border-left: 8px solid #39ffb6;
+}
+
+.sameAllianceRow td:last-child {
+  border-right: 2px solid #39ffb6;
+}
+
+.headToHeadRow td:first-child {
+  border-left: 8px solid #ffb039;
+}
+
+.headToHeadRow td:last-child {
+  border-right: 2px solid #ffb039;
+}
+
+.sameAllianceGroup {
+  position: relative;
+  padding: 8px;
+  padding-top: 28px;
+  border-radius: 14px;
+  background: rgba(57, 255, 182, 0.12);
+  border: 2px solid rgba(57, 255, 182, 0.78);
+  box-shadow:
+    0 0 18px rgba(57, 255, 182, 0.18),
+    inset 0 0 18px rgba(57, 255, 182, 0.08);
+}
+
+.headToHeadGroup {
+  position: relative;
+  padding: 8px;
+  padding-top: 28px;
+  border-radius: 14px;
+  background: rgba(255, 176, 57, 0.13);
+  border: 2px solid rgba(255, 176, 57, 0.88);
+  box-shadow:
+    0 0 18px rgba(255, 176, 57, 0.18),
+    inset 0 0 18px rgba(255, 176, 57, 0.08);
+}
+
+.sameAllianceGroup::before,
+.headToHeadGroup::before {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.sameAllianceGroup::before {
+  content: "同联盟";
+  background: #24a148;
+}
+
+.headToHeadGroup::before {
+  content: "重点对战";
+  background: #e4572e;
+}
+
+.versusCell {
+  color: #f8fbff;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-shadow:
+    0 0 8px rgba(255, 42, 109, 0.45),
+    0 0 12px rgba(0, 218, 255, 0.38);
+}
+
+.headToHeadBadge {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff2a6d, #00daff);
+  color: #ffffff;
+  box-shadow:
+    0 0 14px rgba(255, 42, 109, 0.32),
+    0 0 18px rgba(0, 218, 255, 0.28);
+}
+
+.sameAllianceGroup::before {
+  background: linear-gradient(135deg, #00bf84, #39ffb6);
+  color: #06110d;
+  box-shadow: 0 0 12px rgba(57, 255, 182, 0.38);
+}
+
+.headToHeadGroup::before {
+  background: linear-gradient(135deg, #ff8f1f, #ff2a6d);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 42, 109, 0.36);
+}
+
+@media (max-width: 860px) {
+  .hero,
+  .inputGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroStats {
+    justify-content: flex-start;
+  }
+
+  .panelHeader,
+  .scheduleHeader {
+    flex-direction: column;
+  }
+
+  .actions,
+  .actionFooter {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .container {
+    padding: 18px 12px 28px;
+  }
+
+  .hero,
+  .panel,
+  .resultPanel {
+    padding: 20px 16px;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}

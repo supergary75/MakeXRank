@@ -133,5 +133,5 @@ export interface AuthUserProfile {
   allowedEventTypes: EventType[] | null;
   allowedCompetitionIds: string[] | null;
 }
-export type TabName = 'ranking' | 'playoff';
+export type TabName = 'ranking' | 'playoff' | 'focusSchedule';
 export type ViewMode = 'home' | 'login' | 'event-types' | 'logistics' | 'lobby' | 'competition';

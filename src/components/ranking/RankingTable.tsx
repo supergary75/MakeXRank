@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { EventType, SortField, SortOrder, TeamRanked } from '../../types';
+import { getTeamNumberFromName, getTeamTag, getTeamTagKey } from '../../utils/teamTags';
 import { formatSecondsAsClock } from '../../utils/time';
 import styles from './RankingTable.module.css';
 
@@ -11,6 +13,10 @@ interface Props {
   searchKeyword: string;
   featuredNames: string[];
   onTeamClick: (name: string) => void;
+  teamTags?: Record<string, string>;
+  tagOptions?: string[];
+  onSetTeamTag?: (teamNumber: string, teamName: string, tag: string) => void;
+  onAddTagOption?: (tag: string) => void;
 }
 
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -64,13 +70,91 @@ export function RankingTable({
   searchKeyword,
   featuredNames,
   onTeamClick,
+  teamTags = {},
+  tagOptions = [],
+  onSetTeamTag,
+  onAddTagOption,
 }: Props) {
+  const [activeTagKey, setActiveTagKey] = useState('');
+  const [customTag, setCustomTag] = useState('');
   const normalizedKeyword = searchKeyword.trim().toLowerCase();
   const filtered = normalizedKeyword
     ? teams.filter((team) => team.team.toLowerCase().includes(normalizedKeyword))
     : teams;
   const isInspire = eventType === 'MakeX Inspire';
+  const isExplorer = eventType === 'MakeX Explorer';
   const columns = isInspire ? INSPIRE_COLUMNS : ALLIANCE_COLUMNS;
+
+  const renderTagPicker = (teamNumber: string, teamName: string) => {
+    if (!isExplorer || !onSetTeamTag) {
+      return null;
+    }
+
+    const currentTag = getTeamTag(teamTags, teamNumber, teamName);
+
+    return (
+      <div className={styles.tagPicker} onClick={(event) => event.stopPropagation()}>
+        <div className={styles.tagPickerHeader}>
+          <strong>给这支队打标签</strong>
+          <button type="button" onClick={() => setActiveTagKey('')}>
+            关闭
+          </button>
+        </div>
+        <div className={styles.tagOptions}>
+          {tagOptions.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              className={currentTag === tag ? styles.activeTagOption : ''}
+              onClick={() => {
+                onSetTeamTag(teamNumber, teamName, tag);
+                setActiveTagKey('');
+              }}
+            >
+              {tag}
+            </button>
+          ))}
+          {currentTag && (
+            <button
+              type="button"
+              className={styles.clearTagOption}
+              onClick={() => {
+                onSetTeamTag(teamNumber, teamName, '');
+                setActiveTagKey('');
+              }}
+            >
+              清除标签
+            </button>
+          )}
+        </div>
+        {onAddTagOption && (
+          <div className={styles.customTagRow}>
+            <input
+              value={customTag}
+              onChange={(event) => setCustomTag(event.target.value)}
+              placeholder="输入自定义标签"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const nextTag = customTag.trim();
+                if (!nextTag) {
+                  return;
+                }
+
+                onAddTagOption(nextTag);
+                onSetTeamTag(teamNumber, teamName, nextTag);
+                setCustomTag('');
+                setActiveTagKey('');
+              }}
+            >
+              添加并使用
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={styles.container}>
@@ -112,17 +196,31 @@ export function RankingTable({
               const rank = teams.indexOf(team) + 1;
               const rankClass =
                 rank === 1 ? styles.rank1 : rank === 2 ? styles.rank2 : rank === 3 ? styles.rank3 : '';
+              const teamNumber = getTeamNumberFromName(team.team);
+              const teamTag = getTeamTag(teamTags, teamNumber, team.team);
+              const tagKey = getTeamTagKey(teamNumber, team.team);
 
               return (
                 <tr key={team.team} className={rankClass}>
                   <td className={styles.rankCol}>{MEDAL[rank] || rank}</td>
                   <td
                     className={styles.teamClickable}
-                    onClick={() => onTeamClick(team.team)}
-                    title={featuredNames.includes(team.team) ? '点击取消关注' : '点击加入关注'}
+                    onClick={() => {
+                      if (isExplorer && onSetTeamTag) {
+                        setActiveTagKey((previous) => (previous === tagKey ? '' : tagKey));
+                        return;
+                      }
+
+                      onTeamClick(team.team);
+                    }}
+                    title={isExplorer ? '点击给赛队打标签' : featuredNames.includes(team.team) ? '点击取消关注' : '点击加入关注'}
                   >
-                    {team.team}
-                    {featuredNames.includes(team.team) && <span className={styles.badge}>★</span>}
+                    <div className={styles.teamNameLine}>
+                      <span>{team.team}</span>
+                      {teamTag && <span className={styles.teamTag}>{teamTag}</span>}
+                      {!isExplorer && featuredNames.includes(team.team) && <span className={styles.badge}>★</span>}
+                    </div>
+                    {activeTagKey === tagKey && renderTagPicker(teamNumber, team.team)}
                   </td>
                   {isInspire ? (
                     columns.map((column) => (

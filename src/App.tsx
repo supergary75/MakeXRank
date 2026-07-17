@@ -40,6 +40,14 @@ import {
   updateManagedUser,
 } from './services/authService';
 import { calculateRanking, sortTeams } from './utils/rankingAlgorithm';
+import {
+  getTeamTagKey,
+  loadTeamTagOptions,
+  loadTeamTags,
+  saveTeamTagOptions,
+  saveTeamTags,
+  type TeamTagMap,
+} from './utils/teamTags';
 import { useNotification } from './hooks/useNotification';
 import { useFeaturedTeams } from './hooks/useFeaturedTeams';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
@@ -56,6 +64,7 @@ import { FeaturedTeams } from './components/ranking/FeaturedTeams';
 import { SearchBox } from './components/ranking/SearchBox';
 import { RankingTable } from './components/ranking/RankingTable';
 import { PlayoffView } from './components/playoff/PlayoffView';
+import { FocusScheduleView } from './components/schedule/FocusScheduleView';
 import { AuthPanel } from './components/auth/AuthPanel';
 import { NotificationContainer } from './components/ui/Notification';
 
@@ -182,6 +191,8 @@ export default function App() {
   const [authPanelOpen, setAuthPanelOpen] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [teamTags, setTeamTags] = useState<TeamTagMap>(() => loadTeamTags());
+  const [teamTagOptions, setTeamTagOptions] = useState<string[]>(() => loadTeamTagOptions());
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const { notifications, showNotification } = useNotification();
@@ -439,6 +450,19 @@ export default function App() {
       setSelectedEventType(activeCompetition.eventType);
     }
   }, [activeCompetition]);
+
+  useEffect(() => {
+    if (!activeCompetition) {
+      return;
+    }
+
+    if (
+      (activeTab === 'playoff' && activeCompetition.eventType === 'MakeX Inspire')
+      || (activeTab === 'focusSchedule' && activeCompetition.eventType !== 'MakeX Explorer')
+    ) {
+      setActiveTab('ranking');
+    }
+  }, [activeCompetition, activeTab]);
 
   useEffect(() => {
     if (!activeCompetition) {
@@ -1114,6 +1138,44 @@ export default function App() {
     [sortField],
   );
 
+  const handleSetTeamTag = useCallback((teamNumber: string, teamName: string, tag: string) => {
+    const key = getTeamTagKey(teamNumber, teamName);
+
+    setTeamTags((previous) => {
+      const next = { ...previous };
+
+      if (tag) {
+        next[key] = tag;
+      } else {
+        delete next[key];
+      }
+
+      saveTeamTags(next);
+      return next;
+    });
+  }, []);
+
+  const handleAddTeamTagOption = useCallback((tag: string) => {
+    const trimmed = tag.trim();
+
+    if (!trimmed) {
+      showNotification('请输入要新增的标签名称。', 'error');
+      return;
+    }
+
+    setTeamTagOptions((previous) => {
+      if (previous.includes(trimmed)) {
+        showNotification(`标签「${trimmed}」已经存在。`, 'info');
+        return previous;
+      }
+
+      const next = [...previous, trimmed];
+      saveTeamTagOptions(next);
+      showNotification(`已新增标签：${trimmed}`, 'success');
+      return next;
+    });
+  }, [showNotification]);
+
   const handleAutoRefreshToggle = useCallback(
     (enabled: boolean) => {
       if (enabled && !ensureEditorAccess()) {
@@ -1387,6 +1449,7 @@ export default function App() {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               showPlayoff={activeCompetition.eventType !== 'MakeX Inspire'}
+              showFocusSchedule={activeCompetition.eventType === 'MakeX Explorer'}
             />
 
             {activeTab === 'ranking' && (
@@ -1427,6 +1490,10 @@ export default function App() {
                   searchKeyword={searchKeyword}
                   featuredNames={featuredTeams}
                   onTeamClick={toggleTeam}
+                  teamTags={teamTags}
+                  tagOptions={teamTagOptions}
+                  onSetTeamTag={handleSetTeamTag}
+                  onAddTagOption={handleAddTeamTagOption}
                 />
               </>
             )}
@@ -1436,6 +1503,16 @@ export default function App() {
                 eventType={activeCompetition.eventType}
                 teamsData={teamsData}
                 showNotification={showNotification}
+              />
+            )}
+
+            {activeTab === 'focusSchedule' && activeCompetition.eventType === 'MakeX Explorer' && (
+              <FocusScheduleView
+                showNotification={showNotification}
+                teamTags={teamTags}
+                tagOptions={teamTagOptions}
+                onSetTeamTag={handleSetTeamTag}
+                onAddTagOption={handleAddTeamTagOption}
               />
             )}
 
