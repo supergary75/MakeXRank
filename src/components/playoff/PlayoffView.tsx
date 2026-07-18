@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { EventType, NotificationType, PlayoffPrediction, TeamRaw } from '../../types';
+import type { Alliance, EventType, NotificationType, PlayoffMatch, PlayoffPrediction, TeamRaw } from '../../types';
 import { calculateRanking, sortTeams } from '../../utils/rankingAlgorithm';
 import {
   buildAlliancesFromDrafts,
+  createEmptyAllianceDrafts,
   createSuggestedAllianceDrafts,
   generatePlayoffPrediction,
   parseAllianceData,
@@ -21,73 +22,128 @@ interface AllianceDraftState {
   team2: string;
 }
 
-const EMPTY_DRAFTS: AllianceDraftState[] = [
-  { number: 1, team1: '', team2: '' },
-  { number: 2, team1: '', team2: '' },
-  { number: 3, team1: '', team2: '' },
-  { number: 4, team1: '', team2: '' },
-];
+const DEFAULT_ADVANCING_TEAM_COUNT = 8;
+const ADVANCING_TEAM_OPTIONS = [8, 16, 32, 64];
 
-function getTopSeededTeams(teamsData: TeamRaw[], eventType: EventType) {
+function getRankedTeams(teamsData: TeamRaw[], eventType: EventType) {
   return sortTeams(
     calculateRanking(teamsData, eventType),
     'totalWinLossScore',
     'desc',
     eventType,
-  ).slice(0, 8);
+  );
+}
+
+function normalizeAdvancingTeamCount(value: number, rankedTeamCount: number): number {
+  const availableOptions = ADVANCING_TEAM_OPTIONS.filter((option) => option <= rankedTeamCount);
+  if (availableOptions.length === 0) {
+    return 0;
+  }
+
+  return availableOptions.includes(value)
+    ? value
+    : availableOptions[availableOptions.length - 1];
 }
 
 function buildDraftMap(drafts: AllianceDraftState[]) {
   return new Map(drafts.map((draft) => [draft.number, draft]));
 }
 
+function getAllianceTeams(alliance: Alliance): string {
+  return `${alliance.team1} + ${alliance.team2}`;
+}
+
+function renderBracketAlliance(
+  alliance: Alliance,
+  match: PlayoffMatch,
+  sideClassName: string,
+) {
+  const isWinner = match.winner.number === alliance.number;
+
+  return (
+    <div className={`${styles.bracketAlliance} ${sideClassName} ${isWinner ? styles.bracketWinner : ''}`}>
+      <div>
+        <span>{alliance.name}</span>
+        <strong>{getAllianceTeams(alliance)}</strong>
+      </div>
+      <em>{alliance.number === match.alliance1.number ? match.alliance1WinRate : match.alliance2WinRate}%</em>
+    </div>
+  );
+}
+
 export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
   const [clipboardInput, setClipboardInput] = useState('');
-  const [drafts, setDrafts] = useState<AllianceDraftState[]>(EMPTY_DRAFTS);
+  const [advancingTeamCount, setAdvancingTeamCount] = useState(DEFAULT_ADVANCING_TEAM_COUNT);
+  const [drafts, setDrafts] = useState<AllianceDraftState[]>(createEmptyAllianceDrafts(4));
   const [prediction, setPrediction] = useState<PlayoffPrediction | null>(null);
 
-  const topSeededTeams = useMemo(
-    () => getTopSeededTeams(teamsData, eventType),
+  const rankedTeams = useMemo(
+    () => getRankedTeams(teamsData, eventType),
     [eventType, teamsData],
   );
 
+  const effectiveAdvancingTeamCount = useMemo(
+    () => normalizeAdvancingTeamCount(advancingTeamCount, rankedTeams.length),
+    [advancingTeamCount, rankedTeams.length],
+  );
+  const allianceCount = Math.max(1, Math.floor(effectiveAdvancingTeamCount / 2));
+  const availableAdvancingOptions = useMemo(
+    () => ADVANCING_TEAM_OPTIONS.filter((option) => option <= rankedTeams.length),
+    [rankedTeams.length],
+  );
+  const eligibleTeams = useMemo(
+    () => rankedTeams.slice(0, effectiveAdvancingTeamCount),
+    [effectiveAdvancingTeamCount, rankedTeams],
+  );
+
   useEffect(() => {
-    if (topSeededTeams.length < 8) {
-      setDrafts(EMPTY_DRAFTS);
+    if (eligibleTeams.length < 8) {
+      setDrafts(createEmptyAllianceDrafts(1));
       setPrediction(null);
       return;
     }
 
-    setDrafts(createSuggestedAllianceDrafts(topSeededTeams));
-  }, [topSeededTeams]);
+    setDrafts(createSuggestedAllianceDrafts(eligibleTeams, allianceCount));
+    setPrediction(null);
+  }, [allianceCount, eligibleTeams]);
 
   const currentAlliances = useMemo(() => {
     try {
-      return buildAlliancesFromDrafts(drafts, topSeededTeams);
+      return buildAlliancesFromDrafts(drafts, eligibleTeams);
     } catch {
       return [];
     }
-  }, [drafts, topSeededTeams]);
+  }, [drafts, eligibleTeams]);
+
+  const handleAdvancingTeamCountChange = (value: string) => {
+    const nextValue = Number(value);
+    if (!Number.isFinite(nextValue)) {
+      return;
+    }
+
+    setAdvancingTeamCount(nextValue);
+  };
 
   const handleDraftChange = (number: number, field: 'team1' | 'team2', value: string) => {
     setDrafts((previous) =>
       previous.map((draft) => (draft.number === number ? { ...draft, [field]: value } : draft)),
     );
+    setPrediction(null);
   };
 
   const handleFillSuggested = () => {
-    if (topSeededTeams.length < 8) {
-      showNotification('当前前八数据不足，暂时无法自动预填联盟。', 'error');
+    if (eligibleTeams.length < 8) {
+      showNotification('当前比赛可用队伍不足，暂时无法自动预填联盟。', 'error');
       return;
     }
 
-    setDrafts(createSuggestedAllianceDrafts(topSeededTeams));
+    setDrafts(createSuggestedAllianceDrafts(eligibleTeams, allianceCount));
     setPrediction(null);
-    showNotification('已按前八顺位生成一版默认联盟预览。', 'success');
+    showNotification(`已按前 ${effectiveAdvancingTeamCount} 名生成默认联盟预览。`, 'success');
   };
 
   const handleClearDrafts = () => {
-    setDrafts(EMPTY_DRAFTS);
+    setDrafts(createEmptyAllianceDrafts(allianceCount));
     setPrediction(null);
     showNotification('已清空当前联盟预览。', 'info');
   };
@@ -98,27 +154,34 @@ export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
       return;
     }
 
-    if (topSeededTeams.length < 8) {
-      showNotification('请先保证当前比赛已经有完整的排位赛前八数据。', 'error');
+    if (eligibleTeams.length < 8) {
+      showNotification('请先确认当前比赛已经有足够的晋级队伍数据。', 'error');
       return;
     }
 
     try {
-      const alliances = parseAllianceData(clipboardInput, topSeededTeams);
-      if (alliances.length < 4) {
-        showNotification('没有识别到完整的四个联盟，请检查粘贴内容。', 'error');
+      const alliances = parseAllianceData(clipboardInput, eligibleTeams);
+      if (alliances.length < 2) {
+        showNotification('没有识别到完整联盟，请检查粘贴内容或晋级队伍数量。', 'error');
         return;
       }
 
       const draftMap = buildDraftMap(drafts);
-      setDrafts(
-        alliances.slice(0, 4).map((alliance) => ({
-          number: alliance.number,
-          team1: alliance.team1,
-          team2: alliance.team2,
-        })).map((draft) => draftMap.get(draft.number) ? draft : draft),
-      );
-      setPrediction(generatePlayoffPrediction(alliances.slice(0, 4)));
+      const importedDrafts = createEmptyAllianceDrafts(allianceCount).map((emptyDraft) => {
+        const importedAlliance = alliances.find((alliance) => alliance.number === emptyDraft.number);
+        const existingDraft = draftMap.get(emptyDraft.number);
+
+        return importedAlliance
+          ? {
+              number: importedAlliance.number,
+              team1: importedAlliance.team1,
+              team2: importedAlliance.team2,
+            }
+          : existingDraft ?? emptyDraft;
+      });
+
+      setDrafts(importedDrafts);
+      setPrediction(generatePlayoffPrediction(alliances.slice(0, allianceCount)));
       showNotification('已从联盟选择表导入，并生成淘汰赛预测。', 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误';
@@ -127,14 +190,14 @@ export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
   };
 
   const handleGeneratePrediction = () => {
-    if (topSeededTeams.length < 8) {
-      showNotification('当前比赛还没有完整前八队伍，暂时无法预测淘汰赛。', 'error');
+    if (eligibleTeams.length < 8) {
+      showNotification('当前比赛还没有足够的晋级队伍，暂时无法预测淘汰赛。', 'error');
       return;
     }
 
     const selectedTeams = drafts.flatMap((draft) => [draft.team1, draft.team2]).filter(Boolean);
-    if (selectedTeams.length !== 8) {
-      showNotification('请先为四个联盟都选择两支队伍。', 'error');
+    if (selectedTeams.length !== allianceCount * 2) {
+      showNotification(`请先为 ${allianceCount} 个联盟都选择两支队伍。`, 'error');
       return;
     }
 
@@ -144,8 +207,8 @@ export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
     }
 
     try {
-      const alliances = buildAlliancesFromDrafts(drafts, topSeededTeams);
-      if (alliances.length < 4) {
+      const alliances = buildAlliancesFromDrafts(drafts, eligibleTeams);
+      if (alliances.length < 2) {
         showNotification('联盟信息不完整，请补齐后再生成预测。', 'error');
         return;
       }
@@ -165,30 +228,62 @@ export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
           <p className={styles.eyebrow}>Playoff Preview</p>
           <h2>淘汰赛预测预览</h2>
           <p className={styles.description}>
-            先用排位赛前八和联盟选择结果做一版本地预测。
-            当前版本以联盟总 EPA 为主，再综合总分、净胜分和种子质量判断半决赛、决赛与季军战。
+            先输入本场比赛的晋级队伍数量，再用资格赛排名和联盟选择结果做本地预测。
+            预测主要参考联盟总 EPA，再综合总分、净胜分和种子质量判断淘汰路径。
           </p>
         </div>
         <div className={styles.heroBadges}>
           <span>EPA 主导</span>
-          <span>联盟手动搭配</span>
-          <span>本地即时预览</span>
+          <span>固定淘汰签位</span>
+          <span>8 / 16 / 32 / 64 晋级</span>
         </div>
       </section>
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <div>
-            <h3>排位赛前八种子</h3>
-            <p>这里展示当前比赛的前八队伍，联盟预测默认只在这 8 支队伍中进行。</p>
+            <h3>晋级队伍设置</h3>
+            <p>
+              每场比赛的晋级数量可能不同，这里决定下方联盟选择池包含资格赛前多少名。
+              当前按前 {effectiveAdvancingTeamCount} 名生成 {allianceCount} 个联盟。
+            </p>
+          </div>
+          <label className={styles.numberControl}>
+            <span>晋级队伍数</span>
+            <select
+              value={advancingTeamCount}
+              onChange={(event) => handleAdvancingTeamCountChange(event.target.value)}
+            >
+              {availableAdvancingOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option} 支队伍
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {advancingTeamCount !== effectiveAdvancingTeamCount && (
+          <p className={styles.helperText}>
+            淘汰赛只支持 8、16、32、64 支晋级队伍；系统已按当前可用的 {effectiveAdvancingTeamCount} 支队伍计算。
+          </p>
+        )}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h3>资格赛晋级种子</h3>
+            <p>
+              这里展示当前比赛按设置截取的晋级队伍，联盟预测只在这 {effectiveAdvancingTeamCount} 支队伍中进行。
+            </p>
           </div>
           <button className={styles.secondaryButton} onClick={handleFillSuggested}>
-            按前八顺位预填联盟
+            按晋级顺位预填联盟
           </button>
         </div>
 
         <div className={styles.seedGrid}>
-          {topSeededTeams.map((team, index) => (
+          {eligibleTeams.map((team, index) => (
             <article key={team.team} className={styles.seedCard}>
               <span className={styles.seedNo}>#{index + 1}</span>
               <strong>{team.team}</strong>
@@ -206,7 +301,7 @@ export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
         <div className={styles.sectionHeader}>
           <div>
             <h3>联盟搭配预览</h3>
-            <p>可以直接手动选择四个联盟，也可以粘贴联盟选择表自动带入。</p>
+            <p>可以直接手动选择联盟，也可以粘贴联盟选择表自动带入。</p>
           </div>
           <button className={styles.secondaryButton} onClick={handleClearDrafts}>
             清空联盟
@@ -214,57 +309,55 @@ export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
         </div>
 
         <div className={styles.allianceGrid}>
-          {drafts.map((draft) => (
-            <article key={draft.number} className={styles.allianceCard}>
-              <div className={styles.allianceHeader}>
-                <strong>联盟 {draft.number}</strong>
-                <span>
-                  {currentAlliances.find((alliance) => alliance.number === draft.number)?.outlook ?? '等待选择'}
-                </span>
-              </div>
+          {drafts.map((draft) => {
+            const currentAlliance = currentAlliances.find((alliance) => alliance.number === draft.number);
 
-              <label className={styles.selectBlock}>
-                <span>战队 1</span>
-                <select
-                  value={draft.team1}
-                  onChange={(event) => handleDraftChange(draft.number, 'team1', event.target.value)}
-                >
-                  <option value="">请选择队伍</option>
-                  {topSeededTeams.map((team) => (
-                    <option key={`${draft.number}-a-${team.team}`} value={team.team}>
-                      {team.team}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className={styles.selectBlock}>
-                <span>战队 2</span>
-                <select
-                  value={draft.team2}
-                  onChange={(event) => handleDraftChange(draft.number, 'team2', event.target.value)}
-                >
-                  <option value="">请选择队伍</option>
-                  {topSeededTeams.map((team) => (
-                    <option key={`${draft.number}-b-${team.team}`} value={team.team}>
-                      {team.team}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {currentAlliances.find((alliance) => alliance.number === draft.number) && (
-                <div className={styles.allianceStats}>
-                  <span>
-                    联盟总 EPA {currentAlliances.find((alliance) => alliance.number === draft.number)?.totalEPA}
-                  </span>
-                  <span>
-                    预测强度 {currentAlliances.find((alliance) => alliance.number === draft.number)?.powerScore}
-                  </span>
+            return (
+              <article key={draft.number} className={styles.allianceCard}>
+                <div className={styles.allianceHeader}>
+                  <strong>联盟 {draft.number}</strong>
+                  <span>{currentAlliance?.outlook ?? '等待选择'}</span>
                 </div>
-              )}
-            </article>
-          ))}
+
+                <label className={styles.selectBlock}>
+                  <span>战队 1</span>
+                  <select
+                    value={draft.team1}
+                    onChange={(event) => handleDraftChange(draft.number, 'team1', event.target.value)}
+                  >
+                    <option value="">请选择队伍</option>
+                    {eligibleTeams.map((team) => (
+                      <option key={`${draft.number}-a-${team.team}`} value={team.team}>
+                        {team.team}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className={styles.selectBlock}>
+                  <span>战队 2</span>
+                  <select
+                    value={draft.team2}
+                    onChange={(event) => handleDraftChange(draft.number, 'team2', event.target.value)}
+                  >
+                    <option value="">请选择队伍</option>
+                    {eligibleTeams.map((team) => (
+                      <option key={`${draft.number}-b-${team.team}`} value={team.team}>
+                        {team.team}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {currentAlliance && (
+                  <div className={styles.allianceStats}>
+                    <span>联盟总 EPA {currentAlliance.totalEPA}</span>
+                    <span>预测强度 {currentAlliance.powerScore}</span>
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
 
         <div className={styles.importPanel}>
@@ -339,95 +432,81 @@ export function PlayoffView({ eventType, teamsData, showNotification }: Props) {
             <div className={styles.sectionHeader}>
               <div>
                 <h3>对阵预测</h3>
-                <p>先给出半决赛，再自动推演冠军战和季军战。</p>
+                <p>按官方固定签位从上到下推演：首轮、四强赛、决赛和最终前三名。</p>
               </div>
             </div>
 
-            <div className={styles.matchGrid}>
-              {prediction.semifinals.map((match) => (
-                <article key={match.roundName} className={styles.matchCard}>
-                  <div className={styles.matchHeader}>
-                    <strong>{match.roundName}</strong>
-                    <span>强度差 {match.strengthDiff.toFixed(1)}</span>
-                  </div>
-                  <div className={styles.matchTeams}>
-                    <div className={match.winner.number === match.alliance1.number ? styles.winnerTeam : styles.teamRow}>
-                      <span>{match.alliance1.name}</span>
-                      <strong>{match.alliance1.team1} + {match.alliance1.team2}</strong>
-                      <em>{match.alliance1WinRate}%</em>
+            <div className={styles.bracketScroller}>
+              <div className={styles.bracketBoard}>
+                {prediction.rounds.map((round) => (
+                  <section key={round.name} className={styles.bracketColumn}>
+                    <div className={styles.bracketColumnTitle}>
+                      <strong>{round.name}</strong>
+                      <span>{round.matches.length} 场</span>
                     </div>
-                    <div className={match.winner.number === match.alliance2.number ? styles.winnerTeam : styles.teamRow}>
-                      <span>{match.alliance2.name}</span>
-                      <strong>{match.alliance2.team1} + {match.alliance2.team2}</strong>
-                      <em>{match.alliance2WinRate}%</em>
+                    <div className={styles.bracketMatchList}>
+                      {round.matches.map((match) => (
+                        <article key={match.roundName} className={styles.bracketMatch}>
+                          <div className={styles.bracketMatchHeader}>
+                            <strong>{match.roundName}</strong>
+                            <span>强度差 {match.strengthDiff.toFixed(1)}</span>
+                          </div>
+                          {renderBracketAlliance(match.alliance1, match, styles.redBracketAlliance)}
+                          {renderBracketAlliance(match.alliance2, match, styles.blueBracketAlliance)}
+                          <p>{match.reason}</p>
+                        </article>
+                      ))}
                     </div>
-                  </div>
-                  <p className={styles.matchReason}>{match.reason}</p>
-                </article>
-              ))}
+                  </section>
+                ))}
 
-              {prediction.final && (
-                <article className={styles.matchCard}>
-                  <div className={styles.matchHeader}>
-                    <strong>{prediction.final.roundName}</strong>
-                    <span>冠军倾向</span>
+                <section className={`${styles.bracketColumn} ${styles.medalColumn}`}>
+                  <div className={styles.bracketColumnTitle}>
+                    <strong>最终结果</strong>
+                    <span>冠军 / 亚军 / 季军</span>
                   </div>
-                  <div className={styles.matchTeams}>
-                    <div className={prediction.final.winner.number === prediction.final.alliance1.number ? styles.winnerTeam : styles.teamRow}>
-                      <span>{prediction.final.alliance1.name}</span>
-                      <strong>{prediction.final.alliance1.team1} + {prediction.final.alliance1.team2}</strong>
-                      <em>{prediction.final.alliance1WinRate}%</em>
-                    </div>
-                    <div className={prediction.final.winner.number === prediction.final.alliance2.number ? styles.winnerTeam : styles.teamRow}>
-                      <span>{prediction.final.alliance2.name}</span>
-                      <strong>{prediction.final.alliance2.team1} + {prediction.final.alliance2.team2}</strong>
-                      <em>{prediction.final.alliance2WinRate}%</em>
-                    </div>
+                  <div className={styles.medalStack}>
+                    <article className={`${styles.medalCard} ${styles.goldMedal}`}>
+                      <span>冠军</span>
+                      <strong>{prediction.champion?.name}</strong>
+                      <em>{prediction.champion ? getAllianceTeams(prediction.champion) : '-'}</em>
+                    </article>
+                    <article className={`${styles.medalCard} ${styles.silverMedal}`}>
+                      <span>亚军</span>
+                      <strong>{prediction.runnerUp?.name}</strong>
+                      <em>{prediction.runnerUp ? getAllianceTeams(prediction.runnerUp) : '-'}</em>
+                    </article>
+                    <article className={`${styles.medalCard} ${styles.bronzeMedal}`}>
+                      <span>季军</span>
+                      <strong>{prediction.thirdPlace?.name ?? '仅四强后生成'}</strong>
+                      {prediction.thirdPlace && <em>{getAllianceTeams(prediction.thirdPlace)}</em>}
+                    </article>
                   </div>
-                  <p className={styles.matchReason}>{prediction.final.reason}</p>
-                </article>
-              )}
-
-              {prediction.bronze && (
-                <article className={styles.matchCard}>
-                  <div className={styles.matchHeader}>
-                    <strong>{prediction.bronze.roundName}</strong>
-                    <span>奖牌判断</span>
-                  </div>
-                  <div className={styles.matchTeams}>
-                    <div className={prediction.bronze.winner.number === prediction.bronze.alliance1.number ? styles.winnerTeam : styles.teamRow}>
-                      <span>{prediction.bronze.alliance1.name}</span>
-                      <strong>{prediction.bronze.alliance1.team1} + {prediction.bronze.alliance1.team2}</strong>
-                      <em>{prediction.bronze.alliance1WinRate}%</em>
-                    </div>
-                    <div className={prediction.bronze.winner.number === prediction.bronze.alliance2.number ? styles.winnerTeam : styles.teamRow}>
-                      <span>{prediction.bronze.alliance2.name}</span>
-                      <strong>{prediction.bronze.alliance2.team1} + {prediction.bronze.alliance2.team2}</strong>
-                      <em>{prediction.bronze.alliance2WinRate}%</em>
-                    </div>
-                  </div>
-                  <p className={styles.matchReason}>{prediction.bronze.reason}</p>
-                </article>
-              )}
+                </section>
+              </div>
             </div>
 
-            <div className={styles.podium}>
-              <article className={styles.podiumCard}>
-                <span>预测冠军</span>
-                <strong>{prediction.champion?.name}</strong>
-                <em>{prediction.champion?.team1} + {prediction.champion?.team2}</em>
+            {prediction.bronze && (
+              <article className={styles.bronzePlayoffCard}>
+                <div className={styles.matchHeader}>
+                  <strong>{prediction.bronze.roundName}</strong>
+                  <span>奖牌判断</span>
+                </div>
+                <div className={styles.matchTeams}>
+                  <div className={prediction.bronze.winner.number === prediction.bronze.alliance1.number ? styles.winnerTeam : styles.teamRow}>
+                    <span>{prediction.bronze.alliance1.name}</span>
+                    <strong>{getAllianceTeams(prediction.bronze.alliance1)}</strong>
+                    <em>{prediction.bronze.alliance1WinRate}%</em>
+                  </div>
+                  <div className={prediction.bronze.winner.number === prediction.bronze.alliance2.number ? styles.winnerTeam : styles.teamRow}>
+                    <span>{prediction.bronze.alliance2.name}</span>
+                    <strong>{getAllianceTeams(prediction.bronze.alliance2)}</strong>
+                    <em>{prediction.bronze.alliance2WinRate}%</em>
+                  </div>
+                </div>
+                <p className={styles.matchReason}>{prediction.bronze.reason}</p>
               </article>
-              <article className={styles.podiumCard}>
-                <span>预测亚军</span>
-                <strong>{prediction.runnerUp?.name}</strong>
-                <em>{prediction.runnerUp?.team1} + {prediction.runnerUp?.team2}</em>
-              </article>
-              <article className={styles.podiumCard}>
-                <span>预测季军</span>
-                <strong>{prediction.thirdPlace?.name}</strong>
-                <em>{prediction.thirdPlace?.team1} + {prediction.thirdPlace?.team2}</em>
-              </article>
-            </div>
+            )}
           </section>
         </>
       )}

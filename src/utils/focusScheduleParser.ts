@@ -1,6 +1,7 @@
 export interface ScheduleAllianceTeam {
   number: string;
   name: string;
+  seatLabel?: string;
 }
 
 export interface FocusScheduleMatch {
@@ -261,6 +262,7 @@ function toScheduleAllianceTeams(teams: TeamSlot[], alliance: 'red' | 'blue'): S
     .map((team) => ({
       number: team.number,
       name: team.name,
+      seatLabel: `${alliance === 'red' ? '红' : '蓝'}${team.slot}`,
     }));
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { NotificationType } from '../../types';
 import type { FocusTeamSchedule, ScheduleAllianceTeam } from '../../utils/focusScheduleParser';
 import { buildFocusTeamSchedules, countScheduleRows } from '../../utils/focusScheduleParser';
@@ -6,6 +6,7 @@ import { getTeamTag, getTeamTagKey } from '../../utils/teamTags';
 import styles from './FocusScheduleView.module.css';
 
 interface Props {
+  competitionId: string;
   showNotification: (msg: string, type: NotificationType) => void;
   teamTags?: Record<string, string>;
   tagOptions?: string[];
@@ -18,12 +19,75 @@ interface FocusIdentity {
   name: string;
 }
 
+interface FocusScheduleCache {
+  focusInput: string;
+  scheduleInput: string;
+  schedules: FocusTeamSchedule[];
+  rowCount: number;
+}
+
+const STORAGE_PREFIX = 'competitive-ranking-board::focus-schedule::';
+
+function getStorageKey(competitionId: string): string {
+  return `${STORAGE_PREFIX}${competitionId}`;
+}
+
+function isFocusScheduleArray(value: unknown): value is FocusTeamSchedule[] {
+  return Array.isArray(value);
+}
+
+function loadCachedSchedule(competitionId: string): FocusScheduleCache {
+  if (typeof window === 'undefined') {
+    return {
+      focusInput: '',
+      scheduleInput: '',
+      schedules: [],
+      rowCount: 0,
+    };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(getStorageKey(competitionId));
+    if (!raw) {
+      return {
+        focusInput: '',
+        scheduleInput: '',
+        schedules: [],
+        rowCount: 0,
+      };
+    }
+
+    const parsed = JSON.parse(raw) as Partial<FocusScheduleCache>;
+    return {
+      focusInput: typeof parsed.focusInput === 'string' ? parsed.focusInput : '',
+      scheduleInput: typeof parsed.scheduleInput === 'string' ? parsed.scheduleInput : '',
+      schedules: isFocusScheduleArray(parsed.schedules) ? parsed.schedules : [],
+      rowCount: typeof parsed.rowCount === 'number' ? parsed.rowCount : 0,
+    };
+  } catch {
+    return {
+      focusInput: '',
+      scheduleInput: '',
+      schedules: [],
+      rowCount: 0,
+    };
+  }
+}
+
 function formatTeam(number: string, name: string): string {
   if (number && name) {
     return `${number} ${name}`;
   }
 
   return number || name || '未识别';
+}
+
+function formatSeatTeam(seatLabel: string, name: string): string {
+  if (seatLabel && name) {
+    return `${seatLabel} ${name}`;
+  }
+
+  return seatLabel || name || '未识别';
 }
 
 function getMatchCountClass(matchCount: number): string {
@@ -52,18 +116,36 @@ function countFocusTeams(teams: ScheduleAllianceTeam[], focusTeams: FocusIdentit
 }
 
 export function FocusScheduleView({
+  competitionId,
   showNotification,
   teamTags = {},
   tagOptions = [],
   onSetTeamTag,
   onAddTagOption,
 }: Props) {
-  const [focusInput, setFocusInput] = useState('');
-  const [scheduleInput, setScheduleInput] = useState('');
-  const [schedules, setSchedules] = useState<FocusTeamSchedule[]>([]);
-  const [rowCount, setRowCount] = useState(0);
+  const [initialCache] = useState(() => loadCachedSchedule(competitionId));
+  const [focusInput, setFocusInput] = useState(initialCache.focusInput);
+  const [scheduleInput, setScheduleInput] = useState(initialCache.scheduleInput);
+  const [schedules, setSchedules] = useState<FocusTeamSchedule[]>(initialCache.schedules);
+  const [rowCount, setRowCount] = useState(initialCache.rowCount);
   const [activeTagKey, setActiveTagKey] = useState('');
   const [customTag, setCustomTag] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(
+      getStorageKey(competitionId),
+      JSON.stringify({
+        focusInput,
+        scheduleInput,
+        schedules,
+        rowCount,
+      }),
+    );
+  }, [competitionId, focusInput, rowCount, scheduleInput, schedules]);
 
   const generateSchedules = (sourceText = scheduleInput) => {
     const trimmedSource = sourceText.trim();
@@ -195,6 +277,7 @@ export function FocusScheduleView({
 
   const renderAlliance = (
     teams: ScheduleAllianceTeam[],
+    side: 'red' | 'blue',
     focusNumber: string,
     focusName: string,
     sideClassName: string,
@@ -209,10 +292,12 @@ export function FocusScheduleView({
         );
         const teamTag = getTeamTag(teamTags, team.number, team.name);
         const tagKey = getTeamTagKey(team.number, team.name);
+        const fallbackSeatLabel = `${side === 'red' ? '红' : '蓝'}${index + 1}`;
+        const seatLabel = team.seatLabel || fallbackSeatLabel;
 
         return (
           <div
-            key={`${team.number}-${team.name}-${index}`}
+            key={`${seatLabel}-${team.number}-${team.name}-${index}`}
             className={styles.taggedTeam}
           >
             <button
@@ -228,7 +313,7 @@ export function FocusScheduleView({
                 setActiveTagKey((previous) => (previous === tagKey ? '' : tagKey));
               }}
             >
-              {formatTeam(team.number, team.name)}
+              {formatSeatTeam(seatLabel, team.name)}
               {teamTag && <span className={styles.inlineTag}>{teamTag}</span>}
             </button>
             {activeTagKey === tagKey && renderTagPicker(team.number, team.name)}
@@ -373,6 +458,7 @@ export function FocusScheduleView({
                               <td className={styles.redAllianceCell}>
                                 {renderAlliance(
                                   match.redAlliance,
+                                  'red',
                                   match.teamNumber,
                                   match.teamName,
                                   styles.redTeam,
@@ -386,6 +472,7 @@ export function FocusScheduleView({
                               <td className={styles.blueAllianceCell}>
                                 {renderAlliance(
                                   match.blueAlliance,
+                                  'blue',
                                   match.teamNumber,
                                   match.teamName,
                                   styles.blueTeam,

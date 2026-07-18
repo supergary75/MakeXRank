@@ -16,11 +16,11 @@ function getTeamCode(teamName: string): string | undefined {
 }
 
 function formatAllianceName(number: number): string {
-  return `联盟${number}`;
+  return `联盟 ${number}`;
 }
 
 function formatOutlook(powerScore: number): string {
-  if (powerScore >= 210) return '争冠核心';
+  if (powerScore >= 210) return '冠军核心';
   if (powerScore >= 185) return '强势上半区';
   if (powerScore >= 165) return '有机会冲奖牌';
   return '需要爆冷发挥';
@@ -54,7 +54,7 @@ function buildAlliance(
   const team2 = rankedTeams.find((team) => team.team === draft.team2);
 
   if (!team1 || !team2) {
-    throw new Error(`联盟${draft.number} 的队伍没有在当前排位赛前八中找到。`);
+    throw new Error(`联盟 ${draft.number} 的队伍不在当前晋级队伍范围内。`);
   }
 
   const team1Seed = rankedTeams.findIndex((team) => team.team === team1.team) + 1;
@@ -115,7 +115,7 @@ function buildReason(alliance1: Alliance, alliance2: Alliance): string {
     reasons.push('两边纸面实力接近，更看临场状态和联盟默契');
   }
 
-  return reasons.join('；');
+  return reasons.join('，');
 }
 
 function predictMatch(alliance1: Alliance, alliance2: Alliance, roundName: string): PlayoffMatch {
@@ -146,20 +146,50 @@ function predictMatch(alliance1: Alliance, alliance2: Alliance, roundName: strin
   };
 }
 
-export function createSuggestedAllianceDrafts(rankedTeams: TeamRanked[]): AllianceDraft[] {
-  const topEight = rankedTeams.slice(0, 8);
-  const pairs = [
-    [0, 7],
-    [1, 6],
-    [2, 5],
-    [3, 4],
-  ];
+function getSeedOrder(bracketSize: number): number[] {
+  let seeds = [1, 2];
 
-  return pairs.map(([firstIndex, secondIndex], index) => ({
+  while (seeds.length < bracketSize) {
+    const nextSize = seeds.length * 2;
+    seeds = seeds.flatMap((seed) => [seed, nextSize + 1 - seed]);
+  }
+
+  return seeds;
+}
+
+function getRoundName(slotCount: number, roundIndex: number): string {
+  if (slotCount === 2) return '决赛';
+  if (slotCount === 4) return '四强赛';
+  if (slotCount === 8) return '16进8';
+  if (slotCount === 16) return '32进16';
+  if (slotCount === 32) return '64进32';
+  return `第 ${roundIndex + 1} 轮淘汰赛`;
+}
+
+export function createEmptyAllianceDrafts(allianceCount: number): AllianceDraft[] {
+  return Array.from({ length: allianceCount }, (_, index) => ({
     number: index + 1,
-    team1: topEight[firstIndex]?.team ?? '',
-    team2: topEight[secondIndex]?.team ?? '',
+    team1: '',
+    team2: '',
   }));
+}
+
+export function createSuggestedAllianceDrafts(
+  rankedTeams: TeamRanked[],
+  allianceCount = Math.floor(rankedTeams.length / 2),
+): AllianceDraft[] {
+  const teamPool = rankedTeams.slice(0, allianceCount * 2);
+
+  return Array.from({ length: allianceCount }, (_, index) => ({
+    number: index + 1,
+    team1: teamPool[index]?.team ?? '',
+    team2: teamPool[teamPool.length - 1 - index]?.team ?? '',
+  }));
+}
+
+function parseAllianceNumber(value: string): number {
+  const matched = value.match(/\d+/);
+  return matched ? Number(matched[0]) : Number.NaN;
 }
 
 export function parseAllianceData(text: string, rankedTeams: TeamRanked[]): Alliance[] {
@@ -168,45 +198,29 @@ export function parseAllianceData(text: string, rankedTeams: TeamRanked[]): Alli
     .map((line) => line.trim())
     .filter(Boolean);
   const drafts: AllianceDraft[] = [];
-  const topEightNames = new Set(rankedTeams.slice(0, 8).map((team) => team.team));
+  const eligibleNames = new Set(rankedTeams.map((team) => team.team));
 
   for (const line of lines) {
     const parts = line.split(/\t+/).map((part) => part.trim()).filter(Boolean);
-    if (parts.length < 7) {
+    if (parts.length < 4) {
       continue;
     }
 
-    const allianceNumber = Number(parts[0]);
+    const allianceNumber = parseAllianceNumber(parts[0]);
     if (!Number.isFinite(allianceNumber)) {
       continue;
     }
 
-    const candidatePairs: Array<[number, number]> = [
-      [3, 6],
-      [4, 7],
-    ];
-
-    let team1 = '';
-    let team2 = '';
-
-    for (const [firstIndex, secondIndex] of candidatePairs) {
-      const first = parts[firstIndex];
-      const second = parts[secondIndex];
-      if (topEightNames.has(first) && topEightNames.has(second)) {
-        team1 = first;
-        team2 = second;
-        break;
-      }
-    }
-
-    if (!team1 || !team2) {
+    const teams = parts.filter((part) => eligibleNames.has(part));
+    const uniqueTeams = [...new Set(teams)];
+    if (uniqueTeams.length < 2) {
       continue;
     }
 
     drafts.push({
       number: allianceNumber,
-      team1,
-      team2,
+      team1: uniqueTeams[0],
+      team2: uniqueTeams[1],
     });
   }
 
@@ -227,24 +241,72 @@ export function buildAlliancesFromDrafts(
 
 export function generatePlayoffPrediction(alliances: Alliance[]): PlayoffPrediction {
   const seededAlliances = [...alliances].sort((left, right) => left.number - right.number);
-  if (seededAlliances.length < 4) {
-    throw new Error('至少需要 4 个联盟才能生成四强赛预测。');
+  const supportedAllianceCounts = new Set([4, 8, 16, 32]);
+
+  if (!supportedAllianceCounts.has(seededAlliances.length)) {
+    throw new Error('淘汰赛只支持 8、16、32、64 支晋级队伍。');
   }
 
-  const semifinals = [
-    predictMatch(seededAlliances[0], seededAlliances[3], '半决赛 A'),
-    predictMatch(seededAlliances[1], seededAlliances[2], '半决赛 B'),
-  ];
+  const bracketSize = seededAlliances.length;
+  const allianceBySeed = new Map(seededAlliances.map((alliance) => [alliance.number, alliance]));
+  let bracketSlots = getSeedOrder(bracketSize).map((seed) => {
+    const alliance = allianceBySeed.get(seed);
+    if (!alliance) {
+      throw new Error(`缺少联盟 ${seed}，请检查联盟选择结果。`);
+    }
 
-  const final = predictMatch(semifinals[0].winner, semifinals[1].winner, '冠军争夺战');
-  const bronze = predictMatch(semifinals[0].loser, semifinals[1].loser, '季军争夺战');
+    return alliance;
+  });
+  const rounds: PlayoffPrediction['rounds'] = [];
+  let semifinalMatches: PlayoffMatch[] = [];
+  let final: PlayoffMatch | null = null;
+  let bronze: PlayoffMatch | null = null;
+  let roundIndex = 0;
+
+  while (bracketSlots.length > 1) {
+    const slotCount = bracketSlots.length;
+    const roundName = getRoundName(slotCount, roundIndex);
+    const nextSlots: Alliance[] = [];
+    const matches: PlayoffMatch[] = [];
+
+    for (let index = 0; index < bracketSlots.length; index += 2) {
+      const alliance1 = bracketSlots[index];
+      const alliance2 = bracketSlots[index + 1];
+
+      const match = predictMatch(alliance1, alliance2, `${roundName} ${matches.length + 1}`);
+      matches.push(match);
+      nextSlots.push(match.winner);
+    }
+
+    rounds.push({ name: roundName, matches });
+
+    if (slotCount === 4) {
+      semifinalMatches = matches;
+    }
+
+    if (slotCount === 2 && matches.length > 0) {
+      final = matches[0];
+    }
+
+    bracketSlots = nextSlots;
+    roundIndex += 1;
+  }
+
+  if (!final) {
+    throw new Error('没有生成冠军争夺战，请检查联盟数量。');
+  }
+
+  if (semifinalMatches.length === 2) {
+    bronze = predictMatch(semifinalMatches[0].loser, semifinalMatches[1].loser, '季军争夺战');
+  }
 
   return {
-    semifinals,
+    rounds,
+    semifinals: semifinalMatches,
     final,
     bronze,
     champion: final.winner,
     runnerUp: final.loser,
-    thirdPlace: bronze.winner,
+    thirdPlace: bronze?.winner ?? null,
   };
 }

@@ -58,6 +58,10 @@ export interface PlayoffMatch {
 }
 
 export interface PlayoffPrediction {
+  rounds: Array<{
+    name: string;
+    matches: PlayoffMatch[];
+  }>;
   semifinals: PlayoffMatch[];
   final: PlayoffMatch | null;
   bronze: PlayoffMatch | null;

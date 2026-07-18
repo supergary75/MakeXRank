@@ -1508,6 +1508,8 @@ export default function App() {
 
             {activeTab === 'focusSchedule' && activeCompetition.eventType === 'MakeX Explorer' && (
               <FocusScheduleView
+                key={activeCompetition.id}
+                competitionId={activeCompetition.id}
                 showNotification={showNotification}
                 teamTags={teamTags}
                 tagOptions={teamTagOptions}
