@@ -1,13 +1,13 @@
 .header {
   background:
-    radial-gradient(circle at top, rgba(243, 224, 171, 0.16), transparent 28%),
-    linear-gradient(180deg, rgba(255, 245, 220, 0.06), transparent 18%),
-    linear-gradient(145deg, #7d201f 0%, #571717 44%, #341112 100%);
+    radial-gradient(circle at top, rgba(242, 56, 69, 0.18), transparent 32%),
+    radial-gradient(circle at 82% 14%, rgba(0, 200, 255, 0.12), transparent 28%),
+    linear-gradient(145deg, #1c2732 0%, #111821 54%, #080b10 100%);
   color: var(--gray-800);
   padding: 40px;
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(242, 56, 69, 0.2);
 }
 
 .header::before {
@@ -18,13 +18,13 @@
   width: 200%;
   height: 200%;
   background:
-    radial-gradient(circle, rgba(225, 184, 90, 0.16) 0%, transparent 22%),
+    radial-gradient(circle, rgba(0, 200, 255, 0.1) 0%, transparent 22%),
     repeating-linear-gradient(
       90deg,
       transparent 0,
       transparent 58px,
-      rgba(255, 245, 220, 0.02) 58px,
-      rgba(255, 245, 220, 0.02) 60px
+      rgba(242, 56, 69, 0.04) 58px,
+      rgba(242, 56, 69, 0.04) 60px
     );
   animation: shimmer 10s ease-in-out infinite;
 }
@@ -34,7 +34,7 @@
   position: absolute;
   inset: auto 0 0;
   height: 4px;
-  background: linear-gradient(90deg, transparent, var(--accent), var(--primary-light), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent), var(--primary), transparent);
   box-shadow: var(--glow-amber);
 }
 
@@ -62,13 +62,14 @@
   gap: 12px;
   padding: 10px 18px 10px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 104, 104, 0.42);
+  border: 1px solid rgba(242, 56, 69, 0.36);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 44%),
-    linear-gradient(145deg, rgba(141, 21, 24, 0.96), rgba(55, 10, 13, 0.96));
+    linear-gradient(145deg, rgba(36, 47, 59, 0.96), rgba(7, 10, 15, 0.96));
   box-shadow:
-    0 12px 28px rgba(24, 6, 7, 0.4),
-    inset 0 1px 0 rgba(255, 196, 196, 0.14);
+    0 12px 28px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 18px rgba(242, 56, 69, 0.12);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -78,13 +79,13 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(115deg, transparent 0, transparent 16px, rgba(255, 124, 124, 0.15) 16px, rgba(255, 124, 124, 0.15) 18px, transparent 18px),
+    linear-gradient(115deg, transparent 0, transparent 16px, rgba(242, 56, 69, 0.12) 16px, rgba(242, 56, 69, 0.12) 18px, transparent 18px),
     repeating-linear-gradient(
       135deg,
       transparent 0,
       transparent 18px,
-      rgba(255, 120, 120, 0.06) 18px,
-      rgba(255, 120, 120, 0.06) 20px
+      rgba(0, 200, 255, 0.035) 18px,
+      rgba(0, 200, 255, 0.035) 20px
     );
   pointer-events: none;
 }
@@ -125,7 +126,7 @@
 }
 
 .logoTitle {
-  color: #ffd7d7;
+  color: #ffd7d9;
   font-size: 1.04rem;
   font-weight: 900;
   font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
@@ -135,12 +136,12 @@
   transform: skewX(-12deg);
   transform-origin: left center;
   text-shadow:
-    0 0 8px rgba(255, 115, 115, 0.22),
-    0 3px 12px rgba(41, 3, 7, 0.4);
+    0 0 8px rgba(242, 56, 69, 0.28),
+    0 3px 12px rgba(0, 0, 0, 0.5);
 }
 
 .logoSub {
-  color: rgba(255, 214, 214, 0.76);
+  color: rgba(217, 226, 236, 0.72);
   font-size: 0.68rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -154,7 +155,7 @@
 
 .eyebrow {
   margin: 0 0 12px;
-  color: var(--gray-100);
+  color: var(--gray-600);
   font-size: 0.86rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -171,8 +172,8 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-shadow:
-    0 0 12px rgba(225, 184, 90, 0.24),
-    0 4px 16px rgba(52, 17, 18, 0.48);
+    0 0 16px rgba(0, 200, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.38);
 }
 
 .subtitle {

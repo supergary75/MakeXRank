@@ -660,3 +660,63 @@
     width: 100%;
   }
 }
+
+.hero,
+.panel {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 28%),
+    linear-gradient(160deg, rgba(242, 56, 69, 0.1), rgba(0, 200, 255, 0.06));
+  border-color: rgba(217, 226, 236, 0.1);
+}
+
+.eyebrow,
+.inputBlock span,
+.queryLabel,
+.matchBadge {
+  color: var(--primary);
+}
+
+.hero h2,
+.panel h3 {
+  color: var(--gray-800);
+}
+
+.description,
+.panelHeader p {
+  color: var(--gray-600);
+}
+
+.heroStats span,
+.queryLabel,
+.matchBadge {
+  background: rgba(0, 200, 255, 0.1);
+  border-color: rgba(0, 200, 255, 0.2);
+}
+
+.textarea {
+  background: rgba(8, 12, 18, 0.58);
+  border-color: rgba(217, 226, 236, 0.12);
+  color: var(--gray-800);
+}
+
+.textarea::placeholder {
+  color: var(--gray-400);
+}
+
+.primaryButton {
+  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
+  color: #fff7f8;
+}
+
+.secondaryButton {
+  background: rgba(0, 200, 255, 0.08);
+  border-color: rgba(0, 200, 255, 0.18);
+  color: var(--secondary);
+}
+
+.emptyState,
+.notFound {
+  background: rgba(18, 25, 34, 0.78);
+  border-color: rgba(217, 226, 236, 0.1);
+  color: var(--gray-600);
+}

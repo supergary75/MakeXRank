@@ -14,13 +14,13 @@
   max-height: calc(100vh - 40px);
   overflow: auto;
   border-radius: 24px;
-  border: 1px solid rgba(225, 184, 90, 0.18);
+  border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    linear-gradient(135deg, rgba(255, 244, 217, 0.05), transparent 26%),
-    linear-gradient(180deg, rgba(102, 30, 28, 0.96), rgba(46, 12, 13, 0.98));
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 26%),
+    linear-gradient(180deg, rgba(31, 41, 52, 0.96), rgba(7, 10, 15, 0.98));
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(255, 244, 217, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .header,
@@ -37,7 +37,7 @@
 
 .eyebrow {
   margin: 0 0 10px;
-  color: rgba(255, 232, 189, 0.78);
+  color: var(--secondary);
   font-size: 0.82rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -47,7 +47,7 @@
 .card h3,
 .adminArea h3 {
   margin: 0;
-  color: #fff3d6;
+  color: var(--gray-800);
 }
 
 .closeButton,
@@ -63,9 +63,9 @@
 .closeButton {
   min-height: 42px;
   padding: 0 14px;
-  border: 1px solid rgba(255, 244, 217, 0.14);
-  background: rgba(58, 19, 18, 0.74);
-  color: #fff0cf;
+  border: 1px solid rgba(217, 226, 236, 0.12);
+  background: rgba(8, 12, 18, 0.74);
+  color: var(--gray-700);
 }
 
 .notice,
@@ -73,12 +73,12 @@
   margin: 0 30px 20px;
   padding: 12px 14px;
   border-radius: 14px;
-  color: #ffe9be;
+  color: var(--gray-700);
 }
 
 .notice {
-  border: 1px solid rgba(225, 184, 90, 0.18);
-  background: rgba(225, 184, 90, 0.1);
+  border: 1px solid rgba(0, 200, 255, 0.18);
+  background: rgba(0, 200, 255, 0.08);
 }
 
 .tip {
@@ -95,9 +95,9 @@
 
 .card,
 .adminArea {
-  border: 1px solid rgba(225, 184, 90, 0.14);
+  border: 1px solid rgba(217, 226, 236, 0.1);
   border-radius: 18px;
-  background: rgba(51, 15, 16, 0.62);
+  background: rgba(18, 25, 34, 0.72);
 }
 
 .card {
@@ -126,8 +126,8 @@
   min-height: 44px;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(225, 184, 90, 0.18);
-  background: rgba(22, 7, 8, 0.52);
+  border: 1px solid rgba(217, 226, 236, 0.12);
+  background: rgba(8, 12, 18, 0.58);
   color: #fff4dc;
   font: inherit;
 }
@@ -156,15 +156,15 @@
 
 .primaryButton {
   border: 1px solid rgba(255, 244, 217, 0.12);
-  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
-  color: #34170b;
+  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
+  color: #fff7f8;
 }
 
 .secondaryButton,
 .inlineButton {
-  border: 1px solid rgba(225, 184, 90, 0.18);
-  background: rgba(225, 184, 90, 0.08);
-  color: #f4d28c;
+  border: 1px solid rgba(0, 200, 255, 0.18);
+  background: rgba(0, 200, 255, 0.08);
+  color: var(--secondary);
 }
 
 .primaryButton:hover,
@@ -222,14 +222,14 @@
   align-items: center;
   min-height: 40px;
   padding: 0 12px;
-  border: 1px solid rgba(225, 184, 90, 0.18);
+  border: 1px solid rgba(0, 200, 255, 0.16);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
-  color: #fff1d0;
+  color: var(--gray-700);
 }
 
 .checkboxTag input {
-  accent-color: #d8bd84;
+  accent-color: var(--secondary);
 }
 
 .userForm {

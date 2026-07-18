@@ -2,8 +2,8 @@
   display: flex;
   gap: 4px;
   padding: 16px 24px 0;
-  background: rgba(70, 24, 22, 0.32);
-  border-bottom: 1px solid rgba(225, 184, 90, 0.16);
+  background: rgba(8, 12, 18, 0.32);
+  border-bottom: 1px solid rgba(217, 226, 236, 0.08);
 }
 
 .btn {
@@ -24,17 +24,17 @@
 
 .btn:hover {
   color: var(--gray-800);
-  background: rgba(225, 184, 90, 0.08);
-  border-color: rgba(225, 184, 90, 0.18);
+  background: rgba(0, 200, 255, 0.08);
+  border-color: rgba(0, 200, 255, 0.18);
 }
 
 .active {
   color: var(--gray-800);
   border-bottom-color: var(--accent);
-  border-left-color: rgba(225, 184, 90, 0.16);
-  border-right-color: rgba(225, 184, 90, 0.16);
-  border-top-color: rgba(225, 184, 90, 0.16);
-  background: linear-gradient(145deg, #9b2e2d 0%, #7b201d 100%);
+  border-left-color: rgba(242, 56, 69, 0.24);
+  border-right-color: rgba(242, 56, 69, 0.24);
+  border-top-color: rgba(242, 56, 69, 0.24);
+  background: linear-gradient(145deg, #d92634 0%, #89111b 100%);
   box-shadow: 0 -1px 0 rgba(255, 245, 220, 0.08), var(--glow-amber);
 }
 
