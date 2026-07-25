@@ -114,6 +114,10 @@ const PRACTICE_EXPLORER_STORAGE_KEY = 'competitive-ranking-board::practice-explo
 const LOGISTICS_EVENTS_STORAGE_KEY = 'competitive-ranking-board::logistics-events';
 const TRAINING_EVENTS_STORAGE_KEY = 'competitive-ranking-board::training-events';
 const TRAINING_SCHEDULES_STORAGE_KEY = 'competitive-ranking-board::training-schedules';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
+const TRAINING_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TRAINING_SYNC_TABLE?.trim() || 'training_sync';
+const TRAINING_SYNC_ID = 'global';
 
 interface PracticeExplorerState {
   sourceText: string;
@@ -179,6 +183,18 @@ interface CalendarDay {
   dateKey: string;
   day: number;
   isCurrentMonth: boolean;
+}
+
+interface TrainingCloudState {
+  events: TrainingEventRecord[];
+  schedules: TrainingScheduleMap;
+}
+
+interface TrainingSyncRow {
+  id: string;
+  events: unknown[];
+  schedules: Record<string, unknown>;
+  updated_at: string;
 }
 
 function hasEventAccess(user: AuthUserProfile | null, eventType: EventType): boolean {
@@ -491,6 +507,147 @@ function saveTrainingSchedules(schedules: TrainingScheduleMap): void {
   window.localStorage.setItem(TRAINING_SCHEDULES_STORAGE_KEY, JSON.stringify(schedules));
 }
 
+function getTrainingSyncHeaders(accessToken: string, includeJson = false): HeadersInit {
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${accessToken}`,
+    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
+  };
+}
+
+async function requestTrainingSync<T>(path: string, accessToken: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${SUPABASE_URL}${path}`, {
+    ...init,
+    headers: {
+      ...getTrainingSyncHeaders(accessToken, Boolean(init?.body)),
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `HTTP ${response.status}`);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
+function normalizeTrainingEvents(input: unknown): TrainingEventRecord[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .filter((item): item is Partial<TrainingEventRecord> => item && typeof item === 'object')
+    .map((item) => {
+      const calendarDates = Array.isArray(item.calendarDates)
+        ? item.calendarDates.filter((date): date is string => typeof date === 'string')
+        : typeof item.date === 'string' && item.date ? [item.date] : [];
+
+      return {
+        id: typeof item.id === 'string' ? item.id : `training-${Date.now()}`,
+        name: typeof item.name === 'string' ? item.name : '',
+        date: typeof item.date === 'string' ? item.date : '',
+        calendarDates,
+        calendarDateModes: normalizeTrainingDateModes(calendarDates, item.calendarDateModes),
+        calendarDateTimes: normalizeTrainingDateTimes(calendarDates, item.calendarDateTimes),
+        venue: typeof item.venue === 'string' ? item.venue : '',
+        group: typeof item.group === 'string' ? item.group : '',
+        coach: typeof item.coach === 'string' ? item.coach : '',
+        notes: typeof item.notes === 'string' ? item.notes : '',
+        createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
+      };
+    })
+    .filter((item) => item.name.trim());
+}
+
+function normalizeTrainingSchedules(input: unknown): TrainingScheduleMap {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(input as Record<string, unknown>).map(([key, rows]) => [
+      key,
+      Array.isArray(rows)
+        ? rows
+          .filter((row): row is Partial<TrainingScheduleRow> => row && typeof row === 'object')
+          .map((row) => ({
+            id: typeof row.id === 'string' ? row.id : `schedule-${Date.now()}`,
+            time: typeof row.time === 'string' ? row.time : '',
+            topic: typeof row.topic === 'string' ? row.topic : '',
+            teams: typeof row.teams === 'string' ? row.teams : '',
+            coach: typeof row.coach === 'string' ? row.coach : '',
+            target: typeof row.target === 'string' ? row.target : '',
+            notes: typeof row.notes === 'string' ? row.notes : '',
+          }))
+        : [],
+    ]),
+  );
+}
+
+async function fetchRemoteTrainingState(accessToken: string): Promise<TrainingCloudState | null> {
+  const params = new URLSearchParams({
+    select: 'id,events,schedules,updated_at',
+    id: `eq.${TRAINING_SYNC_ID}`,
+    limit: '1',
+  });
+
+  const rows = await requestTrainingSync<TrainingSyncRow[]>(
+    `/rest/v1/${TRAINING_SYNC_TABLE}?${params.toString()}`,
+    accessToken,
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  return {
+    events: normalizeTrainingEvents(rows[0].events),
+    schedules: normalizeTrainingSchedules(rows[0].schedules),
+  };
+}
+
+async function saveRemoteTrainingState(
+  events: TrainingEventRecord[],
+  schedules: TrainingScheduleMap,
+  accessToken: string,
+): Promise<void> {
+  const params = new URLSearchParams({ on_conflict: 'id' });
+  await requestTrainingSync<TrainingSyncRow[]>(
+    `/rest/v1/${TRAINING_SYNC_TABLE}?${params.toString()}`,
+    accessToken,
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({
+        id: TRAINING_SYNC_ID,
+        events,
+        schedules,
+        updated_at: new Date().toISOString(),
+      }),
+    },
+  );
+}
+
+function mergeTrainingState(localState: TrainingCloudState, remoteState: TrainingCloudState | null): TrainingCloudState {
+  if (!remoteState) {
+    return localState;
+  }
+
+  if (remoteState.events.length > 0 || Object.keys(remoteState.schedules).length > 0) {
+    return remoteState;
+  }
+
+  return localState;
+}
+
 function drawRoundedRect(
   context: CanvasRenderingContext2D,
   x: number,
@@ -735,9 +892,11 @@ export default function App() {
   const [activeTrainingEndTime, setActiveTrainingEndTime] = useState('');
   const [visibleTrainingMonth, setVisibleTrainingMonth] = useState(() => getMonthKey(getTodayKey()));
   const [trainingSchedules, setTrainingSchedules] = useState<TrainingScheduleMap>(() => loadTrainingSchedules());
+  const [trainingCloudReady, setTrainingCloudReady] = useState(false);
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const practiceExplorerPasteAreaRef = useRef<HTMLTextAreaElement>(null);
+  const trainingCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { notifications, showNotification } = useNotification();
   const { featuredTeams, addTeam, removeTeam, toggleTeam } = useFeaturedTeams();
 
@@ -904,6 +1063,14 @@ export default function App() {
   }, [competitions]);
 
   useEffect(() => {
+    saveTrainingEvents(trainingEvents);
+  }, [trainingEvents]);
+
+  useEffect(() => {
+    saveTrainingSchedules(trainingSchedules);
+  }, [trainingSchedules]);
+
+  useEffect(() => {
     let cancelled = false;
 
     void (async () => {
@@ -959,6 +1126,88 @@ export default function App() {
       cancelled = true;
     };
   }, [authUser, canManageUsers, showNotification]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      if (!authUser) {
+        setTrainingCloudReady(false);
+        return;
+      }
+
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        setTrainingCloudReady(false);
+        return;
+      }
+
+      try {
+        const localState: TrainingCloudState = {
+          events: loadTrainingEvents(),
+          schedules: loadTrainingSchedules(),
+        };
+        const remoteState = await fetchRemoteTrainingState(accessToken);
+        const mergedState = mergeTrainingState(localState, remoteState);
+
+        if (cancelled) {
+          return;
+        }
+
+        setTrainingEvents(mergedState.events);
+        setTrainingSchedules(mergedState.schedules);
+        saveTrainingEvents(mergedState.events);
+        saveTrainingSchedules(mergedState.schedules);
+        await saveRemoteTrainingState(mergedState.events, mergedState.schedules, accessToken);
+
+        if (!cancelled) {
+          setTrainingCloudReady(true);
+          showNotification('已连接 Supabase 集训安排云端同步，登录设备会共享同一份集训日历。', 'success');
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setTrainingCloudReady(false);
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`集训安排云同步失败，暂时使用本地数据。原因：${message}`, 'error');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, showNotification]);
+
+  useEffect(() => {
+    if (!authUser || !trainingCloudReady) {
+      return;
+    }
+
+    const accessToken = getStoredAccessToken();
+    if (!accessToken) {
+      return;
+    }
+
+    if (trainingCloudSaveTimerRef.current) {
+      clearTimeout(trainingCloudSaveTimerRef.current);
+    }
+
+    trainingCloudSaveTimerRef.current = setTimeout(() => {
+      void saveRemoteTrainingState(trainingEvents, trainingSchedules, accessToken).catch((error) => {
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`集训安排保存到 Supabase 失败：${message}`, 'error');
+      });
+    }, 500);
+
+    return () => {
+      if (trainingCloudSaveTimerRef.current) {
+        clearTimeout(trainingCloudSaveTimerRef.current);
+        trainingCloudSaveTimerRef.current = null;
+      }
+    };
+  }, [authUser, showNotification, trainingCloudReady, trainingEvents, trainingSchedules]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
