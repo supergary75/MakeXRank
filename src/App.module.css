@@ -158,6 +158,30 @@
   background:
     linear-gradient(145deg, rgba(0, 200, 255, 0.06), transparent 52%),
     rgba(18, 25, 34, 0.74);
+  overflow: hidden;
+  position: relative;
+}
+
+.portalIntro::after {
+  content: '';
+  position: absolute;
+  right: 24px;
+  bottom: -42px;
+  width: 180px;
+  height: 180px;
+  border-radius: 34px;
+  background: url('./assets/kclub-sanya-bay.webp') center / cover;
+  opacity: 0.18;
+  pointer-events: none;
+  transform: rotate(6deg);
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.portalIntro > * {
+  position: relative;
+  z-index: 1;
 }
 
 .portalEyebrow {
@@ -182,7 +206,7 @@
 
 .portalGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -195,6 +219,38 @@
     rgba(18, 25, 34, 0.8);
   display: grid;
   gap: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.portalCard::after {
+  content: '';
+  position: absolute;
+  right: -22px;
+  top: 18px;
+  width: 136px;
+  height: 136px;
+  border-radius: 28px;
+  background: url('./assets/kclub-sanya-cape.webp') center / cover;
+  opacity: 0.18;
+  pointer-events: none;
+  transform: rotate(8deg);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+}
+
+.portalCard:nth-child(2)::after {
+  background-image: url('./assets/kclub-sanya-forest.webp');
+  transform: rotate(-7deg);
+}
+
+.portalCard:nth-child(3)::after {
+  background-image: url('./assets/kclub-sanya-beach.webp');
+  transform: rotate(6deg);
+}
+
+.portalCard > * {
+  position: relative;
+  z-index: 1;
 }
 
 .portalCardTop {
@@ -253,6 +309,552 @@
   box-shadow: var(--glow-amber);
 }
 
+.portalButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  opacity: 0.55;
+  transform: none;
+}
+
+.secondaryButton {
+  width: 100%;
+  border: 1px solid rgba(0, 200, 255, 0.22);
+  border-radius: 16px;
+  padding: 13px 18px;
+  background: linear-gradient(145deg, rgba(0, 200, 255, 0.18), rgba(16, 24, 34, 0.92));
+  color: var(--gray-800);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-cyan);
+}
+
+.practiceWorkspace {
+  display: grid;
+  gap: 22px;
+}
+
+.practiceToolbar,
+.parameterPanel {
+  padding: 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(0, 200, 255, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(242, 56, 69, 0.08), transparent 58%),
+    rgba(18, 25, 34, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 44px rgba(2, 5, 10, 0.28);
+}
+
+.practiceToolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 20px;
+  align-items: center;
+}
+
+.practiceToolbar h2,
+.parameterPanel h2 {
+  margin: 6px 0 10px;
+  color: var(--gray-900);
+}
+
+.practiceToolbar p,
+.parameterPanel p {
+  margin: 0;
+  color: var(--gray-400);
+  line-height: 1.7;
+}
+
+.practiceActions {
+  display: grid;
+  gap: 12px;
+}
+
+.parameterGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.parameterCard {
+  min-height: 112px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(145deg, rgba(0, 200, 255, 0.1), rgba(242, 56, 69, 0.08)),
+    rgba(8, 12, 18, 0.72);
+  display: grid;
+  gap: 6px;
+  align-content: center;
+}
+
+.parameterCard span,
+.parameterCard small {
+  color: var(--gray-400);
+  font-size: 0.9em;
+}
+
+.parameterCard strong {
+  color: var(--primary);
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  line-height: 1;
+}
+
+.logisticsFormPanel,
+.logisticsEventCard,
+.logisticsEmpty {
+  padding: 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background:
+    linear-gradient(145deg, rgba(0, 200, 255, 0.08), transparent 46%),
+    linear-gradient(135deg, rgba(242, 56, 69, 0.08), transparent 60%),
+    rgba(18, 25, 34, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 44px rgba(2, 5, 10, 0.24);
+}
+
+.logisticsFormPanel {
+  display: grid;
+  gap: 18px;
+}
+
+.logisticsFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.logisticsField {
+  display: grid;
+  gap: 8px;
+}
+
+.logisticsField span {
+  color: var(--gray-500);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.logisticsField input,
+.logisticsField textarea {
+  width: 100%;
+  border: 1px solid rgba(217, 226, 236, 0.14);
+  border-radius: 14px;
+  background: rgba(8, 12, 18, 0.78);
+  color: var(--gray-800);
+  padding: 12px 14px;
+  font: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.logisticsField textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.logisticsField input:focus,
+.logisticsField textarea:focus {
+  border-color: rgba(0, 200, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+}
+
+.logisticsField input:disabled,
+.logisticsField textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.logisticsWideField {
+  grid-column: 1 / -1;
+}
+
+.logisticsCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.logisticsEventCard {
+  display: grid;
+  gap: 16px;
+}
+
+.logisticsMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.logisticsMeta span {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(8, 12, 18, 0.62);
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  color: var(--gray-500);
+  font-size: 0.86rem;
+}
+
+.logisticsEmpty {
+  grid-column: 1 / -1;
+  color: var(--gray-400);
+  text-align: center;
+  line-height: 1.8;
+}
+
+.dangerButton {
+  justify-self: start;
+  border: 1px solid rgba(242, 56, 69, 0.35);
+  border-radius: 14px;
+  background: rgba(242, 56, 69, 0.12);
+  color: #ffdce0;
+  padding: 10px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dangerButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(242, 56, 69, 0.22);
+}
+
+.diagnosticPanel,
+.practiceRankPanel {
+  padding: 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background:
+    radial-gradient(circle at 84% 8%, rgba(242, 56, 69, 0.13), transparent 30%),
+    linear-gradient(145deg, rgba(0, 200, 255, 0.08), transparent 58%),
+    rgba(18, 25, 34, 0.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 44px rgba(2, 5, 10, 0.24);
+}
+
+.diagnosticHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.diagnosticHeader h2 {
+  margin: 6px 0 10px;
+  color: var(--gray-900);
+}
+
+.diagnosticHeader p {
+  margin: 0;
+  color: var(--gray-400);
+  line-height: 1.7;
+}
+
+.diagnosticGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.diagnosticCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background:
+    linear-gradient(145deg, rgba(242, 56, 69, 0.1), rgba(0, 200, 255, 0.07)),
+    rgba(8, 12, 18, 0.72);
+}
+
+.diagnosticCardTop {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.diagnosticCardTop span,
+.diagnosticCardTop em,
+.trainingTypeBadge {
+  border-radius: var(--radius-full);
+  padding: 6px 10px;
+  background: rgba(242, 56, 69, 0.14);
+  color: #ffdce0;
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.diagnosticCardTop strong {
+  color: var(--gray-900);
+}
+
+.diagnosticStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.diagnosticStats span {
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(0, 200, 255, 0.08);
+  color: var(--gray-500);
+  font-size: 0.86rem;
+}
+
+.diagnosticCard p {
+  margin: 0;
+  color: var(--gray-500);
+  line-height: 1.7;
+}
+
+.practicePlanGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.practicePlanCard {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(0, 200, 255, 0.14), transparent 30%),
+    linear-gradient(145deg, rgba(242, 56, 69, 0.1), rgba(8, 12, 18, 0.78));
+}
+
+.practicePlanTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.practicePlanTitle span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 200, 255, 0.12);
+  color: var(--secondary);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.practicePlanTitle h3 {
+  margin: 0;
+  color: var(--gray-900);
+}
+
+.practicePlanTitle strong {
+  color: var(--primary);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.practicePlanBlock {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(8, 12, 18, 0.55);
+  border: 1px solid rgba(217, 226, 236, 0.08);
+}
+
+.practicePlanBlock h4 {
+  margin: 0 0 10px;
+  color: var(--gray-900);
+  font-size: 0.95rem;
+}
+
+.practicePlanBlock ul,
+.practicePlanBlock ol {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--gray-500);
+  line-height: 1.75;
+}
+
+.practicePlanBlock li + li {
+  margin-top: 6px;
+}
+
+.reviewPoint {
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(242, 56, 69, 0.1);
+  border: 1px solid rgba(242, 56, 69, 0.16);
+  color: var(--gray-600);
+  line-height: 1.7;
+}
+
+.metricLeaderGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metricLeaderCard {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 200, 255, 0.14);
+  background: rgba(8, 12, 18, 0.72);
+}
+
+.metricLeaderCard span,
+.metricLeaderCard small {
+  color: var(--gray-400);
+}
+
+.metricLeaderCard strong {
+  color: var(--primary);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.metricRankingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.metricRankingCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 200, 255, 0.14);
+  background:
+    linear-gradient(145deg, rgba(0, 200, 255, 0.1), rgba(242, 56, 69, 0.07)),
+    rgba(8, 12, 18, 0.72);
+}
+
+.metricRankingTitle {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: end;
+}
+
+.metricRankingTitle span {
+  color: var(--gray-900);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.metricRankingTitle strong {
+  color: var(--primary);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.metricRankingTitle small {
+  grid-column: 1 / -1;
+  color: var(--gray-400);
+}
+
+.metricRankingList {
+  display: grid;
+  gap: 8px;
+}
+
+.metricRankingRow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(217, 226, 236, 0.08);
+  background: rgba(3, 8, 13, 0.52);
+}
+
+.metricRankingOrder {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(242, 56, 69, 0.16);
+  color: #ffdce0;
+  font-weight: 900;
+}
+
+.metricRankingTeam {
+  color: var(--gray-800);
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metricRankingRow strong {
+  color: var(--primary);
+  font-size: 1.08rem;
+}
+
+.metricRankingRow small {
+  color: var(--gray-400);
+  white-space: nowrap;
+}
+
+.practiceTableWrap {
+  overflow-x: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+}
+
+.practiceRankTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+  background: rgba(8, 12, 18, 0.72);
+}
+
+.practiceRankTable th,
+.practiceRankTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(217, 226, 236, 0.08);
+  text-align: left;
+  color: var(--gray-600);
+}
+
+.practiceRankTable th {
+  color: var(--gray-900);
+  background: rgba(0, 200, 255, 0.08);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+}
+
+.practiceRankTable tbody tr:hover {
+  background: rgba(242, 56, 69, 0.08);
+}
+
 .workspaceSummary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -268,6 +870,26 @@
 
   .portalGrid {
     grid-template-columns: 1fr;
+  }
+
+  .practiceToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .parameterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .logisticsFormGrid,
+  .logisticsCards {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnosticGrid,
+  .metricLeaderGrid,
+  .metricRankingGrid,
+  .practicePlanGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

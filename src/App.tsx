@@ -8,6 +8,7 @@ import type {
   SortOrder,
   StorageMode,
   TabName,
+  TeamRaw,
   TeamRanked,
   UserRole,
   ViewMode,
@@ -48,6 +49,12 @@ import {
   saveTeamTags,
   type TeamTagMap,
 } from './utils/teamTags';
+import {
+  buildPracticeExplorerInsights,
+  getPracticeExplorerMetricRankings,
+  parsePracticeExplorerData,
+  type PracticeExplorerMatchRow,
+} from './utils/practiceExplorerAnalysis';
 import { useNotification } from './hooks/useNotification';
 import { useFeaturedTeams } from './hooks/useFeaturedTeams';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
@@ -72,6 +79,33 @@ import styles from './App.module.css';
 
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
 const EVENT_TYPES: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
+const PRACTICE_EXPLORER_STORAGE_KEY = 'competitive-ranking-board::practice-explorer';
+const LOGISTICS_EVENTS_STORAGE_KEY = 'competitive-ranking-board::logistics-events';
+
+interface PracticeExplorerState {
+  sourceText: string;
+  teamsData: TeamRaw[];
+  rows: PracticeExplorerMatchRow[];
+  lastUpdate: string;
+}
+
+interface LogisticsEventRecord {
+  id: string;
+  name: string;
+  date: string;
+  venue: string;
+  group: string;
+  notes: string;
+  createdAt: string;
+}
+
+interface LogisticsEventForm {
+  name: string;
+  date: string;
+  venue: string;
+  group: string;
+  notes: string;
+}
 
 function hasEventAccess(user: AuthUserProfile | null, eventType: EventType): boolean {
   if (!user || user.role === 'admin') {
@@ -134,6 +168,78 @@ function createCompetitionRecord(name: string, eventType: EventType): Competitio
   };
 }
 
+function loadPracticeExplorerState(): PracticeExplorerState {
+  if (typeof window === 'undefined') {
+    return { sourceText: '', teamsData: [], rows: [], lastUpdate: '' };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PRACTICE_EXPLORER_STORAGE_KEY);
+    if (!raw) {
+      return { sourceText: '', teamsData: [], rows: [], lastUpdate: '' };
+    }
+
+    const parsed = JSON.parse(raw) as Partial<PracticeExplorerState>;
+    return {
+      sourceText: typeof parsed.sourceText === 'string' ? parsed.sourceText : '',
+      teamsData: Array.isArray(parsed.teamsData) ? parsed.teamsData : [],
+      rows: Array.isArray(parsed.rows) ? parsed.rows : [],
+      lastUpdate: typeof parsed.lastUpdate === 'string' ? parsed.lastUpdate : '',
+    };
+  } catch {
+    return { sourceText: '', teamsData: [], rows: [], lastUpdate: '' };
+  }
+}
+
+function savePracticeExplorerState(state: PracticeExplorerState): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(PRACTICE_EXPLORER_STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadLogisticsEvents(): LogisticsEventRecord[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(LOGISTICS_EVENTS_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((item): item is Partial<LogisticsEventRecord> => item && typeof item === 'object')
+      .map((item) => ({
+        id: typeof item.id === 'string' ? item.id : `logistics-${Date.now()}`,
+        name: typeof item.name === 'string' ? item.name : '',
+        date: typeof item.date === 'string' ? item.date : '',
+        venue: typeof item.venue === 'string' ? item.venue : '',
+        group: typeof item.group === 'string' ? item.group : '',
+        notes: typeof item.notes === 'string' ? item.notes : '',
+        createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
+      }))
+      .filter((item) => item.name.trim());
+  } catch {
+    return [];
+  }
+}
+
+function saveLogisticsEvents(events: LogisticsEventRecord[]): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(LOGISTICS_EVENTS_STORAGE_KEY, JSON.stringify(events));
+}
+
 function sortCompetitionsByCreatedAt(competitions: CompetitionRecord[]): CompetitionRecord[] {
   return [...competitions].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
@@ -193,8 +299,19 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [teamTags, setTeamTags] = useState<TeamTagMap>(() => loadTeamTags());
   const [teamTagOptions, setTeamTagOptions] = useState<string[]>(() => loadTeamTagOptions());
+  const [practiceExplorer, setPracticeExplorer] = useState<PracticeExplorerState>(() => loadPracticeExplorerState());
+  const [practiceExplorerAwaitingPaste, setPracticeExplorerAwaitingPaste] = useState(false);
+  const [logisticsEvents, setLogisticsEvents] = useState<LogisticsEventRecord[]>(() => loadLogisticsEvents());
+  const [logisticsEventForm, setLogisticsEventForm] = useState<LogisticsEventForm>({
+    name: '',
+    date: '',
+    venue: '',
+    group: '',
+    notes: '',
+  });
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
+  const practiceExplorerPasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const { notifications, showNotification } = useNotification();
   const { featuredTeams, addTeam, removeTeam, toggleTeam } = useFeaturedTeams();
 
@@ -235,6 +352,21 @@ export default function App() {
     sortOrder,
     activeEventType,
   );
+  const practiceExplorerTeamCount =
+    new Set(practiceExplorer.rows.map((row) => row.team)).size || practiceExplorer.teamsData.length;
+  const practiceExplorerHighestSingleMatchScore = practiceExplorer.rows.reduce(
+    (best, row) => Math.max(best, row.totalScore),
+    0,
+  );
+  const practiceExplorerTotalMatches = practiceExplorer.rows.length;
+  const practiceExplorerInsights = buildPracticeExplorerInsights(practiceExplorer.rows);
+  const practiceExplorerMetricRankings = getPracticeExplorerMetricRankings(practiceExplorer.rows);
+  const practiceExplorerBestEpaInsight = practiceExplorerInsights
+    .slice()
+    .sort((left, right) => right.bestEpa - left.bestEpa)[0];
+  const filteredPracticeExplorerInsights = searchKeyword.trim()
+    ? practiceExplorerInsights.filter((insight) => insight.team.toLowerCase().includes(searchKeyword.trim().toLowerCase()))
+    : practiceExplorerInsights;
   const topEpaTeams: CompetitionTopTeam[] = competitions
     .flatMap((competition) => {
       const competitionRankedTeams = sortTeams(
@@ -856,11 +988,101 @@ export default function App() {
     setAwaitingPaste(false);
   }, []);
 
+  const handleLogisticsFormChange = useCallback(
+    (field: keyof LogisticsEventForm, value: string) => {
+      setLogisticsEventForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleCreateLogisticsEvent = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    const trimmedName = logisticsEventForm.name.trim();
+    if (!trimmedName) {
+      showNotification('请先输入赛事名称。', 'error');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const nextEvent: LogisticsEventRecord = {
+      id: `logistics-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: trimmedName,
+      date: logisticsEventForm.date.trim(),
+      venue: logisticsEventForm.venue.trim(),
+      group: logisticsEventForm.group.trim(),
+      notes: logisticsEventForm.notes.trim(),
+      createdAt: now,
+    };
+
+    setLogisticsEvents((previous) => {
+      const next = [nextEvent, ...previous];
+      saveLogisticsEvents(next);
+      return next;
+    });
+    setLogisticsEventForm({
+      name: '',
+      date: '',
+      venue: '',
+      group: '',
+      notes: '',
+    });
+    showNotification(`已生成后勤赛事卡片：${trimmedName}`, 'success');
+  }, [canEdit, logisticsEventForm, showNotification]);
+
+  const handleDeleteLogisticsEvent = useCallback(
+    (id: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      setLogisticsEvents((previous) => {
+        const next = previous.filter((event) => event.id !== id);
+        saveLogisticsEvents(next);
+        return next;
+      });
+      showNotification('已删除后勤赛事卡片。', 'info');
+    },
+    [canEdit, showNotification],
+  );
+
+  const handleOpenPracticeAnalysis = useCallback(() => {
+    setViewMode('practice-analysis');
+    setActiveCompetitionId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
+  const handleOpenPracticeExplorer = useCallback(() => {
+    setViewMode('practice-explorer');
+    setActiveCompetitionId(null);
+    setSortField('totalWinLossScore');
+    setSortOrder('desc');
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
+  const handleBackToPracticeAnalysis = useCallback(() => {
+    setViewMode('practice-analysis');
+    setSearchKeyword('');
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
   const handleBackToHome = useCallback(() => {
     setViewMode('home');
     setActiveCompetitionId(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
   }, []);
 
   const handleDeleteCompetition = useCallback(
@@ -1107,6 +1329,171 @@ export default function App() {
     );
   }, [activeCompetition, ensureEditorAccess, parseAndApplyTable, showNotification, updateActiveCompetition]);
 
+  const parseAndApplyPracticeExplorerTable = useCallback(
+    (text: string, successMessage?: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      const normalizedText = text.trim();
+      if (!normalizedText) {
+        showNotification('请先复制或粘贴练习赛表格，再点击读取解析。', 'error');
+        return;
+      }
+
+      try {
+        const parsed = parsePracticeExplorerData(normalizedText);
+        if (parsed.rows.length === 0 || parsed.teamsData.length === 0) {
+          showNotification('没有识别到有效的 Explorer 练习赛数据，请检查表格是否完整。', 'error');
+          return;
+        }
+
+        const nextState: PracticeExplorerState = {
+          sourceText: normalizedText,
+          teamsData: parsed.teamsData,
+          rows: parsed.rows,
+          lastUpdate: formatTime(),
+        };
+
+        setPracticeExplorer(nextState);
+        savePracticeExplorerState(nextState);
+        setPracticeExplorerAwaitingPaste(false);
+        setSortField('totalWinLossScore');
+        setSortOrder('desc');
+        showNotification(
+          successMessage ?? `成功解析 ${parsed.teamsData.length} 支队伍、${parsed.rows.length} 场练习数据。`,
+          'success',
+        );
+      } catch (error) {
+        console.error('Practice Explorer parse failed:', error);
+        showNotification('解析失败，请确认复制的是 Explorer 比赛表格。', 'error');
+      }
+    },
+    [canEdit, showNotification],
+  );
+
+  const handlePracticeExplorerTextChange = useCallback(
+    (text: string) => {
+      if (!canEdit) {
+        return;
+      }
+
+      setPracticeExplorer((previous) => {
+        const nextState = { ...previous, sourceText: text };
+        savePracticeExplorerState(nextState);
+        return nextState;
+      });
+    },
+    [canEdit],
+  );
+
+  const handleClearPracticeExplorerData = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    const hasData = practiceExplorer.sourceText.trim() || practiceExplorer.teamsData.length > 0;
+    if (!hasData) {
+      showNotification('当前练习赛数据已经是空的。', 'info');
+      return;
+    }
+
+    const shouldClear = window.confirm('确认清空 MakeX Explorer 练习赛导入内容和排名数据吗？');
+    if (!shouldClear) {
+      return;
+    }
+
+    const nextState: PracticeExplorerState = { sourceText: '', teamsData: [], rows: [], lastUpdate: '' };
+    setPracticeExplorer(nextState);
+    savePracticeExplorerState(nextState);
+    setPracticeExplorerAwaitingPaste(false);
+    setSearchKeyword('');
+    showNotification('已清空 MakeX Explorer 练习赛数据。', 'success');
+  }, [canEdit, practiceExplorer, showNotification]);
+
+  const handlePracticeExplorerRefresh = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    if (practiceExplorer.teamsData.length === 0) {
+      showNotification('当前还没有可刷新的练习赛排名数据。', 'error');
+      return;
+    }
+
+    setPracticeExplorer((previous) => {
+      const nextState = { ...previous, lastUpdate: formatTime() };
+      savePracticeExplorerState(nextState);
+      return nextState;
+    });
+    showNotification('练习赛排名已刷新。', 'success');
+  }, [canEdit, practiceExplorer.teamsData.length, showNotification]);
+
+  const handleParsePracticeExplorerClipboard = useCallback(async () => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    let clipboardText = '';
+    let clipboardError = '';
+
+    if (navigator.clipboard?.readText) {
+      try {
+        clipboardText = (await navigator.clipboard.readText()).trim();
+      } catch (error) {
+        clipboardError = error instanceof Error ? error.message : '浏览器阻止读取剪贴板';
+      }
+    }
+
+    const inputText = (practiceExplorerPasteAreaRef.current?.value ?? practiceExplorer.sourceText ?? '').trim();
+    const finalText = clipboardText || inputText;
+
+    if (!finalText) {
+      practiceExplorerPasteAreaRef.current?.focus();
+      setPracticeExplorerAwaitingPaste(true);
+      showNotification(
+        clipboardError
+          ? `当前环境未能直接读取系统剪贴板，请现在按 Ctrl+V，系统会自动导入。原因：${clipboardError}`
+          : '剪贴板为空，请先复制 Explorer 练习赛表格；如果浏览器拦截读取，请现在按 Ctrl+V，系统会自动导入。',
+        'error',
+      );
+      return;
+    }
+
+    parseAndApplyPracticeExplorerTable(
+      finalText,
+      clipboardText ? '已从系统剪贴板读取并解析 Explorer 练习赛数据。' : '已解析输入框中的 Explorer 练习赛数据。',
+    );
+  }, [canEdit, parseAndApplyPracticeExplorerTable, practiceExplorer.sourceText, showNotification]);
+
+  useEffect(() => {
+    if (!practiceExplorerAwaitingPaste || viewMode !== 'practice-explorer') {
+      return;
+    }
+
+    const handlePracticeExplorerPaste = (event: ClipboardEvent) => {
+      const pastedText = event.clipboardData?.getData('text')?.trim() ?? '';
+      if (!pastedText) {
+        return;
+      }
+
+      if (practiceExplorerPasteAreaRef.current) {
+        practiceExplorerPasteAreaRef.current.value = pastedText;
+      }
+
+      parseAndApplyPracticeExplorerTable(pastedText, '已捕获剪贴板内容并更新 Explorer 练习赛数据。');
+    };
+
+    window.addEventListener('paste', handlePracticeExplorerPaste);
+    return () => {
+      window.removeEventListener('paste', handlePracticeExplorerPaste);
+    };
+  }, [parseAndApplyPracticeExplorerTable, practiceExplorerAwaitingPaste, viewMode]);
+
   const handleRefresh = useCallback(() => {
     if (!ensureEditorAccess()) {
       return;
@@ -1292,6 +1679,22 @@ export default function App() {
                     进入赛事数据分析
                   </button>
                 </article>
+
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>入口三</p>
+                      <h3>练习赛数据分析</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Practice</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    面向训练日、队内练习赛和模拟赛的数据整理入口。后续可独立加入练习赛成绩导入、单队成长追踪、训练对阵记录与复盘分析。
+                  </p>
+                  <button className={styles.portalButton} onClick={handleOpenPracticeAnalysis}>
+                    进入练习赛数据分析
+                  </button>
+                </article>
               </div>
             </section>
 
@@ -1339,26 +1742,432 @@ export default function App() {
                 </p>
               </div>
 
+              <article className={styles.logisticsFormPanel}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>卡片 1</p>
+                    <h3>赛事信息输入</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Event Info</span>
+                </div>
+
+                <div className={styles.logisticsFormGrid}>
+                  <label className={styles.logisticsField}>
+                    <span>赛事名称</span>
+                    <input
+                      value={logisticsEventForm.name}
+                      onChange={(event) => handleLogisticsFormChange('name', event.target.value)}
+                      placeholder="例如：0530 山东 WRCT 初中组"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>赛事日期</span>
+                    <input
+                      type="date"
+                      value={logisticsEventForm.date}
+                      onChange={(event) => handleLogisticsFormChange('date', event.target.value)}
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>地点 / 场馆</span>
+                    <input
+                      value={logisticsEventForm.venue}
+                      onChange={(event) => handleLogisticsFormChange('venue', event.target.value)}
+                      placeholder="例如：主赛场 A 区"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>组别 / 赛项</span>
+                    <input
+                      value={logisticsEventForm.group}
+                      onChange={(event) => handleLogisticsFormChange('group', event.target.value)}
+                      placeholder="例如：Explorer 初中组"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                    <span>备注</span>
+                    <textarea
+                      value={logisticsEventForm.notes}
+                      onChange={(event) => handleLogisticsFormChange('notes', event.target.value)}
+                      placeholder="可以记录联系人、物资提醒、签到安排等后勤信息"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                </div>
+
+                <button className={styles.portalButton} onClick={handleCreateLogisticsEvent} disabled={!canEdit}>
+                  生成赛事卡片
+                </button>
+              </article>
+
+              <div className={styles.logisticsCards}>
+                {logisticsEvents.length === 0 ? (
+                  <div className={styles.logisticsEmpty}>
+                    还没有后勤赛事卡片。先填写上方赛事信息，再点击“生成赛事卡片”。
+                  </div>
+                ) : (
+                  logisticsEvents.map((event) => (
+                    <article key={event.id} className={styles.logisticsEventCard}>
+                      <div className={styles.portalCardTop}>
+                        <div>
+                          <p className={styles.portalCardLabel}>赛事卡片</p>
+                          <h3>{event.name}</h3>
+                        </div>
+                        <span className={styles.portalBadge}>{event.date || '未定日期'}</span>
+                      </div>
+                      <div className={styles.logisticsMeta}>
+                        <span>地点：{event.venue || '未填写'}</span>
+                        <span>组别：{event.group || '未填写'}</span>
+                        <span>创建：{new Date(event.createdAt).toLocaleDateString('zh-CN')}</span>
+                      </div>
+                      {event.notes && <p className={styles.portalCardText}>{event.notes}</p>}
+                      <button className={styles.dangerButton} onClick={() => handleDeleteLogisticsEvent(event.id)}>
+                        删除卡片
+                      </button>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'practice-analysis' ? (
+          <>
+            <Header
+              eyebrow="Practice Analytics"
+              title="练习赛数据分析"
+              subtitle="这里是练习赛数据分析的独立二级页面。后续可以专门接入训练成绩、练习对阵、单队成长曲线和复盘标签。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              <div className={styles.portalIntro}>
+                <p className={styles.portalEyebrow}>Practice Lab</p>
+                <h2>练习赛分析工作台</h2>
+                <p className={styles.portalHint}>
+                  这个入口已经独立出来，和正式赛事数据分析分开管理。下一步可以在这里添加练习赛表格导入、训练场次卡片、队伍表现趋势和重点复盘记录。
+                </p>
+              </div>
+
               <div className={styles.portalGrid}>
                 <article className={styles.portalCard}>
                   <div className={styles.portalCardTop}>
                     <div>
-                      <p className={styles.portalCardLabel}>当前状态</p>
-                      <h3>模块已预留</h3>
+                      <p className={styles.portalCardLabel}>练习赛项</p>
+                      <h3>MakeX Inspire</h3>
                     </div>
-                    <span className={styles.portalBadge}>Coming Next</span>
+                    <span className={styles.portalBadge}>Inspire</span>
                   </div>
                   <p className={styles.portalCardText}>
-                    你后面如果要做后勤系统，我可以直接继续在这个二级页里补卡片、表单、清单、状态流转和上传能力。
+                    用于 Inspire 练习赛数据整理。后续可以接入常规任务、随机任务、最好成绩、最快时间和训练复盘记录。
                   </p>
-                  <button className={styles.portalButton} onClick={handleBackToHome}>
-                    返回首页
+                  <button
+                    className={styles.portalButton}
+                    onClick={() => showNotification('MakeX Inspire 练习赛分析入口已预留。', 'info')}
+                  >
+                    进入 MakeX Inspire
+                  </button>
+                </article>
+
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>练习赛项</p>
+                      <h3>MakeX Explorer</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Explorer</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    用于 Explorer 练习赛数据整理。后续可以接入对阵表、单场得分、EPA 变化、重点赛队标签和训练赛程复盘。
+                  </p>
+                  <button
+                    className={styles.portalButton}
+                    onClick={handleOpenPracticeExplorer}
+                  >
+                    进入 MakeX Explorer
                   </button>
                 </article>
               </div>
             </section>
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'practice-explorer' ? (
+          <>
+            <Header
+              eyebrow="Practice Explorer"
+              title="MakeX Explorer 练习赛分析"
+              subtitle="用于练习赛、模拟赛或队内训练的 Explorer 表格读取、参数分析和排名整理。这里的数据独立于正式赛事。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToPracticeAnalysis}>
+                    返回练习赛数据分析
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.practiceWorkspace}>
+              <div className={styles.practiceToolbar}>
+                <div>
+                  <p className={styles.portalEyebrow}>Table Import</p>
+                  <h2>表格数据读取</h2>
+                  <p>
+                    复制 Explorer 练习赛完整表格后，点击读取并解析；如果浏览器限制剪切板读取，也可以直接在输入框按 Ctrl+V。
+                  </p>
+                </div>
+                <div className={styles.practiceActions}>
+                  <button
+                    className={styles.portalButton}
+                    onClick={handleParsePracticeExplorerClipboard}
+                    disabled={!canEdit}
+                  >
+                    读取并解析剪贴板
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={handlePracticeExplorerRefresh}
+                    disabled={!canEdit}
+                  >
+                    刷新排名
+                  </button>
+                </div>
+              </div>
+
+              <DataInputPanel
+                textValue={practiceExplorer.sourceText}
+                onTextChange={handlePracticeExplorerTextChange}
+                onClearData={handleClearPracticeExplorerData}
+                awaitingPaste={practiceExplorerAwaitingPaste}
+                pasteAreaRef={practiceExplorerPasteAreaRef}
+                readOnly={!canEdit}
+              />
+
+              <section className={styles.parameterPanel}>
+                <div>
+                  <p className={styles.portalEyebrow}>Parameter Analysis</p>
+                  <h2>表格内各项参数分析</h2>
+                  <p>自动汇总参赛队伍、练习赛场次、最高 EPA、单场最高得分，并进一步生成稳定性、短板和训练建议。</p>
+                </div>
+
+                <div className={styles.parameterGrid}>
+                  <div className={styles.parameterCard}>
+                    <span>参赛队伍</span>
+                    <strong>{practiceExplorerTeamCount}</strong>
+                  </div>
+                  <div className={styles.parameterCard}>
+                    <span>总比赛场次</span>
+                    <strong>
+                      {Number.isInteger(practiceExplorerTotalMatches)
+                        ? practiceExplorerTotalMatches
+                        : practiceExplorerTotalMatches.toFixed(1)}
+                    </strong>
+                  </div>
+                  <div className={styles.parameterCard}>
+                    <span>最高 EPA 队伍</span>
+                    <strong>{practiceExplorerBestEpaInsight?.bestEpa.toFixed(1) ?? '0.0'}</strong>
+                    <small>{practiceExplorerBestEpaInsight?.team ?? '暂无数据'}</small>
+                  </div>
+                  <div className={styles.parameterCard}>
+                    <span>单场最高得分</span>
+                    <strong>{practiceExplorerHighestSingleMatchScore.toFixed(2)}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.diagnosticPanel}>
+                <div className={styles.diagnosticHeader}>
+                  <div>
+                    <p className={styles.portalEyebrow}>Personal Practice Plan</p>
+                    <h2>个性化练习规划</h2>
+                    <p>针对每支队的问题自动生成下一轮训练目标、专项练习安排和复盘重点。</p>
+                  </div>
+                </div>
+
+                {practiceExplorerInsights.length === 0 ? (
+                  <div className={styles.logisticsEmpty}>
+                    暂无练习规划。请先导入 Explorer 练习赛数据。
+                  </div>
+                ) : (
+                  <div className={styles.practicePlanGrid}>
+                    {practiceExplorerInsights.map((insight) => (
+                      <article key={`${insight.team}-plan`} className={styles.practicePlanCard}>
+                        <div className={styles.practicePlanTitle}>
+                          <div>
+                            <span>{insight.trainingType}</span>
+                            <h3>{insight.team}</h3>
+                          </div>
+                          <strong>{insight.averageScore.toFixed(1)}</strong>
+                        </div>
+
+                        <div className={styles.practicePlanBlock}>
+                          <h4>本轮目标</h4>
+                          <ul>
+                            {insight.practiceGoals.map((goal) => (
+                              <li key={goal}>{goal}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className={styles.practicePlanBlock}>
+                          <h4>练习安排</h4>
+                          <ol>
+                            {insight.practicePlan.map((step) => (
+                              <li key={step}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+
+                        <p className={styles.reviewPoint}>{insight.reviewPoint}</p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className={styles.diagnosticPanel}>
+                <div className={styles.diagnosticHeader}>
+                  <div>
+                    <p className={styles.portalEyebrow}>Training Diagnosis</p>
+                    <h2>训练诊断总览</h2>
+                    <p>综合平均分、最高分、近三场、稳定性和 EPA，判断每支队伍当前更适合冲分、稳分还是补短板。</p>
+                  </div>
+                </div>
+
+                {practiceExplorerInsights.length === 0 ? (
+                  <div className={styles.logisticsEmpty}>
+                    暂无练习赛诊断数据。请先粘贴包含队名、场次、各项得分、EPA 和总分的练习赛表格。
+                  </div>
+                ) : (
+                  <div className={styles.diagnosticGrid}>
+                    {practiceExplorerInsights.map((insight, index) => (
+                      <article key={insight.team} className={styles.diagnosticCard}>
+                        <div className={styles.diagnosticCardTop}>
+                          <span>#{index + 1}</span>
+                          <strong>{insight.team}</strong>
+                          <em>{insight.trainingType}</em>
+                        </div>
+                        <div className={styles.diagnosticStats}>
+                          <span>均分 {insight.averageScore.toFixed(1)}</span>
+                          <span>最高 {insight.highestScore}</span>
+                          <span>稳定差 {insight.stabilityGap}</span>
+                          <span>近三场 {insight.recentAverageScore.toFixed(1)}</span>
+                        </div>
+                        <p>{insight.suggestion}</p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className={styles.diagnosticPanel}>
+                <div className={styles.diagnosticHeader}>
+                  <div>
+                    <p className={styles.portalEyebrow}>Metric Rankings</p>
+                    <h2>单项能力排名</h2>
+                    <p>每个关键得分项都会列出所有队伍排名，优先看单项最高值，同时显示平均值判断常态水平。</p>
+                  </div>
+                </div>
+
+                <div className={styles.metricRankingGrid}>
+                  {practiceExplorerMetricRankings.length === 0 ? (
+                    <div className={styles.logisticsEmpty}>暂无单项数据。</div>
+                  ) : (
+                    practiceExplorerMetricRankings.map((ranking) => (
+                      <article key={ranking.key} className={styles.metricRankingCard}>
+                        <div className={styles.metricRankingTitle}>
+                          <span>{ranking.label}</span>
+                          <strong>{ranking.teams[0]?.best ?? 0}</strong>
+                          <small>{ranking.teams[0]?.team ?? '暂无数据'}</small>
+                        </div>
+                        <div className={styles.metricRankingList}>
+                          {ranking.teams.map((team, index) => (
+                            <div key={`${ranking.key}-${team.team}`} className={styles.metricRankingRow}>
+                              <span className={styles.metricRankingOrder}>{index + 1}</span>
+                              <span className={styles.metricRankingTeam}>{team.team}</span>
+                              <strong>{team.best}</strong>
+                              <small>均值 {team.average.toFixed(1)}</small>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <SearchBox onSearch={setSearchKeyword} />
+
+              <section className={styles.practiceRankPanel}>
+                <div className={styles.diagnosticHeader}>
+                  <div>
+                    <p className={styles.portalEyebrow}>Practice Ranking</p>
+                    <h2>练习赛综合排名</h2>
+                    <p>默认按平均总分排序；如果要做更细的权重排名，后续可以加入“稳定优先 / 冲分优先 / 淘汰赛适配”模式。</p>
+                  </div>
+                </div>
+
+                <div className={styles.practiceTableWrap}>
+                  <table className={styles.practiceRankTable}>
+                    <thead>
+                      <tr>
+                        <th>排名</th>
+                        <th>队伍</th>
+                        <th>类型</th>
+                        <th>场次</th>
+                        <th>平均分</th>
+                        <th>最高分</th>
+                        <th>最低分</th>
+                        <th>近三场</th>
+                        <th>平均 EPA</th>
+                        <th>最佳 EPA</th>
+                        <th>短板</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPracticeExplorerInsights.length === 0 ? (
+                        <tr>
+                          <td colSpan={11}>暂无匹配队伍。</td>
+                        </tr>
+                      ) : (
+                        filteredPracticeExplorerInsights.map((insight) => (
+                          <tr key={insight.team}>
+                            <td>{practiceExplorerInsights.indexOf(insight) + 1}</td>
+                            <td>{insight.team}</td>
+                            <td>
+                              <span className={styles.trainingTypeBadge}>{insight.trainingType}</span>
+                            </td>
+                            <td>{insight.matches}</td>
+                            <td>{insight.averageScore.toFixed(1)}</td>
+                            <td>{insight.highestScore}</td>
+                            <td>{insight.lowestScore}</td>
+                            <td>{insight.recentAverageScore.toFixed(1)}</td>
+                            <td>{insight.averageEpa.toFixed(1)}</td>
+                            <td>{insight.bestEpa.toFixed(1)}</td>
+                            <td>{insight.weakness}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </section>
+
+            <Footer lastUpdate={practiceExplorer.lastUpdate} storageMode="local" />
           </>
         ) : viewMode === 'lobby' && selectedEventType ? (
           <>

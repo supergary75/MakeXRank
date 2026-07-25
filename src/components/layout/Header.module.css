@@ -40,10 +40,51 @@
 
 .inner {
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
+}
+
+.decorStickers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.decorStickers span {
+  position: absolute;
+  display: block;
+  width: 168px;
+  height: 168px;
+  border-radius: 32px;
+  background-position: center;
+  background-size: cover;
+  border: 1px solid rgba(217, 226, 236, 0.14);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.34),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 28px rgba(0, 200, 255, 0.12);
+  opacity: 0.28;
+  filter: saturate(1.08) contrast(1.04);
+  transform: rotate(-8deg);
+}
+
+.surfSticker {
+  right: 34px;
+  top: 18px;
+  background-image: url('../../assets/kclub-sanya-surf.webp');
+}
+
+.cablecarSticker {
+  right: 210px;
+  bottom: -78px;
+  background-image: url('../../assets/kclub-sanya-cablecar.webp');
+  transform: rotate(7deg);
+  opacity: 0.22;
 }
 
 .brandBlock {
@@ -218,6 +259,16 @@
 
   .action {
     align-self: flex-start;
+  }
+
+  .decorStickers span {
+    width: 122px;
+    height: 122px;
+    opacity: 0.18;
+  }
+
+  .cablecarSticker {
+    display: none !important;
   }
 }
 

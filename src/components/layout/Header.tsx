@@ -14,6 +14,10 @@ export function Header({ title, subtitle, eyebrow, action }: Props) {
 
   return (
     <header className={styles.header}>
+      <div className={styles.decorStickers} aria-hidden="true">
+        <span className={styles.surfSticker} />
+        <span className={styles.cablecarSticker} />
+      </div>
       <div className={styles.inner}>
         <div className={styles.brandBlock}>
           <div className={styles.logoBadge} aria-label="KCLUB logo">

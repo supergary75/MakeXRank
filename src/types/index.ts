@@ -138,4 +138,12 @@ export interface AuthUserProfile {
   allowedCompetitionIds: string[] | null;
 }
 export type TabName = 'ranking' | 'playoff' | 'focusSchedule';
-export type ViewMode = 'home' | 'login' | 'event-types' | 'logistics' | 'lobby' | 'competition';
+export type ViewMode =
+  | 'home'
+  | 'login'
+  | 'event-types'
+  | 'logistics'
+  | 'practice-analysis'
+  | 'practice-explorer'
+  | 'lobby'
+  | 'competition';
