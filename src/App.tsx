@@ -3310,18 +3310,6 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className={styles.selectedTrainingDates}>
-                  {selectedTrainingDates.map((dateKey) => (
-                    <div key={dateKey} className={styles.selectedTrainingDateCard}>
-                      <span>{dateKey}</span>
-                      <strong>{getTrainingDateModeLabel(getTrainingEventDateMode(activeTrainingEvent, dateKey))}</strong>
-                      {getTrainingEventDateTime(activeTrainingEvent, dateKey) && (
-                        <em>{getTrainingEventDateTime(activeTrainingEvent, dateKey)}</em>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
                 <div className={styles.trainingCoachBar}>
                   <label htmlFor="training-coach">教练</label>
                   <input

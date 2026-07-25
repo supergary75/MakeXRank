@@ -1056,47 +1056,6 @@
   min-width: 132px;
 }
 
-.selectedTrainingDates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.selectedTrainingDateCard {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid rgba(0, 200, 255, 0.18);
-  border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(0, 200, 255, 0.08), rgba(242, 56, 69, 0.08)),
-    rgba(8, 12, 18, 0.64);
-  padding: 9px 10px 9px 14px;
-}
-
-.selectedTrainingDateCard span {
-  color: var(--gray-800);
-  font-weight: 900;
-  letter-spacing: 0.02em;
-}
-
-.selectedTrainingDateCard strong {
-  border: 1px solid rgba(214, 182, 95, 0.36);
-  border-radius: 999px;
-  background: rgba(214, 182, 95, 0.14);
-  color: #ffe8a8;
-  font-size: 0.72rem;
-  padding: 4px 8px;
-}
-
-.selectedTrainingDateCard em {
-  color: #bdfcff;
-  font-size: 0.78rem;
-  font-style: normal;
-  font-weight: 900;
-}
-
 .trainingCoachBar {
   display: grid;
   grid-template-columns: auto minmax(220px, 360px);
