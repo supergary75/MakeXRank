@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KCLUB MakeXRank">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16233f"/>
+      <stop offset="0.46" stop-color="#07101f"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="red" x1="120" y1="98" x2="414" y2="378" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff4d5d"/>
+      <stop offset="0.5" stop-color="#e11d2e"/>
+      <stop offset="1" stop-color="#7f1020"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="128" y1="390" x2="392" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5dfa0"/>
+      <stop offset="1" stop-color="#c99437"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.1  0 1 0 0 0.6  0 0 1 0 1  0 0 0 0.75 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M76 126h360M76 386h360M126 76v360M386 76v360" stroke="#38bdf8" stroke-width="5" opacity="0.14"/>
+  <path d="M136 128h240c32 0 58 26 58 58v118c0 32-26 58-58 58H136c-32 0-58-26-58-58V186c0-32 26-58 58-58Z" fill="url(#red)" stroke="#ffbd6b" stroke-width="10"/>
+  <path d="M154 174h204c22 0 40 18 40 40v54c0 22-18 40-40 40H154c-22 0-40-18-40-40v-54c0-22 18-40 40-40Z" fill="#031426" filter="url(#glow)"/>
+  <path d="M177 249c12 26 49 26 61 0M274 249c12 26 49 26 61 0" fill="none" stroke="#4de7ff" stroke-width="18" stroke-linecap="round"/>
+  <path d="M160 386h192l34 46H126l34-46Z" fill="url(#gold)"/>
+  <text x="256" y="427" fill="#111827" font-family="Arial, sans-serif" font-size="46" font-weight="900" text-anchor="middle">KCLUB</text>
+  <text x="256" y="96" fill="#f8fafc" font-family="Arial, sans-serif" font-size="38" font-weight="900" letter-spacing="5" text-anchor="middle">MR</text>
+</svg>

@@ -1,0 +1,35 @@
+{
+  "name": "KCLUB MakeXRank",
+  "short_name": "MakeXRank",
+  "description": "KCLUB internal competition, training and ranking workspace.",
+  "start_url": "/MakeXRank/",
+  "scope": "/MakeXRank/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": ["education", "productivity", "sports"],
+  "icons": [
+    {
+      "src": "/MakeXRank/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "集训安排",
+      "short_name": "集训",
+      "description": "Open the training schedule workspace.",
+      "url": "/MakeXRank/?view=training",
+      "icons": [
+        {
+          "src": "/MakeXRank/pwa-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
