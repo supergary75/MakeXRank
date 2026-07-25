@@ -590,6 +590,73 @@ function normalizeTrainingSchedules(input: unknown): TrainingScheduleMap {
   );
 }
 
+function parseTrainingScheduleKey(key: string): { eventId: string; dateKey: string } | null {
+  const separatorIndex = key.lastIndexOf('::');
+  if (separatorIndex <= 0) {
+    return null;
+  }
+
+  const eventId = key.slice(0, separatorIndex);
+  const dateKey = key.slice(separatorIndex + 2);
+  if (!eventId || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    return null;
+  }
+
+  return { eventId, dateKey };
+}
+
+function hydrateTrainingEventsFromSchedules(
+  events: TrainingEventRecord[],
+  schedules: TrainingScheduleMap,
+): TrainingEventRecord[] {
+  if (Object.keys(schedules).length === 0) {
+    return events;
+  }
+
+  return events.map((event) => {
+    const dateSet = new Set(getTrainingEventCalendarDates(event));
+    const nextModes: Record<string, TrainingDateMode> = { ...event.calendarDateModes };
+    const nextTimes: Record<string, string> = { ...event.calendarDateTimes };
+    let changed = false;
+
+    Object.entries(schedules).forEach(([scheduleKey, rows]) => {
+      const parsedKey = parseTrainingScheduleKey(scheduleKey);
+      if (!parsedKey || parsedKey.eventId !== event.id || rows.length === 0) {
+        return;
+      }
+
+      if (!dateSet.has(parsedKey.dateKey)) {
+        dateSet.add(parsedKey.dateKey);
+        changed = true;
+      }
+
+      if (!isTrainingDateMode(nextModes[parsedKey.dateKey])) {
+        nextModes[parsedKey.dateKey] = DEFAULT_TRAINING_DATE_MODE;
+        changed = true;
+      }
+
+      const firstTime = rows[0]?.time?.trim();
+      if (firstTime && !nextTimes[parsedKey.dateKey]) {
+        nextTimes[parsedKey.dateKey] = firstTime;
+        changed = true;
+      }
+    });
+
+    if (!changed) {
+      return event;
+    }
+
+    const calendarDates = Array.from(dateSet).sort();
+    return {
+      ...event,
+      date: event.date || calendarDates[0] || '',
+      calendarDates,
+      calendarDateModes: normalizeTrainingDateModes(calendarDates, nextModes),
+      calendarDateTimes: normalizeTrainingDateTimes(calendarDates, nextTimes),
+    };
+  });
+}
+
 async function fetchRemoteTrainingState(accessToken: string): Promise<TrainingCloudState | null> {
   const params = new URLSearchParams({
     select: 'id,events,schedules,updated_at',
@@ -606,9 +673,12 @@ async function fetchRemoteTrainingState(accessToken: string): Promise<TrainingCl
     return null;
   }
 
+  const schedules = normalizeTrainingSchedules(rows[0].schedules);
+  const events = hydrateTrainingEventsFromSchedules(normalizeTrainingEvents(rows[0].events), schedules);
+
   return {
-    events: normalizeTrainingEvents(rows[0].events),
-    schedules: normalizeTrainingSchedules(rows[0].schedules),
+    events,
+    schedules,
   };
 }
 
@@ -1143,9 +1213,10 @@ export default function App() {
       }
 
       try {
+        const localSchedules = loadTrainingSchedules();
         const localState: TrainingCloudState = {
-          events: loadTrainingEvents(),
-          schedules: loadTrainingSchedules(),
+          events: hydrateTrainingEventsFromSchedules(loadTrainingEvents(), localSchedules),
+          schedules: localSchedules,
         };
         const remoteState = await fetchRemoteTrainingState(accessToken);
         const mergedState = mergeTrainingState(localState, remoteState);
