@@ -450,6 +450,7 @@
 }
 
 .logisticsField input,
+.logisticsField select,
 .logisticsField textarea {
   width: 100%;
   border: 1px solid rgba(217, 226, 236, 0.14);
@@ -468,12 +469,14 @@
 }
 
 .logisticsField input:focus,
+.logisticsField select:focus,
 .logisticsField textarea:focus {
   border-color: rgba(0, 200, 255, 0.5);
   box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
 }
 
 .logisticsField input:disabled,
+.logisticsField select:disabled,
 .logisticsField textarea:disabled {
   cursor: not-allowed;
   opacity: 0.56;
@@ -492,6 +495,35 @@
 .logisticsEventCard {
   display: grid;
   gap: 16px;
+}
+
+.clickableCard {
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.clickableCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 200, 255, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 22px 50px rgba(2, 5, 10, 0.3),
+    0 0 24px rgba(0, 200, 255, 0.12);
+}
+
+.cardActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cardEnterHint {
+  color: var(--secondary);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .logisticsMeta {
@@ -532,6 +564,648 @@
 .dangerButton:hover {
   transform: translateY(-1px);
   box-shadow: 0 0 18px rgba(242, 56, 69, 0.22);
+}
+
+.trainingCalendarPanel,
+.trainingSchedulePanel {
+  padding: 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(0, 200, 255, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(242, 56, 69, 0.08), transparent 58%),
+    rgba(18, 25, 34, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 44px rgba(2, 5, 10, 0.24);
+}
+
+.trainingCalendarPanel {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(0, 245, 255, 0.34);
+  background:
+    radial-gradient(circle at 12% 4%, rgba(0, 245, 255, 0.28), transparent 30%),
+    radial-gradient(circle at 86% 14%, rgba(255, 43, 214, 0.2), transparent 30%),
+    radial-gradient(circle at 58% 105%, rgba(255, 199, 77, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(7, 13, 29, 0.94), rgba(13, 7, 30, 0.9) 48%, rgba(4, 18, 26, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 38px rgba(0, 245, 255, 0.08),
+    0 0 0 1px rgba(255, 43, 214, 0.16),
+    0 24px 54px rgba(2, 5, 10, 0.36),
+    0 0 36px rgba(0, 245, 255, 0.12);
+}
+
+.trainingCalendarPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.09), transparent),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 22px
+    );
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.trainingCalendarPanel::after {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -90px;
+  width: 230px;
+  height: 230px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 43, 214, 0.24), transparent 64%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.trainingCalendarPanel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.trainingCalendarPanel h3,
+.trainingSchedulePanel h3 {
+  color: var(--gray-900);
+}
+
+.trainingCalendarPanel h3,
+.trainingCalendarPanel .calendarActions strong {
+  color: #ffe8a8;
+  text-shadow:
+    0 0 12px rgba(255, 199, 77, 0.24),
+    0 0 26px rgba(0, 245, 255, 0.14);
+}
+
+.trainingCalendarPanel .portalCardLabel,
+.trainingSchedulePanel .portalCardLabel {
+  color: var(--secondary);
+}
+
+.trainingCalendarPanel .portalCardLabel {
+  color: #00f5ff;
+  text-shadow: 0 0 14px rgba(0, 245, 255, 0.42);
+}
+
+.trainingCalendarPanel .portalCardText,
+.trainingSchedulePanel .portalCardText {
+  color: var(--gray-400);
+}
+
+.trainingCalendarPanel .portalCardText {
+  color: #a9bfce;
+}
+
+.calendarActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.calendarActions strong {
+  min-width: 112px;
+  color: var(--gray-900);
+  text-align: center;
+}
+
+.calendarActions button {
+  border: 1px solid rgba(0, 245, 255, 0.4);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(0, 245, 255, 0.16), rgba(255, 43, 214, 0.1)),
+    rgba(7, 13, 29, 0.74);
+  color: #ffe8a8;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 800;
+  box-shadow: 0 0 18px rgba(0, 245, 255, 0.08);
+}
+
+.trainingModeSwitch {
+  display: flex;
+  margin-top: 18px;
+}
+
+.trainingModeSwitch button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  width: min(360px, 100%);
+  min-height: 48px;
+  border: 1px solid rgba(0, 245, 255, 0.28);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(255, 43, 214, 0.08)),
+    rgba(8, 12, 18, 0.82);
+  color: #7f91a3;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 5px;
+  transition: all var(--transition-fast);
+}
+
+.trainingModeSwitch button::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc(50% - 5px);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 232, 168, 0.32), transparent 38%),
+    linear-gradient(135deg, rgba(214, 182, 95, 0.42), rgba(255, 43, 214, 0.16)),
+    rgba(8, 12, 18, 0.94);
+  box-shadow:
+    0 0 0 1px rgba(255, 232, 168, 0.34),
+    0 0 24px rgba(214, 182, 95, 0.2);
+  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.trainingModeSwitch button:hover {
+  border-color: rgba(0, 245, 255, 0.48);
+  box-shadow: 0 0 22px rgba(0, 245, 255, 0.12);
+}
+
+.trainingModeSwitch span {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  transition: color var(--transition-fast), text-shadow var(--transition-fast);
+}
+
+.trainingModeTraining span:first-child,
+.trainingModeSelf span:last-child {
+  color: #ffe8a8;
+  text-shadow: 0 0 14px rgba(255, 199, 77, 0.24);
+}
+
+.trainingModeSelf::before {
+  transform: translateX(100%);
+  background:
+    radial-gradient(circle at 22% 18%, rgba(117, 247, 255, 0.3), transparent 38%),
+    linear-gradient(135deg, rgba(0, 245, 255, 0.36), rgba(255, 43, 214, 0.14)),
+    rgba(8, 12, 18, 0.94) !important;
+  box-shadow:
+    0 0 0 1px rgba(117, 247, 255, 0.36),
+    0 0 24px rgba(0, 245, 255, 0.22) !important;
+}
+
+.trainingTimePicker {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  max-width: 760px;
+}
+
+.trainingTimePickerTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trainingTimePickerTitle span,
+.trainingTimeSelectGrid span {
+  color: #ffe8a8;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 14px rgba(255, 199, 77, 0.2);
+}
+
+.trainingTimePickerTitle strong {
+  border: 1px solid rgba(0, 245, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(0, 245, 255, 0.1);
+  color: #bdfcff;
+  font-size: 0.82rem;
+  padding: 5px 10px;
+}
+
+.trainingTimeSelectGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.trainingTimeSelectGrid label {
+  display: grid;
+  gap: 6px;
+}
+
+.trainingTimeSelectGrid select {
+  border: 1px solid rgba(0, 245, 255, 0.28);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(255, 43, 214, 0.08)),
+    rgba(8, 12, 18, 0.76);
+  color: #fff2bd;
+  font: inherit;
+  outline: none;
+  padding: 12px 14px;
+  transition: all var(--transition-fast);
+}
+
+.trainingTimeSelectGrid select:focus {
+  border-color: rgba(214, 182, 95, 0.72);
+  box-shadow:
+    0 0 0 2px rgba(255, 232, 168, 0.18),
+    0 0 24px rgba(0, 245, 255, 0.16);
+}
+
+.trainingTimeSelectGrid select:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.trainingTimeSelectGrid button {
+  border: 1px solid rgba(242, 56, 69, 0.36);
+  border-radius: 16px;
+  background: rgba(242, 56, 69, 0.12);
+  color: #ffdce0;
+  cursor: pointer;
+  font-weight: 900;
+  min-height: 48px;
+  padding: 10px 14px;
+}
+
+.trainingTimeSelectGrid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.trainingTimePicker small {
+  color: #7f91a3;
+  font-weight: 700;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.calendarWeekday {
+  color: #75f7ff;
+  font-size: 0.82rem;
+  text-align: center;
+  font-weight: 900;
+  text-shadow: 0 0 12px rgba(0, 245, 255, 0.38);
+}
+
+.calendarDay {
+  min-height: 76px;
+  border: 1px solid rgba(0, 245, 255, 0.16);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(0, 245, 255, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(11, 18, 36, 0.86), rgba(8, 10, 20, 0.92));
+  color: #ffe8a8;
+  cursor: pointer;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.calendarDay span {
+  font-size: 1.12rem;
+  font-weight: 900;
+  text-shadow:
+    0 0 10px rgba(255, 199, 77, 0.22),
+    0 0 18px rgba(0, 245, 255, 0.12);
+}
+
+.calendarDay:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 245, 255, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(255, 43, 214, 0.18),
+    0 0 24px rgba(0, 245, 255, 0.18),
+    0 12px 24px rgba(2, 5, 10, 0.28);
+}
+
+.calendarDay:disabled {
+  cursor: default;
+}
+
+.calendarDay:disabled:hover {
+  transform: none;
+  border-color: rgba(0, 245, 255, 0.16);
+  box-shadow: none;
+}
+
+.calendarMutedDay {
+  opacity: 0.42;
+}
+
+.calendarSelectedDay {
+  border: 2px solid #d6b65f;
+  background:
+    radial-gradient(circle at 22% 12%, rgba(255, 232, 168, 0.34), transparent 28%),
+    linear-gradient(145deg, rgba(255, 43, 214, 0.3), rgba(0, 245, 255, 0.22)),
+    rgba(8, 12, 18, 0.9);
+  color: #fff2bd;
+  box-shadow:
+    0 0 0 2px rgba(255, 232, 168, 0.78),
+    0 0 18px rgba(255, 199, 77, 0.38),
+    0 0 34px rgba(0, 245, 255, 0.24),
+    0 0 46px rgba(255, 43, 214, 0.18),
+    0 14px 28px rgba(2, 5, 10, 0.3);
+}
+
+.calendarEditingDay {
+  outline: 2px solid rgba(255, 43, 214, 0.72);
+  outline-offset: 3px;
+}
+
+.calendarSelfPracticeDay {
+  border-color: #75f7ff;
+  background:
+    radial-gradient(circle at 22% 12%, rgba(0, 245, 255, 0.26), transparent 30%),
+    linear-gradient(145deg, rgba(0, 245, 255, 0.24), rgba(18, 51, 88, 0.4)),
+    rgba(8, 12, 18, 0.9);
+  box-shadow:
+    0 0 0 2px rgba(117, 247, 255, 0.52),
+    0 0 30px rgba(0, 245, 255, 0.22),
+    0 14px 28px rgba(2, 5, 10, 0.3);
+}
+
+.trainingDateStatus {
+  border: 1px solid rgba(255, 232, 168, 0.36);
+  border-radius: 999px;
+  background: rgba(214, 182, 95, 0.16);
+  color: #ffe8a8;
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 3px 8px;
+  text-shadow: none;
+}
+
+.trainingDateTime {
+  color: #bdfcff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 12px rgba(0, 245, 255, 0.28);
+  white-space: nowrap;
+}
+
+.calendarSelfPracticeDay .trainingDateStatus {
+  border-color: rgba(117, 247, 255, 0.5);
+  background: rgba(0, 245, 255, 0.16);
+  color: #bdfcff;
+}
+
+.calendarToday {
+  outline: 2px solid rgba(0, 245, 255, 0.52);
+  outline-offset: 2px;
+}
+
+.trainingOverviewPanel .calendarGrid {
+  gap: 10px;
+}
+
+.trainingOverviewDay {
+  min-height: 96px;
+  padding: 10px;
+}
+
+.trainingOverviewEventDay {
+  border-color: rgba(0, 245, 255, 0.46);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(0, 245, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 82% 90%, rgba(255, 43, 214, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(255, 43, 214, 0.12), rgba(0, 245, 255, 0.14)),
+    rgba(8, 12, 18, 0.86);
+  cursor: pointer;
+  box-shadow: inset 0 0 18px rgba(0, 245, 255, 0.08);
+}
+
+.trainingOverviewEventDay:hover {
+  border-color: rgba(214, 182, 95, 0.62);
+  box-shadow: 0 0 0 2px rgba(214, 182, 95, 0.18), 0 14px 28px rgba(2, 5, 10, 0.3);
+}
+
+.trainingOverviewSelfPracticeDay {
+  border-color: rgba(117, 247, 255, 0.56);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(117, 247, 255, 0.24), transparent 34%),
+    radial-gradient(circle at 82% 90%, rgba(0, 245, 255, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(0, 245, 255, 0.16), rgba(18, 51, 88, 0.22)),
+    rgba(8, 12, 18, 0.88);
+}
+
+.trainingOverviewSelfPracticeDay .trainingOverviewLevel {
+  border-color: rgba(117, 247, 255, 0.5);
+  background: rgba(0, 245, 255, 0.16);
+  color: #bdfcff;
+}
+
+.trainingOverviewLevel {
+  display: inline-flex;
+  border: 1px solid rgba(214, 182, 95, 0.36);
+  border-radius: 999px;
+  background: rgba(214, 182, 95, 0.14);
+  color: #ffe8a8;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.trainingOverviewNames {
+  width: 100%;
+  color: var(--gray-500);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow: hidden;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.trainingSchedulePanel .secondaryButton {
+  width: auto;
+  min-width: 132px;
+}
+
+.selectedTrainingDates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.selectedTrainingDateCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(0, 200, 255, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(0, 200, 255, 0.08), rgba(242, 56, 69, 0.08)),
+    rgba(8, 12, 18, 0.64);
+  padding: 9px 10px 9px 14px;
+}
+
+.selectedTrainingDateCard span {
+  color: var(--gray-800);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.selectedTrainingDateCard strong {
+  border: 1px solid rgba(214, 182, 95, 0.36);
+  border-radius: 999px;
+  background: rgba(214, 182, 95, 0.14);
+  color: #ffe8a8;
+  font-size: 0.72rem;
+  padding: 4px 8px;
+}
+
+.selectedTrainingDateCard em {
+  color: #bdfcff;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.trainingCoachBar {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 360px);
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(0, 200, 255, 0.08), rgba(242, 56, 69, 0.08)),
+    rgba(8, 12, 18, 0.64);
+}
+
+.trainingCoachBar label {
+  color: var(--gray-800);
+  font-weight: 900;
+}
+
+.trainingCoachBar input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(217, 226, 236, 0.12);
+  border-radius: 12px;
+  background: rgba(3, 8, 13, 0.68);
+  color: var(--gray-800);
+  padding: 9px 10px;
+  outline: none;
+}
+
+.trainingCoachBar input:focus {
+  border-color: rgba(0, 200, 255, 0.48);
+  box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+}
+
+.trainingScheduleTableWrap {
+  margin-top: 18px;
+  overflow-x: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+}
+
+.trainingScheduleTable {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  background: rgba(8, 12, 18, 0.72);
+  table-layout: fixed;
+}
+
+.trainingScheduleTable th,
+.trainingScheduleTable td {
+  border-bottom: 1px solid rgba(217, 226, 236, 0.08);
+  padding: 12px;
+  text-align: left;
+  color: var(--gray-600);
+  vertical-align: middle;
+}
+
+.trainingScheduleTable th {
+  background: rgba(0, 200, 255, 0.08);
+  color: var(--gray-900);
+  font-size: 0.86rem;
+}
+
+.trainingScheduleDateCell {
+  color: var(--gray-900) !important;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.trainingScheduleTable th:nth-child(1),
+.trainingScheduleTable td:nth-child(1) {
+  width: 138px;
+}
+
+.trainingScheduleTable th:nth-child(2),
+.trainingScheduleTable td:nth-child(2) {
+  width: 150px;
+}
+
+.trainingScheduleTable input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(217, 226, 236, 0.12);
+  border-radius: 12px;
+  background: rgba(3, 8, 13, 0.68);
+  color: var(--gray-800);
+  padding: 9px 10px;
+  outline: none;
+}
+
+.trainingScheduleTable input:focus {
+  border-color: rgba(0, 200, 255, 0.48);
+  box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+}
+
+.trainingScheduleTimeText {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: #bdfcff;
+  font-weight: 900;
+}
+
+.trainingScheduleEmpty {
+  text-align: center !important;
+  color: var(--gray-400) !important;
+  padding: 24px !important;
 }
 
 .diagnosticPanel,
@@ -885,6 +1559,11 @@
     grid-template-columns: 1fr;
   }
 
+  .calendarDay {
+    min-height: 62px;
+    border-radius: 12px;
+  }
+
   .diagnosticGrid,
   .metricLeaderGrid,
   .metricRankingGrid,
@@ -938,6 +1617,10 @@
   .headerActions,
   .accountActions {
     justify-content: flex-start;
+  }
+
+  .trainingTimeSelectGrid {
+    grid-template-columns: 1fr;
   }
 }
 

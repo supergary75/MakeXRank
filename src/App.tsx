@@ -77,10 +77,43 @@ import { NotificationContainer } from './components/ui/Notification';
 
 import styles from './App.module.css';
 
+type TrainingDateMode = 'training' | 'self';
+
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
 const EVENT_TYPES: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
+const TRAINING_GROUP_OPTIONS = ['FRC', 'MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
+const DEFAULT_TRAINING_DATE_MODE: TrainingDateMode = 'training';
+const TRAINING_TIME_OPTIONS = [
+  '08:00',
+  '08:30',
+  '09:00',
+  '09:30',
+  '10:00',
+  '10:30',
+  '11:00',
+  '11:30',
+  '12:00',
+  '13:00',
+  '13:30',
+  '14:00',
+  '14:30',
+  '15:00',
+  '15:30',
+  '16:00',
+  '16:30',
+  '17:00',
+  '17:30',
+  '18:00',
+  '19:00',
+  '19:30',
+  '20:00',
+  '20:30',
+  '21:00',
+];
 const PRACTICE_EXPLORER_STORAGE_KEY = 'competitive-ranking-board::practice-explorer';
 const LOGISTICS_EVENTS_STORAGE_KEY = 'competitive-ranking-board::logistics-events';
+const TRAINING_EVENTS_STORAGE_KEY = 'competitive-ranking-board::training-events';
+const TRAINING_SCHEDULES_STORAGE_KEY = 'competitive-ranking-board::training-schedules';
 
 interface PracticeExplorerState {
   sourceText: string;
@@ -105,6 +138,47 @@ interface LogisticsEventForm {
   venue: string;
   group: string;
   notes: string;
+}
+
+interface TrainingEventRecord {
+  id: string;
+  name: string;
+  date: string;
+  calendarDates: string[];
+  calendarDateModes: Record<string, TrainingDateMode>;
+  calendarDateTimes: Record<string, string>;
+  venue: string;
+  group: string;
+  coach: string;
+  notes: string;
+  createdAt: string;
+}
+
+interface TrainingEventForm {
+  name: string;
+  date: string;
+  venue: string;
+  group: string;
+  coach: string;
+  notes: string;
+}
+
+interface TrainingScheduleRow {
+  id: string;
+  time: string;
+  topic: string;
+  teams: string;
+  coach: string;
+  target: string;
+  notes: string;
+}
+
+type TrainingScheduleMap = Record<string, TrainingScheduleRow[]>;
+
+interface CalendarDay {
+  dateKey: string;
+  day: number;
+  isCurrentMonth: boolean;
 }
 
 function hasEventAccess(user: AuthUserProfile | null, eventType: EventType): boolean {
@@ -240,6 +314,336 @@ function saveLogisticsEvents(events: LogisticsEventRecord[]): void {
   window.localStorage.setItem(LOGISTICS_EVENTS_STORAGE_KEY, JSON.stringify(events));
 }
 
+function isTrainingDateMode(value: unknown): value is TrainingDateMode {
+  return value === 'training' || value === 'self';
+}
+
+function getTrainingDateModeLabel(mode: TrainingDateMode): string {
+  return mode === 'self' ? '自主练习' : '集训';
+}
+
+function normalizeTrainingDateModes(
+  dates: string[],
+  modes: unknown,
+): Record<string, TrainingDateMode> {
+  const source = modes && typeof modes === 'object' && !Array.isArray(modes)
+    ? modes as Record<string, unknown>
+    : {};
+
+  return Object.fromEntries(
+    dates.map((dateKey) => [
+      dateKey,
+      isTrainingDateMode(source[dateKey]) ? source[dateKey] : DEFAULT_TRAINING_DATE_MODE,
+    ]),
+  );
+}
+
+function normalizeTrainingDateTimes(
+  dates: string[],
+  times: unknown,
+): Record<string, string> {
+  const source = times && typeof times === 'object' && !Array.isArray(times)
+    ? times as Record<string, unknown>
+    : {};
+
+  return Object.fromEntries(
+    dates
+      .map((dateKey) => [dateKey, typeof source[dateKey] === 'string' ? source[dateKey].trim() : ''] as const)
+      .filter(([, time]) => time),
+  );
+}
+
+function loadTrainingEvents(): TrainingEventRecord[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(TRAINING_EVENTS_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((item): item is Partial<TrainingEventRecord> => item && typeof item === 'object')
+      .map((item) => {
+        const calendarDates = Array.isArray(item.calendarDates)
+          ? item.calendarDates.filter((date): date is string => typeof date === 'string')
+          : typeof item.date === 'string' && item.date ? [item.date] : [];
+
+        return {
+          id: typeof item.id === 'string' ? item.id : `training-${Date.now()}`,
+          name: typeof item.name === 'string' ? item.name : '',
+          date: typeof item.date === 'string' ? item.date : '',
+          calendarDates,
+          calendarDateModes: normalizeTrainingDateModes(calendarDates, item.calendarDateModes),
+          calendarDateTimes: normalizeTrainingDateTimes(calendarDates, item.calendarDateTimes),
+          venue: typeof item.venue === 'string' ? item.venue : '',
+          group: typeof item.group === 'string' ? item.group : '',
+          coach: typeof item.coach === 'string' ? item.coach : '',
+          notes: typeof item.notes === 'string' ? item.notes : '',
+          createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
+        };
+      })
+      .filter((item) => item.name.trim());
+  } catch {
+    return [];
+  }
+}
+
+function saveTrainingEvents(events: TrainingEventRecord[]): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(TRAINING_EVENTS_STORAGE_KEY, JSON.stringify(events));
+}
+
+function getTodayKey(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getMonthKey(dateKey: string): string {
+  return /^\d{4}-\d{2}/.test(dateKey) ? dateKey.slice(0, 7) : getTodayKey().slice(0, 7);
+}
+
+function formatMonthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split('-');
+  return `${year}年${Number(month)}月`;
+}
+
+function addMonths(monthKey: string, offset: number): string {
+  const [year, month] = monthKey.split('-').map(Number);
+  const date = new Date(year, month - 1 + offset, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getCalendarDays(monthKey: string): CalendarDay[] {
+  const [year, month] = monthKey.split('-').map(Number);
+  const firstDay = new Date(year, month - 1, 1);
+  const leadingDays = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const totalCells = Math.ceil((leadingDays + daysInMonth) / 7) * 7;
+
+  return Array.from({ length: totalCells }, (_, index) => {
+    const date = new Date(year, month - 1, 1 + index - leadingDays);
+    return {
+      dateKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      day: date.getDate(),
+      isCurrentMonth: date.getMonth() === month - 1,
+    };
+  });
+}
+
+function getTrainingScheduleKey(eventId: string, dateKey: string): string {
+  return `${eventId}::${dateKey}`;
+}
+
+function loadTrainingSchedules(): TrainingScheduleMap {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(TRAINING_SCHEDULES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).map(([key, rows]) => [
+        key,
+        Array.isArray(rows)
+          ? rows
+            .filter((row): row is Partial<TrainingScheduleRow> => row && typeof row === 'object')
+            .map((row) => ({
+              id: typeof row.id === 'string' ? row.id : `schedule-${Date.now()}`,
+              time: typeof row.time === 'string' ? row.time : '',
+              topic: typeof row.topic === 'string' ? row.topic : '',
+              teams: typeof row.teams === 'string' ? row.teams : '',
+              coach: typeof row.coach === 'string' ? row.coach : '',
+              target: typeof row.target === 'string' ? row.target : '',
+              notes: typeof row.notes === 'string' ? row.notes : '',
+            }))
+          : [],
+      ]),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function saveTrainingSchedules(schedules: TrainingScheduleMap): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(TRAINING_SCHEDULES_STORAGE_KEY, JSON.stringify(schedules));
+}
+
+function drawRoundedRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + safeRadius, y);
+  context.lineTo(x + width - safeRadius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+  context.lineTo(x + width, y + height - safeRadius);
+  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  context.lineTo(x + safeRadius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+  context.lineTo(x, y + safeRadius);
+  context.quadraticCurveTo(x, y, x + safeRadius, y);
+  context.closePath();
+}
+
+function drawWrappedCanvasText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number,
+): number {
+  const chars = Array.from(text);
+  let line = '';
+  let linesDrawn = 0;
+
+  for (const char of chars) {
+    const nextLine = `${line}${char}`;
+    if (line && context.measureText(nextLine).width > maxWidth) {
+      context.fillText(line, x, y);
+      y += lineHeight;
+      linesDrawn += 1;
+      line = char;
+      if (linesDrawn >= maxLines) {
+        return y;
+      }
+    } else {
+      line = nextLine;
+    }
+  }
+
+  if (line && linesDrawn < maxLines) {
+    context.fillText(line, x, y);
+    y += lineHeight;
+  }
+
+  return y;
+}
+
+function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error('图片生成失败，请重试。'));
+      }
+    }, 'image/png');
+  });
+}
+
+function sanitizeFileNamePart(value: string): string {
+  return value.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').slice(0, 48) || 'training';
+}
+
+function getTrainingEventTypeBadge(event: TrainingEventRecord): string {
+  const source = `${event.group} ${event.name}`.toLowerCase();
+  if (source.includes('frc')) {
+    return 'FRC';
+  }
+  if (source.includes('inspire') || source.includes('ins')) {
+    return 'INS';
+  }
+  if (source.includes('explorer') || source.includes('exp')) {
+    return 'EXP';
+  }
+  if (source.includes('challenge') || source.includes('cha')) {
+    return 'CHA';
+  }
+  return '集训';
+}
+
+function getTrainingOverviewBadge(events: TrainingEventRecord[], dateKey: string): string {
+  const badges = Array.from(new Set(events.map((event) => {
+    const eventType = getTrainingEventTypeBadge(event);
+    const dateMode = getTrainingEventDateMode(event, dateKey);
+    if (eventType === '集训') {
+      return getTrainingDateModeLabel(dateMode);
+    }
+    return dateMode === 'self' ? `${eventType}自主` : `${eventType}集训`;
+  })));
+  return badges.join('/');
+}
+
+function getTrainingEventCalendarDates(event: TrainingEventRecord): string[] {
+  return Array.from(new Set(
+    (event.calendarDates ?? []).filter((date): date is string => /^\d{4}-\d{2}-\d{2}$/.test(date)),
+  ));
+}
+
+function getTrainingEventDateMode(event: TrainingEventRecord, dateKey: string): TrainingDateMode {
+  return isTrainingDateMode(event.calendarDateModes?.[dateKey])
+    ? event.calendarDateModes[dateKey]
+    : DEFAULT_TRAINING_DATE_MODE;
+}
+
+function getTrainingEventDateTime(event: TrainingEventRecord, dateKey: string): string {
+  return typeof event.calendarDateTimes?.[dateKey] === 'string'
+    ? event.calendarDateTimes[dateKey].trim()
+    : '';
+}
+
+function splitTrainingTimeRange(value: string): { start: string; end: string } {
+  const [start = '', end = ''] = value.split('-').map((part) => part.trim());
+  return { start, end };
+}
+
+function formatTrainingTimeRange(start: string, end: string): string {
+  return [start.trim(), end.trim()].filter(Boolean).join('-');
+}
+
+function getTrainingEventsByDate(events: TrainingEventRecord[]): Record<string, TrainingEventRecord[]> {
+  const eventsByDate: Record<string, TrainingEventRecord[]> = {};
+
+  const addEventToDate = (dateKey: string, event: TrainingEventRecord) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+      return;
+    }
+
+    const existingEvents = eventsByDate[dateKey] ?? [];
+    if (existingEvents.some((existingEvent) => existingEvent.id === event.id)) {
+      return;
+    }
+
+    eventsByDate[dateKey] = [...existingEvents, event];
+  };
+
+  events.forEach((event) => {
+    getTrainingEventCalendarDates(event).forEach((dateKey) => addEventToDate(dateKey, event));
+  });
+
+  return eventsByDate;
+}
+
 function sortCompetitionsByCreatedAt(competitions: CompetitionRecord[]): CompetitionRecord[] {
   return [...competitions].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
@@ -309,6 +713,28 @@ export default function App() {
     group: '',
     notes: '',
   });
+  const [trainingEvents, setTrainingEvents] = useState<TrainingEventRecord[]>(() => loadTrainingEvents());
+  const [trainingEventForm, setTrainingEventForm] = useState<TrainingEventForm>({
+    name: '',
+    date: '',
+    venue: '',
+    group: '',
+    coach: '',
+    notes: '',
+  });
+  const [activeTrainingEventId, setActiveTrainingEventId] = useState<string | null>(null);
+  const [trainingOverviewMonth, setTrainingOverviewMonth] = useState(() => {
+    const firstDatedEvent = loadTrainingEvents().find((event) => event.date);
+    return getMonthKey(firstDatedEvent?.date || getTodayKey());
+  });
+  const [selectedTrainingDates, setSelectedTrainingDates] = useState<string[]>(() => [getTodayKey()]);
+  const [activeTrainingDateMode, setActiveTrainingDateMode] =
+    useState<TrainingDateMode>(DEFAULT_TRAINING_DATE_MODE);
+  const [activeTrainingDateKey, setActiveTrainingDateKey] = useState<string | null>(null);
+  const [activeTrainingStartTime, setActiveTrainingStartTime] = useState('');
+  const [activeTrainingEndTime, setActiveTrainingEndTime] = useState('');
+  const [visibleTrainingMonth, setVisibleTrainingMonth] = useState(() => getMonthKey(getTodayKey()));
+  const [trainingSchedules, setTrainingSchedules] = useState<TrainingScheduleMap>(() => loadTrainingSchedules());
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const practiceExplorerPasteAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -317,6 +743,27 @@ export default function App() {
 
   const activeCompetition =
     competitions.find((competition) => competition.id === activeCompetitionId) ?? null;
+  const activeTrainingEvent =
+    trainingEvents.find((event) => event.id === activeTrainingEventId) ?? null;
+  const activeTrainingScheduleEntries = activeTrainingEvent
+    ? selectedTrainingDates.flatMap((dateKey) =>
+      (trainingSchedules[getTrainingScheduleKey(activeTrainingEvent.id, dateKey)] ?? [{
+        id: `auto-${dateKey}`,
+        time: getTrainingEventDateTime(activeTrainingEvent, dateKey),
+        topic: '',
+        teams: '',
+        coach: '',
+        target: '',
+        notes: '',
+      }]).map((row) => ({
+        dateKey,
+        row,
+      })),
+    )
+    : [];
+  const trainingCalendarDays = getCalendarDays(visibleTrainingMonth);
+  const trainingOverviewCalendarDays = getCalendarDays(trainingOverviewMonth);
+  const trainingEventsByDate = getTrainingEventsByDate(trainingEvents);
   const authEnabled = isAuthAvailable();
   const accessibleEventTypes = EVENT_TYPES.filter((eventType) => hasEventAccess(authUser, eventType));
   const canEdit = authEnabled ? authUser?.role === 'admin' || authUser?.role === 'editor' : true;
@@ -988,6 +1435,19 @@ export default function App() {
     setAwaitingPaste(false);
   }, []);
 
+  const handleOpenTrainingPlan = useCallback(() => {
+    const firstDatedEvent = trainingEvents.find((event) => event.date);
+    if (firstDatedEvent) {
+      setTrainingOverviewMonth(getMonthKey(firstDatedEvent.date));
+    }
+    setViewMode('training-plan');
+    setActiveCompetitionId(null);
+    setActiveTrainingEventId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, [trainingEvents]);
+
   const handleLogisticsFormChange = useCallback(
     (field: keyof LogisticsEventForm, value: string) => {
       setLogisticsEventForm((previous) => ({
@@ -1053,6 +1513,561 @@ export default function App() {
     [canEdit, showNotification],
   );
 
+  const handleTrainingFormChange = useCallback(
+    (field: keyof TrainingEventForm, value: string) => {
+      setTrainingEventForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleCreateTrainingEvent = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    const trimmedName = trainingEventForm.name.trim();
+    if (!trimmedName) {
+      showNotification('请先输入比赛名称。', 'error');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const nextEvent: TrainingEventRecord = {
+      id: `training-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: trimmedName,
+      date: trainingEventForm.date.trim(),
+      calendarDates: trainingEventForm.date.trim() ? [trainingEventForm.date.trim()] : [],
+      calendarDateModes: trainingEventForm.date.trim()
+        ? { [trainingEventForm.date.trim()]: DEFAULT_TRAINING_DATE_MODE }
+        : {},
+      calendarDateTimes: {},
+      venue: trainingEventForm.venue.trim(),
+      group: trainingEventForm.group.trim(),
+      coach: trainingEventForm.coach.trim(),
+      notes: trainingEventForm.notes.trim(),
+      createdAt: now,
+    };
+
+    setTrainingEvents((previous) => {
+      const next = [nextEvent, ...previous];
+      saveTrainingEvents(next);
+      return next;
+    });
+    if (nextEvent.date) {
+      setTrainingOverviewMonth(getMonthKey(nextEvent.date));
+    }
+    setTrainingEventForm({
+      name: '',
+      date: '',
+      venue: '',
+      group: '',
+      coach: '',
+      notes: '',
+    });
+    showNotification(`已生成集训比赛卡片：${trimmedName}`, 'success');
+  }, [canEdit, showNotification, trainingEventForm]);
+
+  const handleDeleteTrainingEvent = useCallback(
+    (id: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      setTrainingEvents((previous) => {
+        const next = previous.filter((event) => event.id !== id);
+        saveTrainingEvents(next);
+        return next;
+      });
+      setTrainingSchedules((previous) => {
+        const next = Object.fromEntries(
+          Object.entries(previous).filter(([key]) => !key.startsWith(`${id}::`)),
+        );
+        saveTrainingSchedules(next);
+        return next;
+      });
+      setActiveTrainingEventId((currentId) => (currentId === id ? null : currentId));
+      showNotification('已删除集训比赛卡片。', 'info');
+    },
+    [canEdit, showNotification],
+  );
+
+  const handleOpenTrainingEvent = useCallback((id: string) => {
+    const trainingEvent = trainingEvents.find((event) => event.id === id);
+    const eventDates = trainingEvent ? getTrainingEventCalendarDates(trainingEvent) : [];
+    const defaultDate = eventDates[0] || trainingEvent?.date || getTodayKey();
+    const defaultTime = trainingEvent ? getTrainingEventDateTime(trainingEvent, defaultDate) : '';
+    const defaultTimeRange = splitTrainingTimeRange(defaultTime);
+    setActiveTrainingEventId(id);
+    setSelectedTrainingDates(eventDates);
+    setActiveTrainingDateMode(DEFAULT_TRAINING_DATE_MODE);
+    setActiveTrainingDateKey(eventDates[0] ?? null);
+    setActiveTrainingStartTime(defaultTimeRange.start);
+    setActiveTrainingEndTime(defaultTimeRange.end);
+    setVisibleTrainingMonth(getMonthKey(defaultDate));
+    setViewMode('training-event');
+    setActiveCompetitionId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, [trainingEvents]);
+
+  const syncActiveTrainingCalendarDates = useCallback(() => {
+    if (!activeTrainingEvent) {
+      return;
+    }
+
+    const nextDates = Array.from(new Set(
+      selectedTrainingDates.filter((dateKey) => /^\d{4}-\d{2}-\d{2}$/.test(dateKey)),
+    )).sort();
+
+    setTrainingEvents((events) => {
+      const nextEvents = events.map((event) =>
+        event.id === activeTrainingEvent.id
+          ? {
+            ...event,
+            calendarDates: nextDates,
+            calendarDateModes: normalizeTrainingDateModes(nextDates, event.calendarDateModes),
+            calendarDateTimes: normalizeTrainingDateTimes(nextDates, event.calendarDateTimes),
+          }
+          : event,
+      );
+      saveTrainingEvents(nextEvents);
+      return nextEvents;
+    });
+  }, [activeTrainingEvent, selectedTrainingDates]);
+
+  const handleBackToTrainingPlan = useCallback(() => {
+    syncActiveTrainingCalendarDates();
+    setViewMode('training-plan');
+    setActiveTrainingEventId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, [syncActiveTrainingCalendarDates]);
+
+  const handleMoveTrainingOverviewMonth = useCallback((offset: number) => {
+    setTrainingOverviewMonth((previous) => addMonths(previous, offset));
+  }, []);
+
+  const handleOpenTrainingOverviewDay = useCallback((dateKey: string) => {
+    const firstEvent = getTrainingEventsByDate(trainingEvents)[dateKey]?.[0];
+    if (firstEvent) {
+      handleOpenTrainingEvent(firstEvent.id);
+    }
+  }, [handleOpenTrainingEvent, trainingEvents]);
+
+  const handleSelectTrainingDate = useCallback((dateKey: string) => {
+    const storedTime = activeTrainingEvent ? getTrainingEventDateTime(activeTrainingEvent, dateKey) : '';
+    const { start, end } = splitTrainingTimeRange(storedTime);
+    const isExistingDate = selectedTrainingDates.includes(dateKey);
+    const nextMode = activeTrainingEvent && isExistingDate
+      ? getTrainingEventDateMode(activeTrainingEvent, dateKey)
+      : activeTrainingDateMode;
+    setActiveTrainingDateKey(dateKey);
+    setActiveTrainingDateMode(nextMode);
+    setActiveTrainingStartTime(start);
+    setActiveTrainingEndTime(end);
+
+    setSelectedTrainingDates((previous) => {
+      const nextDates = Array.from(new Set([...previous, dateKey])).sort();
+
+      if (activeTrainingEvent) {
+        setTrainingEvents((events) => {
+          const nextEvents = events.map((event) => {
+            if (event.id !== activeTrainingEvent.id) {
+              return event;
+            }
+
+            const nextModes = { ...event.calendarDateModes };
+            nextModes[dateKey] = nextMode;
+
+            return {
+              ...event,
+              calendarDates: nextDates,
+              calendarDateModes: normalizeTrainingDateModes(nextDates, nextModes),
+              calendarDateTimes: normalizeTrainingDateTimes(nextDates, event.calendarDateTimes),
+            };
+          });
+          saveTrainingEvents(nextEvents);
+          return nextEvents;
+        });
+      }
+
+      return nextDates;
+    });
+
+    if (activeTrainingEvent) {
+      const scheduleKey = getTrainingScheduleKey(activeTrainingEvent.id, dateKey);
+      setTrainingSchedules((previous) => {
+        const currentRows = previous[scheduleKey] ?? [];
+        const currentTime = getTrainingEventDateTime(activeTrainingEvent, dateKey);
+
+        const nextRow: TrainingScheduleRow = {
+          id: currentRows[0]?.id ?? `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          time: currentRows[0]?.time || currentTime,
+          topic: currentRows[0]?.topic ?? '',
+          teams: currentRows[0]?.teams ?? '',
+          coach: currentRows[0]?.coach ?? '',
+          target: currentRows[0]?.target ?? '',
+          notes: currentRows[0]?.notes ?? '',
+        };
+        const next = {
+          ...previous,
+          [scheduleKey]: [nextRow, ...currentRows.slice(1)],
+        };
+        saveTrainingSchedules(next);
+        return next;
+      });
+    }
+
+    setTrainingOverviewMonth(getMonthKey(dateKey));
+    setVisibleTrainingMonth(getMonthKey(dateKey));
+  }, [activeTrainingDateMode, activeTrainingEvent, selectedTrainingDates]);
+
+  const handleUpdateActiveTrainingTime = useCallback((field: 'start' | 'end', value: string) => {
+    if (!canEdit || !activeTrainingEvent || !activeTrainingDateKey) {
+      return;
+    }
+
+    const nextStart = field === 'start' ? value : activeTrainingStartTime;
+    const nextEnd = field === 'end' ? value : activeTrainingEndTime;
+    const nextTime = formatTrainingTimeRange(nextStart, nextEnd);
+    const scheduleKey = getTrainingScheduleKey(activeTrainingEvent.id, activeTrainingDateKey);
+
+    if (field === 'start') {
+      setActiveTrainingStartTime(value);
+    } else {
+      setActiveTrainingEndTime(value);
+    }
+
+    setTrainingEvents((events) => {
+      const nextEvents = events.map((event) => {
+        if (event.id !== activeTrainingEvent.id) {
+          return event;
+        }
+
+        const nextDates = Array.from(new Set([...event.calendarDates, activeTrainingDateKey])).sort();
+        const nextTimes = { ...event.calendarDateTimes };
+        if (nextTime) {
+          nextTimes[activeTrainingDateKey] = nextTime;
+        } else {
+          delete nextTimes[activeTrainingDateKey];
+        }
+
+        return {
+          ...event,
+          calendarDates: nextDates,
+          calendarDateModes: normalizeTrainingDateModes(nextDates, event.calendarDateModes),
+          calendarDateTimes: normalizeTrainingDateTimes(nextDates, nextTimes),
+        };
+      });
+      saveTrainingEvents(nextEvents);
+      return nextEvents;
+    });
+
+    setSelectedTrainingDates((previous) =>
+      previous.includes(activeTrainingDateKey) ? previous : [...previous, activeTrainingDateKey].sort(),
+    );
+    setTrainingSchedules((previous) => {
+      const currentRows = previous[scheduleKey] ?? [];
+      const nextRow: TrainingScheduleRow = {
+        id: currentRows[0]?.id ?? `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        time: nextTime,
+        topic: currentRows[0]?.topic ?? '',
+        teams: currentRows[0]?.teams ?? '',
+        coach: currentRows[0]?.coach ?? '',
+        target: currentRows[0]?.target ?? '',
+        notes: currentRows[0]?.notes ?? '',
+      };
+      const next = {
+        ...previous,
+        [scheduleKey]: [nextRow, ...currentRows.slice(1)],
+      };
+      saveTrainingSchedules(next);
+      return next;
+    });
+  }, [activeTrainingDateKey, activeTrainingEndTime, activeTrainingEvent, activeTrainingStartTime, canEdit]);
+
+  const handleClearActiveTrainingDate = useCallback(() => {
+    if (!canEdit || !activeTrainingEvent || !activeTrainingDateKey) {
+      return;
+    }
+
+    const scheduleKey = getTrainingScheduleKey(activeTrainingEvent.id, activeTrainingDateKey);
+    setSelectedTrainingDates((previous) => previous.filter((dateKey) => dateKey !== activeTrainingDateKey));
+    setTrainingEvents((events) => {
+      const nextEvents = events.map((event) => {
+        if (event.id !== activeTrainingEvent.id) {
+          return event;
+        }
+
+        const nextDates = event.calendarDates.filter((dateKey) => dateKey !== activeTrainingDateKey);
+        const nextModes = { ...event.calendarDateModes };
+        const nextTimes = { ...event.calendarDateTimes };
+        delete nextModes[activeTrainingDateKey];
+        delete nextTimes[activeTrainingDateKey];
+
+        return {
+          ...event,
+          calendarDates: nextDates,
+          calendarDateModes: normalizeTrainingDateModes(nextDates, nextModes),
+          calendarDateTimes: normalizeTrainingDateTimes(nextDates, nextTimes),
+        };
+      });
+      saveTrainingEvents(nextEvents);
+      return nextEvents;
+    });
+    setTrainingSchedules((previous) => {
+      const next = { ...previous };
+      delete next[scheduleKey];
+      saveTrainingSchedules(next);
+      return next;
+    });
+    setActiveTrainingDateKey(null);
+    setActiveTrainingStartTime('');
+    setActiveTrainingEndTime('');
+  }, [activeTrainingDateKey, activeTrainingEvent, canEdit]);
+
+  const handleMoveTrainingMonth = useCallback((offset: number) => {
+    setVisibleTrainingMonth((previous) => addMonths(previous, offset));
+  }, []);
+
+  const handleExportTrainingCalendarImage = useCallback(async () => {
+    if (!activeTrainingEvent) {
+      return;
+    }
+
+    try {
+      const monthDays = getCalendarDays(visibleTrainingMonth);
+      const rows = Math.ceil(monthDays.length / 7);
+      const width = 1600;
+      const margin = 72;
+      const headerHeight = 190;
+      const weekdayHeight = 52;
+      const gap = 14;
+      const gridWidth = width - margin * 2;
+      const cellWidth = (gridWidth - gap * 6) / 7;
+      const cellHeight = 150;
+      const height = margin + headerHeight + weekdayHeight + rows * cellHeight + (rows - 1) * gap + margin;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('当前浏览器无法生成图片。');
+      }
+
+      const background = context.createLinearGradient(0, 0, width, height);
+      background.addColorStop(0, '#151e28');
+      background.addColorStop(0.52, '#090d13');
+      background.addColorStop(1, '#040609');
+      context.fillStyle = background;
+      context.fillRect(0, 0, width, height);
+
+      context.fillStyle = 'rgba(0, 200, 255, 0.12)';
+      context.beginPath();
+      context.arc(width * 0.18, 80, 280, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = 'rgba(242, 56, 69, 0.12)';
+      context.beginPath();
+      context.arc(width * 0.88, 120, 240, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = '#ffffff';
+      context.font = '700 46px Georgia, "Times New Roman", serif';
+      context.fillText(activeTrainingEvent.name, margin, margin + 22);
+      context.fillStyle = '#c9d4de';
+      context.font = '700 24px Georgia, "Times New Roman", serif';
+      context.fillText(`${activeTrainingEvent.group || '未填写赛项'} · ${formatMonthLabel(visibleTrainingMonth)}`, margin, margin + 70);
+      context.fillStyle = '#7f91a3';
+      context.font = '600 20px Georgia, "Times New Roman", serif';
+      context.fillText(`地点：${activeTrainingEvent.venue || '未填写'}    教练：${activeTrainingEvent.coach || '未填写'}`, margin, margin + 112);
+
+      const legendX = width - margin - 330;
+      drawRoundedRect(context, legendX, margin + 8, 330, 58, 18);
+      context.fillStyle = 'rgba(8, 12, 18, 0.68)';
+      context.fill();
+      context.strokeStyle = 'rgba(214, 182, 95, 0.72)';
+      context.lineWidth = 2;
+      context.stroke();
+      context.fillStyle = '#ffe8a8';
+      context.font = '800 20px Georgia, "Times New Roman", serif';
+      context.fillText('金边 = 已选择 / 有安排', legendX + 24, margin + 45);
+
+      const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+      const weekdayY = margin + headerHeight;
+      context.font = '900 22px Georgia, "Times New Roman", serif';
+      context.textAlign = 'center';
+      weekdays.forEach((weekday, index) => {
+        const x = margin + index * (cellWidth + gap) + cellWidth / 2;
+        context.fillStyle = '#7f91a3';
+        context.fillText(weekday, x, weekdayY);
+      });
+
+      monthDays.forEach((day, index) => {
+        const row = Math.floor(index / 7);
+        const column = index % 7;
+        const x = margin + column * (cellWidth + gap);
+        const y = margin + headerHeight + weekdayHeight + row * (cellHeight + gap);
+        const isSelected = selectedTrainingDates.includes(day.dateKey);
+        const scheduleRows = isSelected
+          ? trainingSchedules[getTrainingScheduleKey(activeTrainingEvent.id, day.dateKey)] ?? []
+          : [];
+        const dateMode = getTrainingEventDateMode(activeTrainingEvent, day.dateKey);
+        const modeLabel = getTrainingDateModeLabel(dateMode);
+        const dateTime = isSelected ? getTrainingEventDateTime(activeTrainingEvent, day.dateKey) : '';
+
+        drawRoundedRect(context, x, y, cellWidth, cellHeight, 24);
+        context.fillStyle = day.isCurrentMonth ? 'rgba(8, 12, 18, 0.82)' : 'rgba(8, 12, 18, 0.46)';
+        context.fill();
+        context.strokeStyle = isSelected ? '#d6b65f' : 'rgba(217, 226, 236, 0.14)';
+        context.lineWidth = isSelected ? 4 : 1.5;
+        context.stroke();
+
+        context.textAlign = 'left';
+        context.fillStyle = day.isCurrentMonth ? '#ffffff' : '#7f91a3';
+        context.font = '900 30px Georgia, "Times New Roman", serif';
+        context.fillText(String(day.day), x + 20, y + 42);
+
+        if (isSelected) {
+          drawRoundedRect(context, x + cellWidth - 104, y + 18, 80, 28, 14);
+          context.fillStyle = dateMode === 'self'
+            ? 'rgba(0, 245, 255, 0.18)'
+            : 'rgba(214, 182, 95, 0.18)';
+          context.fill();
+          context.fillStyle = '#ffe8a8';
+          context.font = '900 15px Georgia, "Times New Roman", serif';
+          context.textAlign = 'center';
+          context.fillText(modeLabel, x + cellWidth - 64, y + 38);
+        }
+
+        const firstRow = scheduleRows[0];
+        if (firstRow) {
+          context.textAlign = 'left';
+          context.fillStyle = '#c9d4de';
+          context.font = '700 17px Georgia, "Times New Roman", serif';
+          const summary = [dateTime || firstRow.time, firstRow.topic].filter(Boolean).join('  ');
+          drawWrappedCanvasText(context, summary || '已安排训练', x + 20, y + 82, cellWidth - 40, 23, 2);
+        } else if (isSelected) {
+          context.fillStyle = '#ffe8a8';
+          context.font = '800 17px Georgia, "Times New Roman", serif';
+          context.fillText(modeLabel, x + 20, y + 82);
+          if (dateTime) {
+            context.fillStyle = '#bdfcff';
+            context.font = '800 16px Georgia, "Times New Roman", serif';
+            context.fillText(dateTime, x + 20, y + 108);
+          }
+        }
+      });
+
+      context.textAlign = 'left';
+      context.fillStyle = '#7f91a3';
+      context.font = '600 18px Georgia, "Times New Roman", serif';
+      context.fillText(`导出时间：${new Date().toLocaleString('zh-CN')}`, margin, height - 36);
+
+      const blob = await canvasToPngBlob(canvas);
+      const fileName = `${sanitizeFileNamePart(activeTrainingEvent.name)}-${visibleTrainingMonth}-集训日历.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+      const shareData: ShareData = {
+        files: [file],
+        title: `${activeTrainingEvent.name} 集训日历`,
+        text: `${activeTrainingEvent.name} ${formatMonthLabel(visibleTrainingMonth)} 集训日历`,
+      };
+
+      if (navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        showNotification('已打开系统分享。', 'success');
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showNotification('已导出集训日历图片。', 'success');
+    } catch (error) {
+      showNotification(error instanceof Error ? error.message : '导出图片失败，请重试。', 'error');
+    }
+  }, [activeTrainingEvent, selectedTrainingDates, showNotification, trainingSchedules, visibleTrainingMonth]);
+
+  const handleUpdateActiveTrainingCoach = useCallback((value: string) => {
+    if (!canEdit || !activeTrainingEvent) {
+      return;
+    }
+
+    setTrainingEvents((previous) => {
+      const next = previous.map((event) =>
+        event.id === activeTrainingEvent.id ? { ...event, coach: value } : event,
+      );
+      saveTrainingEvents(next);
+      return next;
+    });
+  }, [activeTrainingEvent, canEdit]);
+
+  const handleUpdateTrainingScheduleRow = useCallback(
+    (dateKey: string, rowId: string, field: keyof Omit<TrainingScheduleRow, 'id'>, value: string) => {
+      if (!canEdit || !activeTrainingEvent) {
+        return;
+      }
+
+      const scheduleKey = getTrainingScheduleKey(activeTrainingEvent.id, dateKey);
+      setTrainingSchedules((previous) => {
+        const currentRows = previous[scheduleKey] ?? [{
+          id: rowId,
+          time: '',
+          topic: '',
+          teams: '',
+          coach: '',
+          target: '',
+          notes: '',
+        }];
+        const next = {
+          ...previous,
+          [scheduleKey]: currentRows.map((row) =>
+            row.id === rowId ? { ...row, [field]: value } : row,
+          ),
+        };
+        saveTrainingSchedules(next);
+        return next;
+      });
+
+      if (field === 'time') {
+        setTrainingEvents((events) => {
+          const nextEvents = events.map((event) => {
+            if (event.id !== activeTrainingEvent.id) {
+              return event;
+            }
+
+            const nextTimes = { ...event.calendarDateTimes };
+            const trimmedValue = value.trim();
+            if (trimmedValue) {
+              nextTimes[dateKey] = trimmedValue;
+            } else {
+              delete nextTimes[dateKey];
+            }
+
+            return {
+              ...event,
+              calendarDateTimes: normalizeTrainingDateTimes(event.calendarDates, nextTimes),
+            };
+          });
+          saveTrainingEvents(nextEvents);
+          return nextEvents;
+        });
+      }
+    },
+    [activeTrainingEvent, canEdit],
+  );
+
   const handleOpenPracticeAnalysis = useCallback(() => {
     setViewMode('practice-analysis');
     setActiveCompetitionId(null);
@@ -1080,6 +2095,7 @@ export default function App() {
   const handleBackToHome = useCallback(() => {
     setViewMode('home');
     setActiveCompetitionId(null);
+    setActiveTrainingEventId(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
     setPracticeExplorerAwaitingPaste(false);
@@ -1627,7 +2643,7 @@ export default function App() {
             <Header
               eyebrow="Operations Hub"
               title="赛事管理中心"
-              subtitle="先在首页登录，再根据工作内容进入对应入口。当前已提供赛事后勤管理与赛事数据分析两个工作台入口。"
+              subtitle="先在首页登录，再根据工作内容进入对应入口。当前已提供赛事后勤管理、赛事数据分析、练习赛数据分析与集训安排入口。"
               action={
                 <div className={styles.headerActions}>
                   <button className={styles.backButton} onClick={handleBackToHome}>
@@ -1693,6 +2709,22 @@ export default function App() {
                   </p>
                   <button className={styles.portalButton} onClick={handleOpenPracticeAnalysis}>
                     进入练习赛数据分析
+                  </button>
+                </article>
+
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>入口四</p>
+                      <h3>集训安排</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Training</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    用于集中训练期间的日程规划、队伍分组、训练任务、教练分工与复盘安排。当前先建立独立入口，后续可继续扩展成完整集训看板。
+                  </p>
+                  <button className={styles.portalButton} onClick={handleOpenTrainingPlan}>
+                    进入集训安排
                   </button>
                 </article>
               </div>
@@ -1832,6 +2864,444 @@ export default function App() {
                   ))
                 )}
               </div>
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'training-plan' ? (
+          <>
+            <Header
+              eyebrow="Training Schedule"
+              title="集训安排"
+              subtitle="这里是集训安排的独立二级页面。后续可以接入训练日程、队伍分组、任务清单、教练安排和复盘记录。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              <div className={styles.portalIntro}>
+                <p className={styles.portalEyebrow}>Training Camp</p>
+                <h2>集训安排工作台</h2>
+                <p className={styles.portalHint}>
+                  这个入口已经独立出来，可以作为后续集训排期和训练执行的总控页面。下一步可以加入每日训练计划、队伍分组、任务目标、签到状态和复盘记录。
+                </p>
+              </div>
+
+              <article className={styles.logisticsFormPanel}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>卡片 1</p>
+                    <h3>比赛信息输入</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Training Event</span>
+                </div>
+
+                <div className={styles.logisticsFormGrid}>
+                  <label className={styles.logisticsField}>
+                    <span>比赛名称</span>
+                    <input
+                      value={trainingEventForm.name}
+                      onChange={(event) => handleTrainingFormChange('name', event.target.value)}
+                      placeholder="例如：暑期集训第 1 场模拟赛"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>比赛日期</span>
+                    <input
+                      type="date"
+                      value={trainingEventForm.date}
+                      onChange={(event) => handleTrainingFormChange('date', event.target.value)}
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>地点 / 场馆</span>
+                    <input
+                      value={trainingEventForm.venue}
+                      onChange={(event) => handleTrainingFormChange('venue', event.target.value)}
+                      placeholder="例如：KClub 训练场 A 区"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>组别 / 赛项</span>
+                    <select
+                      value={trainingEventForm.group}
+                      onChange={(event) => handleTrainingFormChange('group', event.target.value)}
+                      disabled={!canEdit}
+                    >
+                      <option value="">请选择赛项</option>
+                      {TRAINING_GROUP_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                    <span>备注</span>
+                    <textarea
+                      value={trainingEventForm.notes}
+                      onChange={(event) => handleTrainingFormChange('notes', event.target.value)}
+                      placeholder="可以记录训练目标、参训队伍、教练安排或注意事项"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                </div>
+
+                <button className={styles.portalButton} onClick={handleCreateTrainingEvent} disabled={!canEdit}>
+                  生成比赛卡片
+                </button>
+              </article>
+
+              <article className={`${styles.trainingCalendarPanel} ${styles.trainingOverviewPanel}`}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>总览日历</p>
+                    <h3>总集训日历</h3>
+                    <p className={styles.portalCardText}>
+                      自动读取下方集训卡片日期，显示每天的集训级别。点击有集训的日期可进入当天集训工作台。
+                    </p>
+                  </div>
+                  <div className={styles.calendarActions}>
+                    <button type="button" onClick={() => handleMoveTrainingOverviewMonth(-1)}>
+                      上月
+                    </button>
+                    <strong>{formatMonthLabel(trainingOverviewMonth)}</strong>
+                    <button type="button" onClick={() => handleMoveTrainingOverviewMonth(1)}>
+                      下月
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.calendarGrid}>
+                  {['一', '二', '三', '四', '五', '六', '日'].map((weekday) => (
+                    <div key={weekday} className={styles.calendarWeekday}>
+                      {weekday}
+                    </div>
+                  ))}
+                  {trainingOverviewCalendarDays.map((day) => {
+                    const dayEvents = trainingEventsByDate[day.dateKey] ?? [];
+                    const eventTypeLabel = getTrainingOverviewBadge(dayEvents, day.dateKey);
+                    const hasSelfPractice = dayEvents.some(
+                      (event) => getTrainingEventDateMode(event, day.dateKey) === 'self',
+                    );
+                    const eventNames = dayEvents.map((event) => event.name || event.group || '未命名集训');
+
+                    return (
+                      <button
+                        key={day.dateKey}
+                        type="button"
+                        className={[
+                          styles.calendarDay,
+                          styles.trainingOverviewDay,
+                          day.isCurrentMonth ? '' : styles.calendarMutedDay,
+                          dayEvents.length > 0 ? styles.trainingOverviewEventDay : '',
+                          hasSelfPractice ? styles.trainingOverviewSelfPracticeDay : '',
+                        ].filter(Boolean).join(' ')}
+                        onClick={() => handleOpenTrainingOverviewDay(day.dateKey)}
+                        disabled={dayEvents.length === 0}
+                      >
+                        <span>{day.day}</span>
+                        {eventTypeLabel && <strong className={styles.trainingOverviewLevel}>{eventTypeLabel}</strong>}
+                        {dayEvents.length > 0 && (
+                          <small className={styles.trainingOverviewNames}>
+                            {eventNames.slice(0, 3).join(' / ')}
+                          </small>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </article>
+
+              <div className={styles.logisticsCards}>
+                {trainingEvents.length === 0 ? (
+                  <div className={styles.logisticsEmpty}>
+                    还没有集训比赛卡片。先填写上方比赛信息，再点击“生成比赛卡片”。
+                  </div>
+                ) : (
+                  trainingEvents.map((event) => (
+                    <article
+                      key={event.id}
+                      className={`${styles.logisticsEventCard} ${styles.clickableCard}`}
+                      onClick={() => handleOpenTrainingEvent(event.id)}
+                    >
+                      <div className={styles.portalCardTop}>
+                        <div>
+                          <p className={styles.portalCardLabel}>集训比赛卡片</p>
+                          <h3>{event.name}</h3>
+                        </div>
+                        <span className={styles.portalBadge}>{event.date || '未定日期'}</span>
+                      </div>
+                      <div className={styles.logisticsMeta}>
+                        <span>地点：{event.venue || '未填写'}</span>
+                        <span>组别：{event.group || '未填写'}</span>
+                        <span>创建：{new Date(event.createdAt).toLocaleDateString('zh-CN')}</span>
+                      </div>
+                      {event.notes && <p className={styles.portalCardText}>{event.notes}</p>}
+                      <div className={styles.cardActionRow}>
+                        <span className={styles.cardEnterHint}>点击进入比赛工作台</span>
+                        <button
+                          className={styles.dangerButton}
+                          onClick={(clickEvent) => {
+                            clickEvent.stopPropagation();
+                            handleDeleteTrainingEvent(event.id);
+                          }}
+                        >
+                          删除卡片
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'training-event' && activeTrainingEvent ? (
+          <>
+            <Header
+              eyebrow="Training Event"
+              title={activeTrainingEvent.name}
+              subtitle="这里是单场集训比赛的二级工作台。后续可以在这里加入赛程、训练目标、队伍分组、任务记录和复盘内容。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToTrainingPlan}>
+                    返回集训安排
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              <div className={styles.portalIntro}>
+                <p className={styles.portalEyebrow}>Training Event Workspace</p>
+                <h2>{activeTrainingEvent.name}</h2>
+                <p className={styles.portalHint}>
+                  这个页面已经和上一级集训比赛卡片绑定。后续可以继续添加这场比赛自己的赛队名单、训练任务、练习成绩、问题记录和复盘结论。
+                </p>
+              </div>
+
+              <article className={styles.logisticsEventCard}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>比赛信息</p>
+                    <h3>{activeTrainingEvent.name}</h3>
+                  </div>
+                  <span className={styles.portalBadge}>{activeTrainingEvent.date || '未定日期'}</span>
+                </div>
+                <div className={styles.logisticsMeta}>
+                  <span>地点：{activeTrainingEvent.venue || '未填写'}</span>
+                  <span>组别：{activeTrainingEvent.group || '未填写'}</span>
+                  <span>创建：{new Date(activeTrainingEvent.createdAt).toLocaleDateString('zh-CN')}</span>
+                </div>
+                {activeTrainingEvent.notes && <p className={styles.portalCardText}>{activeTrainingEvent.notes}</p>}
+              </article>
+
+              <article className={styles.trainingCalendarPanel}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>集训日历</p>
+                    <h3>
+                      {activeTrainingEvent.name}
+                      {activeTrainingEvent.group ? ` · ${activeTrainingEvent.group}` : ' · 未填写赛项'}
+                    </h3>
+                    <p className={styles.portalCardText}>点选日期，编辑当天独立安排。</p>
+                  </div>
+                  <div className={styles.calendarActions}>
+                    <button type="button" onClick={() => handleMoveTrainingMonth(-1)}>
+                      上月
+                    </button>
+                    <strong>{formatMonthLabel(visibleTrainingMonth)}</strong>
+                    <button type="button" onClick={() => handleMoveTrainingMonth(1)}>
+                      下月
+                    </button>
+                    <button type="button" onClick={handleExportTrainingCalendarImage}>
+                      导出/分享图片
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.trainingModeSwitch} aria-label="选择日期状态">
+                  <button
+                    type="button"
+                    className={activeTrainingDateMode === 'self' ? styles.trainingModeSelf : styles.trainingModeTraining}
+                    onClick={() =>
+                      setActiveTrainingDateMode((previous) => (previous === 'training' ? 'self' : 'training'))
+                    }
+                  >
+                    <span>集训</span>
+                    <span>自主练习</span>
+                  </button>
+                </div>
+
+                <div className={styles.trainingTimePicker}>
+                  <div className={styles.trainingTimePickerTitle}>
+                    <span>集训时间</span>
+                    <strong>{activeTrainingDateKey ? `当前日期：${activeTrainingDateKey}` : '请先点击日历日期'}</strong>
+                  </div>
+                  <div className={styles.trainingTimeSelectGrid}>
+                    <label>
+                      <span>开始</span>
+                      <select
+                        value={activeTrainingStartTime}
+                        onChange={(event) => handleUpdateActiveTrainingTime('start', event.target.value)}
+                        disabled={!canEdit || !activeTrainingDateKey}
+                      >
+                        <option value="">选择开始时间</option>
+                        {TRAINING_TIME_OPTIONS.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>结束</span>
+                      <select
+                        value={activeTrainingEndTime}
+                        onChange={(event) => handleUpdateActiveTrainingTime('end', event.target.value)}
+                        disabled={!canEdit || !activeTrainingDateKey}
+                      >
+                        <option value="">选择结束时间</option>
+                        {TRAINING_TIME_OPTIONS.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleClearActiveTrainingDate}
+                      disabled={!canEdit || !activeTrainingDateKey}
+                    >
+                      取消这个日期
+                    </button>
+                  </div>
+                  <small>先点击日期，再选择开始和结束时间；时间会显示在对应日期中。</small>
+                </div>
+
+                <div className={styles.calendarGrid}>
+                  {['一', '二', '三', '四', '五', '六', '日'].map((weekday) => (
+                    <div key={weekday} className={styles.calendarWeekday}>
+                      {weekday}
+                    </div>
+                  ))}
+                  {trainingCalendarDays.map((day) => {
+                    const isSelected = selectedTrainingDates.includes(day.dateKey);
+                    const isToday = day.dateKey === getTodayKey();
+                    const dateMode = isSelected ? getTrainingEventDateMode(activeTrainingEvent, day.dateKey) : null;
+                    const dateTime = isSelected ? getTrainingEventDateTime(activeTrainingEvent, day.dateKey) : '';
+
+                    return (
+                      <button
+                        key={day.dateKey}
+                        type="button"
+                        className={[
+                          styles.calendarDay,
+                          day.isCurrentMonth ? '' : styles.calendarMutedDay,
+                          isSelected ? styles.calendarSelectedDay : '',
+                          activeTrainingDateKey === day.dateKey ? styles.calendarEditingDay : '',
+                          dateMode === 'self' ? styles.calendarSelfPracticeDay : '',
+                          isToday ? styles.calendarToday : '',
+                        ].filter(Boolean).join(' ')}
+                        onClick={() => handleSelectTrainingDate(day.dateKey)}
+                      >
+                        <span>{day.day}</span>
+                        {dateMode && (
+                          <strong className={styles.trainingDateStatus}>
+                            {getTrainingDateModeLabel(dateMode)}
+                          </strong>
+                        )}
+                        {dateTime && <small className={styles.trainingDateTime}>{dateTime}</small>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </article>
+
+              <article className={styles.trainingSchedulePanel}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>集训安排表格</p>
+                    <h3>已选择 {selectedTrainingDates.length} 天</h3>
+                  </div>
+                </div>
+
+                <div className={styles.selectedTrainingDates}>
+                  {selectedTrainingDates.map((dateKey) => (
+                    <div key={dateKey} className={styles.selectedTrainingDateCard}>
+                      <span>{dateKey}</span>
+                      <strong>{getTrainingDateModeLabel(getTrainingEventDateMode(activeTrainingEvent, dateKey))}</strong>
+                      {getTrainingEventDateTime(activeTrainingEvent, dateKey) && (
+                        <em>{getTrainingEventDateTime(activeTrainingEvent, dateKey)}</em>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className={styles.trainingCoachBar}>
+                  <label htmlFor="training-coach">教练</label>
+                  <input
+                    id="training-coach"
+                    value={activeTrainingEvent.coach}
+                    onChange={(event) => handleUpdateActiveTrainingCoach(event.target.value)}
+                    placeholder="填写本场集训教练"
+                    disabled={!canEdit}
+                  />
+                </div>
+
+                <div className={styles.trainingScheduleTableWrap}>
+                  <table className={styles.trainingScheduleTable}>
+                    <thead>
+                      <tr>
+                        <th>日期</th>
+                        <th>时间</th>
+                        <th>训练内容</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeTrainingScheduleEntries.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className={styles.trainingScheduleEmpty}>
+                            先在上方日历选择日期，系统会自动生成当天安排。
+                          </td>
+                        </tr>
+                      ) : (
+                        activeTrainingScheduleEntries.map(({ dateKey, row }) => (
+                          <tr key={`${dateKey}-${row.id}`}>
+                            <td className={styles.trainingScheduleDateCell}>{dateKey}</td>
+                            <td>
+                              <span className={styles.trainingScheduleTimeText}>
+                                {getTrainingEventDateTime(activeTrainingEvent, dateKey) || '点击日期后选择时间'}
+                              </span>
+                            </td>
+                            <td>
+                              <input
+                                value={row.topic}
+                                onChange={(event) => handleUpdateTrainingScheduleRow(dateKey, row.id, 'topic', event.target.value)}
+                                placeholder="任务训练 / 模拟赛"
+                                disabled={!canEdit}
+                              />
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
             </section>
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />

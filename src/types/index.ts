@@ -143,6 +143,8 @@ export type ViewMode =
   | 'login'
   | 'event-types'
   | 'logistics'
+  | 'training-plan'
+  | 'training-event'
   | 'practice-analysis'
   | 'practice-explorer'
   | 'lobby'
