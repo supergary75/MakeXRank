@@ -745,8 +745,12 @@ export default function App() {
     competitions.find((competition) => competition.id === activeCompetitionId) ?? null;
   const activeTrainingEvent =
     trainingEvents.find((event) => event.id === activeTrainingEventId) ?? null;
+  const activeTrainingTableDates = activeTrainingEvent
+    ? selectedTrainingDates.filter((dateKey) =>
+      getTrainingEventDateMode(activeTrainingEvent, dateKey) === 'training')
+    : [];
   const activeTrainingScheduleEntries = activeTrainingEvent
-    ? selectedTrainingDates.flatMap((dateKey) =>
+    ? activeTrainingTableDates.flatMap((dateKey) =>
       (trainingSchedules[getTrainingScheduleKey(activeTrainingEvent.id, dateKey)] ?? [{
         id: `auto-${dateKey}`,
         time: getTrainingEventDateTime(activeTrainingEvent, dateKey),
@@ -1704,6 +1708,13 @@ export default function App() {
     if (activeTrainingEvent) {
       const scheduleKey = getTrainingScheduleKey(activeTrainingEvent.id, dateKey);
       setTrainingSchedules((previous) => {
+        if (nextMode === 'self') {
+          const next = { ...previous };
+          delete next[scheduleKey];
+          saveTrainingSchedules(next);
+          return next;
+        }
+
         const currentRows = previous[scheduleKey] ?? [];
         const currentTime = getTrainingEventDateTime(activeTrainingEvent, dateKey);
 
@@ -1728,6 +1739,61 @@ export default function App() {
     setTrainingOverviewMonth(getMonthKey(dateKey));
     setVisibleTrainingMonth(getMonthKey(dateKey));
   }, [activeTrainingDateMode, activeTrainingEvent, selectedTrainingDates]);
+
+  const handleToggleTrainingDateMode = useCallback(() => {
+    const nextMode: TrainingDateMode = activeTrainingDateMode === 'training' ? 'self' : 'training';
+    setActiveTrainingDateMode(nextMode);
+
+    if (!activeTrainingEvent || !activeTrainingDateKey || !selectedTrainingDates.includes(activeTrainingDateKey)) {
+      return;
+    }
+
+    const scheduleKey = getTrainingScheduleKey(activeTrainingEvent.id, activeTrainingDateKey);
+    setTrainingEvents((events) => {
+      const nextEvents = events.map((event) => {
+        if (event.id !== activeTrainingEvent.id) {
+          return event;
+        }
+
+        return {
+          ...event,
+          calendarDateModes: normalizeTrainingDateModes(event.calendarDates, {
+            ...event.calendarDateModes,
+            [activeTrainingDateKey]: nextMode,
+          }),
+        };
+      });
+      saveTrainingEvents(nextEvents);
+      return nextEvents;
+    });
+
+    setTrainingSchedules((previous) => {
+      if (nextMode === 'self') {
+        const next = { ...previous };
+        delete next[scheduleKey];
+        saveTrainingSchedules(next);
+        return next;
+      }
+
+      const currentRows = previous[scheduleKey] ?? [];
+      const currentTime = getTrainingEventDateTime(activeTrainingEvent, activeTrainingDateKey);
+      const nextRow: TrainingScheduleRow = {
+        id: currentRows[0]?.id ?? `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        time: currentRows[0]?.time || currentTime,
+        topic: currentRows[0]?.topic ?? '',
+        teams: currentRows[0]?.teams ?? '',
+        coach: currentRows[0]?.coach ?? '',
+        target: currentRows[0]?.target ?? '',
+        notes: currentRows[0]?.notes ?? '',
+      };
+      const next = {
+        ...previous,
+        [scheduleKey]: [nextRow, ...currentRows.slice(1)],
+      };
+      saveTrainingSchedules(next);
+      return next;
+    });
+  }, [activeTrainingDateKey, activeTrainingDateMode, activeTrainingEvent, selectedTrainingDates]);
 
   const handleUpdateActiveTrainingTime = useCallback((field: 'start' | 'end', value: string) => {
     if (!canEdit || !activeTrainingEvent || !activeTrainingDateKey) {
@@ -1774,6 +1840,13 @@ export default function App() {
       previous.includes(activeTrainingDateKey) ? previous : [...previous, activeTrainingDateKey].sort(),
     );
     setTrainingSchedules((previous) => {
+      if (activeTrainingDateMode === 'self') {
+        const next = { ...previous };
+        delete next[scheduleKey];
+        saveTrainingSchedules(next);
+        return next;
+      }
+
       const currentRows = previous[scheduleKey] ?? [];
       const nextRow: TrainingScheduleRow = {
         id: currentRows[0]?.id ?? `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -3136,9 +3209,7 @@ export default function App() {
                   <button
                     type="button"
                     className={activeTrainingDateMode === 'self' ? styles.trainingModeSelf : styles.trainingModeTraining}
-                    onClick={() =>
-                      setActiveTrainingDateMode((previous) => (previous === 'training' ? 'self' : 'training'))
-                    }
+                    onClick={handleToggleTrainingDateMode}
                   >
                     <span>集训</span>
                     <span>自主练习</span>
@@ -3235,7 +3306,7 @@ export default function App() {
                 <div className={styles.portalCardTop}>
                   <div>
                     <p className={styles.portalCardLabel}>集训安排表格</p>
-                    <h3>已选择 {selectedTrainingDates.length} 天</h3>
+                    <h3>集训安排 {activeTrainingTableDates.length} 天</h3>
                   </div>
                 </div>
 
@@ -3275,7 +3346,7 @@ export default function App() {
                       {activeTrainingScheduleEntries.length === 0 ? (
                         <tr>
                           <td colSpan={3} className={styles.trainingScheduleEmpty}>
-                            先在上方日历选择日期，系统会自动生成当天安排。
+                            先在上方日历选择“集训”日期，系统会自动生成当天安排；自主练习不会进入此表格。
                           </td>
                         </tr>
                       ) : (
