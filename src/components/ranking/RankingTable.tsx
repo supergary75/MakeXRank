@@ -83,10 +83,11 @@ export function RankingTable({
     : teams;
   const isInspire = eventType === 'MakeX Inspire';
   const isExplorer = eventType === 'MakeX Explorer';
+  const canTagTeam = (isExplorer || isInspire) && Boolean(onSetTeamTag);
   const columns = isInspire ? INSPIRE_COLUMNS : ALLIANCE_COLUMNS;
 
   const renderTagPicker = (teamNumber: string, teamName: string) => {
-    if (!isExplorer || !onSetTeamTag) {
+    if (!canTagTeam || !onSetTeamTag) {
       return null;
     }
 
@@ -206,19 +207,19 @@ export function RankingTable({
                   <td
                     className={styles.teamClickable}
                     onClick={() => {
-                      if (isExplorer && onSetTeamTag) {
+                      if (canTagTeam) {
                         setActiveTagKey((previous) => (previous === tagKey ? '' : tagKey));
                         return;
                       }
 
                       onTeamClick(team.team);
                     }}
-                    title={isExplorer ? '点击给赛队打标签' : featuredNames.includes(team.team) ? '点击取消关注' : '点击加入关注'}
+                    title={canTagTeam ? '点击给赛队打标签' : featuredNames.includes(team.team) ? '点击取消关注' : '点击加入关注'}
                   >
                     <div className={styles.teamNameLine}>
                       <span>{team.team}</span>
                       {teamTag && <span className={styles.teamTag}>{teamTag}</span>}
-                      {!isExplorer && featuredNames.includes(team.team) && <span className={styles.badge}>★</span>}
+                      {!canTagTeam && featuredNames.includes(team.team) && <span className={styles.badge}>★</span>}
                     </div>
                     {activeTagKey === tagKey && renderTagPicker(teamNumber, team.team)}
                   </td>

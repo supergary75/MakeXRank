@@ -1,4 +1,4 @@
-export const DEFAULT_TEAM_TAG_OPTIONS = ['科睿', '极鹰', '大圣', '迈创'];
+export const DEFAULT_TEAM_TAG_OPTIONS = ['KClub', '科睿', '极鹰', '大圣', '迈创'];
 
 export type TeamTagMap = Record<string, string>;
 
