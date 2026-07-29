@@ -1565,7 +1565,7 @@ async function fetchRemoteTeamTagState(accessToken?: string): Promise<TeamTagClo
   };
 }
 
-async function saveRemoteTeamTagState(tags: TeamTagMap, options: string[], accessToken: string): Promise<void> {
+async function saveRemoteTeamTagState(tags: TeamTagMap, options: string[], accessToken?: string): Promise<void> {
   const params = new URLSearchParams({ on_conflict: 'id' });
   await requestTrainingSync<TeamTagSyncRow[]>(
     `/rest/v1/${TEAM_TAG_SYNC_TABLE}?${params.toString()}`,
@@ -2299,9 +2299,7 @@ export default function App() {
         saveTeamTags(mergedState.tags);
         saveTeamTagOptions(mergedState.options);
 
-        if (accessToken) {
-          await saveRemoteTeamTagState(mergedState.tags, mergedState.options, accessToken);
-        }
+        await saveRemoteTeamTagState(mergedState.tags, mergedState.options, accessToken);
 
         if (!cancelled) {
           setTeamTagCloudReady(true);
@@ -2324,14 +2322,11 @@ export default function App() {
   }, [authUser, showNotification]);
 
   useEffect(() => {
-    if (!authUser || !teamTagCloudReady) {
+    if (!teamTagCloudReady) {
       return;
     }
 
-    const accessToken = getStoredAccessToken();
-    if (!accessToken) {
-      return;
-    }
+    const accessToken = getStoredAccessToken() ?? undefined;
 
     if (teamTagCloudSaveTimerRef.current) {
       clearTimeout(teamTagCloudSaveTimerRef.current);
