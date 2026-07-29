@@ -1315,15 +1315,15 @@ function saveTrainingSchedules(schedules: TrainingScheduleMap): void {
   window.localStorage.setItem(TRAINING_SCHEDULES_STORAGE_KEY, JSON.stringify(schedules));
 }
 
-function getTrainingSyncHeaders(accessToken: string, includeJson = false): HeadersInit {
+function getTrainingSyncHeaders(accessToken?: string, includeJson = false): HeadersInit {
   return {
     apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${accessToken}`,
+    Authorization: `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
   };
 }
 
-async function requestTrainingSync<T>(path: string, accessToken: string, init?: RequestInit): Promise<T> {
+async function requestTrainingSync<T>(path: string, accessToken?: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${SUPABASE_URL}${path}`, {
     ...init,
     headers: {
@@ -1543,7 +1543,7 @@ function normalizeTeamTagCloudOptions(input: unknown): string[] {
   return Array.from(new Set([...DEFAULT_TEAM_TAG_OPTIONS, ...options].map((item) => item.trim()).filter(Boolean)));
 }
 
-async function fetchRemoteTeamTagState(accessToken: string): Promise<TeamTagCloudState | null> {
+async function fetchRemoteTeamTagState(accessToken?: string): Promise<TeamTagCloudState | null> {
   const params = new URLSearchParams({
     select: 'id,tags,options,updated_at',
     id: `eq.${TEAM_TAG_SYNC_ID}`,
@@ -2275,16 +2275,12 @@ export default function App() {
     let cancelled = false;
 
     void (async () => {
-      if (!authUser) {
+      if (!isSupabaseConfigured()) {
         setTeamTagCloudReady(false);
         return;
       }
 
-      const accessToken = getStoredAccessToken();
-      if (!accessToken) {
-        setTeamTagCloudReady(false);
-        return;
-      }
+      const accessToken = getStoredAccessToken() ?? undefined;
 
       try {
         const localState: TeamTagCloudState = {
@@ -2302,7 +2298,10 @@ export default function App() {
         setTeamTagOptions(mergedState.options);
         saveTeamTags(mergedState.tags);
         saveTeamTagOptions(mergedState.options);
-        await saveRemoteTeamTagState(mergedState.tags, mergedState.options, accessToken);
+
+        if (accessToken) {
+          await saveRemoteTeamTagState(mergedState.tags, mergedState.options, accessToken);
+        }
 
         if (!cancelled) {
           setTeamTagCloudReady(true);
@@ -2354,16 +2353,12 @@ export default function App() {
   }, [authUser, showNotification, teamTagCloudReady, teamTagOptions, teamTags]);
 
   useEffect(() => {
-    if (!authUser || !teamTagCloudReady) {
+    if (!teamTagCloudReady) {
       return;
     }
 
-    const timer = window.setInterval(() => {
-      const accessToken = getStoredAccessToken();
-      if (!accessToken) {
-        return;
-      }
-
+    const refreshRemoteTeamTags = () => {
+      const accessToken = getStoredAccessToken() ?? undefined;
       void fetchRemoteTeamTagState(accessToken)
         .then((remoteState) => {
           if (!remoteState) {
@@ -2393,10 +2388,13 @@ export default function App() {
         .catch(() => {
           // Keep the UI quiet for transient background refresh failures.
         });
-    }, 30 * 1000);
+    };
+
+    refreshRemoteTeamTags();
+    const timer = window.setInterval(refreshRemoteTeamTags, 30 * 1000);
 
     return () => window.clearInterval(timer);
-  }, [authUser, teamTagCloudReady]);
+  }, [teamTagCloudReady]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
