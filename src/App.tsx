@@ -414,6 +414,10 @@ interface TrainingEventForm {
   notes: string;
 }
 
+interface TrainingEventEditForm extends TrainingEventForm {
+  createdAt: string;
+}
+
 interface TrainingScheduleRow {
   id: string;
   time: string;
@@ -2104,6 +2108,16 @@ export default function App() {
     group: '',
     coach: '',
     notes: '',
+  });
+  const [editingTrainingEventId, setEditingTrainingEventId] = useState<string | null>(null);
+  const [editingTrainingEventForm, setEditingTrainingEventForm] = useState<TrainingEventEditForm>({
+    name: '',
+    date: '',
+    venue: '',
+    group: '',
+    coach: '',
+    notes: '',
+    createdAt: '',
   });
   const [activeTrainingEventId, setActiveTrainingEventId] = useState<string | null>(null);
   const [trainingOverviewMonth, setTrainingOverviewMonth] = useState(() => {
@@ -4574,6 +4588,120 @@ export default function App() {
       showNotification('已删除集训比赛卡片。', 'info');
     },
     [canEdit, showNotification],
+  );
+
+  const handleStartEditTrainingEvent = useCallback(
+    (event: TrainingEventRecord) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      setEditingTrainingEventId(event.id);
+      setEditingTrainingEventForm({
+        name: event.name,
+        date: event.date,
+        venue: event.venue,
+        group: event.group,
+        coach: event.coach,
+        notes: event.notes,
+        createdAt: event.createdAt.slice(0, 10),
+      });
+    },
+    [canEdit, showNotification],
+  );
+
+  const handleEditTrainingEventFormChange = useCallback(
+    (field: keyof TrainingEventEditForm, value: string) => {
+      setEditingTrainingEventForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleCancelEditTrainingEvent = useCallback(() => {
+    setEditingTrainingEventId(null);
+    setEditingTrainingEventForm({
+      name: '',
+      date: '',
+      venue: '',
+      group: '',
+      coach: '',
+      notes: '',
+      createdAt: '',
+    });
+  }, []);
+
+  const handleSaveTrainingEvent = useCallback(
+    (id: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      const nextName = editingTrainingEventForm.name.trim();
+      if (!nextName) {
+        showNotification('比赛名称不能为空。', 'error');
+        return;
+      }
+
+      const nextDate = editingTrainingEventForm.date.trim();
+      const nextCreatedDate = editingTrainingEventForm.createdAt.trim();
+      setTrainingEvents((previous) => {
+        const next = previous.map((event) => {
+          if (event.id !== id) {
+            return event;
+          }
+
+          const previousDate = event.date;
+          const calendarDates = nextDate
+            ? Array.from(new Set([
+              nextDate,
+              ...event.calendarDates.filter((date) => date && date !== previousDate),
+            ])).sort()
+            : event.calendarDates.filter((date) => date !== previousDate);
+          const calendarDateModes = { ...event.calendarDateModes };
+          const calendarDateTimes = { ...event.calendarDateTimes };
+
+          if (previousDate && nextDate && previousDate !== nextDate) {
+            calendarDateModes[nextDate] = calendarDateModes[previousDate] ?? DEFAULT_TRAINING_DATE_MODE;
+            calendarDateTimes[nextDate] = calendarDateTimes[previousDate] ?? '';
+            delete calendarDateModes[previousDate];
+            delete calendarDateTimes[previousDate];
+          }
+
+          if (nextDate && !calendarDateModes[nextDate]) {
+            calendarDateModes[nextDate] = DEFAULT_TRAINING_DATE_MODE;
+          }
+
+          return {
+            ...event,
+            name: nextName,
+            date: nextDate,
+            calendarDates,
+            calendarDateModes: normalizeTrainingDateModes(calendarDates, calendarDateModes),
+            calendarDateTimes: normalizeTrainingDateTimes(calendarDates, calendarDateTimes),
+            venue: editingTrainingEventForm.venue.trim(),
+            group: editingTrainingEventForm.group.trim(),
+            coach: editingTrainingEventForm.coach.trim(),
+            notes: editingTrainingEventForm.notes.trim(),
+            createdAt: nextCreatedDate ? new Date(`${nextCreatedDate}T00:00:00`).toISOString() : event.createdAt,
+          };
+        });
+
+        saveTrainingEvents(next);
+        return next;
+      });
+
+      if (nextDate) {
+        setTrainingOverviewMonth(getMonthKey(nextDate));
+      }
+      handleCancelEditTrainingEvent();
+      showNotification('集训比赛卡片信息已更新。', 'success');
+    },
+    [canEdit, editingTrainingEventForm, handleCancelEditTrainingEvent, showNotification],
   );
 
   const handleOpenTrainingEvent = useCallback((id: string) => {
@@ -8577,11 +8705,18 @@ export default function App() {
                     还没有集训比赛卡片。先填写上方比赛信息，再点击“生成比赛卡片”。
                   </div>
                 ) : (
-                  trainingEvents.map((event) => (
+                  trainingEvents.map((event) => {
+                    const isEditingTrainingEvent = editingTrainingEventId === event.id;
+
+                    return (
                     <article
                       key={event.id}
-                      className={`${styles.logisticsEventCard} ${styles.clickableCard}`}
-                      onClick={() => handleOpenTrainingEvent(event.id)}
+                      className={`${styles.logisticsEventCard} ${isEditingTrainingEvent ? '' : styles.clickableCard}`}
+                      onClick={() => {
+                        if (!isEditingTrainingEvent) {
+                          handleOpenTrainingEvent(event.id);
+                        }
+                      }}
                     >
                       <div className={styles.portalCardTop}>
                         <div>
@@ -8596,8 +8731,114 @@ export default function App() {
                         <span>创建：{new Date(event.createdAt).toLocaleDateString('zh-CN')}</span>
                       </div>
                       {event.notes && <p className={styles.portalCardText}>{event.notes}</p>}
+                      {isEditingTrainingEvent && (
+                        <div
+                          className={styles.cardEditPanel}
+                          onClick={(clickEvent) => clickEvent.stopPropagation()}
+                        >
+                          <div className={styles.logisticsFormGrid}>
+                            <label className={styles.logisticsField}>
+                              <span>比赛名称</span>
+                              <input
+                                value={editingTrainingEventForm.name}
+                                onChange={(changeEvent) =>
+                                  handleEditTrainingEventFormChange('name', changeEvent.target.value)}
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>比赛日期</span>
+                              <input
+                                type="date"
+                                value={editingTrainingEventForm.date}
+                                onChange={(changeEvent) =>
+                                  handleEditTrainingEventFormChange('date', changeEvent.target.value)}
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>创建日期</span>
+                              <input
+                                type="date"
+                                value={editingTrainingEventForm.createdAt}
+                                onChange={(changeEvent) =>
+                                  handleEditTrainingEventFormChange('createdAt', changeEvent.target.value)}
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>地点 / 场馆</span>
+                              <input
+                                value={editingTrainingEventForm.venue}
+                                onChange={(changeEvent) =>
+                                  handleEditTrainingEventFormChange('venue', changeEvent.target.value)}
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>组别 / 赛项</span>
+                              <select
+                                value={editingTrainingEventForm.group}
+                                onChange={(changeEvent) =>
+                                  handleEditTrainingEventFormChange('group', changeEvent.target.value)}
+                                disabled={!canEdit}
+                              >
+                                <option value="">请选择赛项</option>
+                                {TRAINING_GROUP_OPTIONS.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>教练</span>
+                              <input
+                                value={editingTrainingEventForm.coach}
+                                onChange={(changeEvent) =>
+                                  handleEditTrainingEventFormChange('coach', changeEvent.target.value)}
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                              <span>备注</span>
+                              <textarea
+                                value={editingTrainingEventForm.notes}
+                                onChange={(changeEvent) =>
+                                  handleEditTrainingEventFormChange('notes', changeEvent.target.value)}
+                                disabled={!canEdit}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      )}
                       <div className={styles.cardActionRow}>
                         <span className={styles.cardEnterHint}>点击进入比赛工作台</span>
+                        {isEditingTrainingEvent ? (
+                          <div className={styles.inlineButtonGroup} onClick={(clickEvent) => clickEvent.stopPropagation()}>
+                            <button
+                              className={styles.portalButton}
+                              onClick={() => handleSaveTrainingEvent(event.id)}
+                              disabled={!canEdit}
+                            >
+                              保存修改
+                            </button>
+                            <button className={styles.secondaryButton} onClick={handleCancelEditTrainingEvent}>
+                              取消
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className={styles.secondaryButton}
+                            onClick={(clickEvent) => {
+                              clickEvent.stopPropagation();
+                              handleStartEditTrainingEvent(event);
+                            }}
+                            disabled={!canEdit}
+                          >
+                            编辑卡片
+                          </button>
+                        )}
                         <button
                           className={styles.dangerButton}
                           onClick={(clickEvent) => {
@@ -8609,7 +8850,8 @@ export default function App() {
                         </button>
                       </div>
                     </article>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </section>

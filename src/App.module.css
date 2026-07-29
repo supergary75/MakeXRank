@@ -617,8 +617,21 @@
   flex-wrap: wrap;
 }
 
+.inlineButtonGroup .portalButton,
 .inlineButtonGroup .secondaryButton {
   width: auto;
+}
+
+.cardEditPanel {
+  width: 100%;
+  margin: 18px 0 8px;
+  padding: 18px;
+  border: 1px solid rgba(93, 214, 255, 0.22);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(12, 22, 36, 0.78), rgba(6, 10, 18, 0.92)),
+    radial-gradient(circle at 18% 0%, rgba(93, 214, 255, 0.12), transparent 34%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .portalBadgeButton {
