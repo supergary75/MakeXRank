@@ -76,6 +76,13 @@ import { PlayoffView } from './components/playoff/PlayoffView';
 import { FocusScheduleView } from './components/schedule/FocusScheduleView';
 import { AuthPanel } from './components/auth/AuthPanel';
 import { NotificationContainer } from './components/ui/Notification';
+import {
+  INSTALL_READY_EVENT,
+  canPromptPwaInstall,
+  getPwaInstallInstructions,
+  isStandalonePwa,
+  requestPwaInstall,
+} from './pwaInstall';
 
 import styles from './App.module.css';
 
@@ -316,6 +323,17 @@ interface LogisticsEventRecord {
   timeline: LogisticsTimelineItem[];
   rooms: LogisticsRoomAssignment[];
   attendance: LogisticsAttendanceMap;
+}
+
+interface PersonalLogisticsTask {
+  event: LogisticsEventRecord;
+  node: LogisticsTimelineItem;
+  students: LogisticsParticipant[];
+  arrivedCount: number;
+  totalCount: number;
+  isComplete: boolean;
+  timeAlertStatus: LogisticsTimeAlertStatus;
+  timeAlertLabel: string;
 }
 
 interface LogisticsEventForm {
@@ -561,6 +579,123 @@ function getLogisticsTimeAlertLabel(status: LogisticsTimeAlertStatus): string {
   }
 
   return '';
+}
+
+function normalizeIdentityKey(value: string): string {
+  return value.trim().toLowerCase().replace(/[\s._\-·•/\\|]+/g, '');
+}
+
+function expandIdentityKeys(value: string): string[] {
+  const key = normalizeIdentityKey(value);
+  if (!key) {
+    return [];
+  }
+
+  const keys = new Set<string>([key]);
+  const withoutDigits = key.replace(/\d+$/g, '');
+  const withoutTrailingLetter = key.replace(/[a-z]$/g, '');
+
+  if (withoutDigits.length >= 2) {
+    keys.add(withoutDigits);
+  }
+
+  if (withoutTrailingLetter.length >= 2) {
+    keys.add(withoutTrailingLetter);
+  }
+
+  if (key.startsWith('super') && key.length > 5) {
+    keys.add(key.slice(5));
+  }
+
+  return [...keys];
+}
+
+function getAuthIdentityKeys(authUser: AuthUserProfile | null): string[] {
+  if (!authUser) {
+    return [];
+  }
+
+  return [...new Set([
+    ...expandIdentityKeys(authUser.username),
+    ...expandIdentityKeys(authUser.displayName),
+  ])];
+}
+
+function matchesIdentityValue(value: string, identityKeys: string[]): boolean {
+  const key = normalizeIdentityKey(value);
+
+  if (!key) {
+    return false;
+  }
+
+  return identityKeys.some((identityKey) => identityKey === key || (identityKey.length >= 3 && key.includes(identityKey)));
+}
+
+function participantMatchesIdentity(participant: LogisticsParticipant, identityKeys: string[]): boolean {
+  return [
+    participant.name,
+    participant.englishName,
+    participant.phone,
+  ].some((value) => matchesIdentityValue(value, identityKeys));
+}
+
+function getPersonalLogisticsTasks(
+  authUser: AuthUserProfile | null,
+  logisticsEvents: LogisticsEventRecord[],
+  now: Date,
+): PersonalLogisticsTask[] {
+  const identityKeys = getAuthIdentityKeys(authUser);
+
+  if (identityKeys.length === 0) {
+    return [];
+  }
+
+  return logisticsEvents
+    .flatMap((event) => {
+      const mentors = event.participants.filter((participant) =>
+        participant.role === LOGISTICS_PARTICIPANT_ROLES[0] || participant.role === LOGISTICS_PARTICIPANT_ROLES[3]);
+      const students = event.participants.filter((participant) => participant.role === LOGISTICS_PARTICIPANT_ROLES[1]);
+      const matchedMentors = mentors.filter((mentor) => participantMatchesIdentity(mentor, identityKeys));
+      const matchedMentorIds = new Set(matchedMentors.map((mentor) => mentor.id));
+      const assignedStudents = students.filter((student) => matchedMentorIds.has(student.mentorId));
+
+      return event.timeline
+        .filter((node) => node.rollCallEnabled)
+        .flatMap((node) => {
+          const nodeOwner = mentors.find((mentor) => mentor.id === node.owner);
+          const ownsNode = Boolean(
+            (nodeOwner && participantMatchesIdentity(nodeOwner, identityKeys))
+            || matchesIdentityValue(node.owner, identityKeys),
+          );
+
+          if (!ownsNode && assignedStudents.length === 0) {
+            return [];
+          }
+
+          const visibleStudents = assignedStudents.length > 0 ? assignedStudents : students;
+          const arrivedCount = visibleStudents.filter((student) =>
+            normalizeLogisticsAttendanceStatus(event.attendance[node.id]?.[student.id]) === LOGISTICS_ATTENDANCE_STATUS[1]).length;
+          const totalCount = visibleStudents.length;
+          const isComplete = totalCount > 0 && arrivedCount === totalCount;
+          const timeAlertStatus = isComplete ? 'normal' : getLogisticsTimeAlertStatus(node.date, node.time, now);
+
+          return [{
+            event,
+            node,
+            students: visibleStudents,
+            arrivedCount,
+            totalCount,
+            isComplete,
+            timeAlertStatus,
+            timeAlertLabel: getLogisticsTimeAlertLabel(timeAlertStatus),
+          }];
+        });
+    })
+    .sort((left, right) => {
+      const leftTime = getLogisticsTimelineDateTime(left.node.date, left.node.time)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const rightTime = getLogisticsTimelineDateTime(right.node.date, right.node.time)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      return leftTime - rightTime;
+    });
 }
 
 function normalizeLogisticsEventItem(value: string): string {
@@ -1811,6 +1946,8 @@ export default function App() {
   const [authPanelOpen, setAuthPanelOpen] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [installGuideOpen, setInstallGuideOpen] = useState(false);
+  const [pwaInstallAvailable, setPwaInstallAvailable] = useState(false);
   const [teamTags, setTeamTags] = useState<TeamTagMap>(() => loadTeamTags());
   const [teamTagOptions, setTeamTagOptions] = useState<string[]>(() => loadTeamTagOptions());
   const [teamTagCloudReady, setTeamTagCloudReady] = useState(false);
@@ -1888,6 +2025,18 @@ export default function App() {
   const { notifications, showNotification } = useNotification();
   const { featuredTeams, addTeam, removeTeam, toggleTeam } = useFeaturedTeams();
 
+  useEffect(() => {
+    const syncInstallAvailability = () => {
+      setPwaInstallAvailable(canPromptPwaInstall());
+    };
+
+    syncInstallAvailability();
+    window.addEventListener(INSTALL_READY_EVENT, syncInstallAvailability);
+    return () => {
+      window.removeEventListener(INSTALL_READY_EVENT, syncInstallAvailability);
+    };
+  }, []);
+
   const activeCompetition =
     competitions.find((competition) => competition.id === activeCompetitionId) ?? null;
   const activeLogisticsEvent =
@@ -1960,6 +2109,10 @@ export default function App() {
   const canEdit = authEnabled ? authUser?.role === 'admin' || authUser?.role === 'editor' : true;
   const canDeleteCompetition = authEnabled ? authUser?.role === 'admin' : true;
   const canManageUsers = authEnabled ? authUser?.role === 'admin' : false;
+  const personalLogisticsTasks = getPersonalLogisticsTasks(authUser, logisticsEvents, logisticsAlertNow);
+  const personalTaskTotal = personalLogisticsTasks.reduce((total, task) => total + task.totalCount, 0);
+  const personalTaskDone = personalLogisticsTasks.reduce((total, task) => total + task.arrivedCount, 0);
+  const personalTaskWarningCount = personalLogisticsTasks.filter((task) => task.timeAlertStatus !== 'normal' && !task.isComplete).length;
   const activeEventType = activeCompetition?.eventType ?? selectedEventType ?? DEFAULT_EVENT_TYPE;
   const lobbyCompetitions = selectedEventType
     ? competitions.filter((competition) =>
@@ -2884,6 +3037,35 @@ export default function App() {
     setSearchKeyword('');
     setAwaitingPaste(false);
   }, []);
+
+  const handleOpenMyTasks = useCallback(() => {
+    setViewMode('my-tasks');
+    setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
+    setActiveLogisticsRosterSourceId(null);
+    setActiveTrainingEventId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
+  const handleInstallShortcut = useCallback(async () => {
+    if (isStandalonePwa()) {
+      showNotification('当前已经是桌面应用模式。', 'success');
+      return;
+    }
+
+    const result = await requestPwaInstall();
+    setPwaInstallAvailable(canPromptPwaInstall());
+
+    if (result === 'prompted') {
+      showNotification('已打开安装提示，请按浏览器提示确认。', 'success');
+      return;
+    }
+
+    setInstallGuideOpen(true);
+  }, [showNotification]);
 
   const handleOpenLogisticsRosterLibrary = useCallback(() => {
     setViewMode('logistics-roster');
@@ -3819,6 +4001,35 @@ export default function App() {
       }));
     },
     [canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
+  const handlePersonalLogisticsAttendanceChange = useCallback(
+    (eventId: string, timelineId: string, participantId: string, status: LogisticsAttendanceStatus) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      setLogisticsEvents((previous) => {
+        const next = previous.map((event) =>
+          event.id === eventId
+            ? {
+                ...event,
+                attendance: {
+                  ...event.attendance,
+                  [timelineId]: {
+                    ...(event.attendance[timelineId] ?? {}),
+                    [participantId]: status,
+                  },
+                },
+              }
+            : event,
+        );
+        saveLogisticsEvents(next);
+        return next;
+      });
+    },
+    [canEdit, showNotification],
   );
 
   const importLogisticsRosterRows = useCallback((rows: string[][], sourceLabel: string) => {
@@ -5317,6 +5528,19 @@ export default function App() {
                 </p>
               </div>
 
+              <article className={styles.installShortcutCard}>
+                <div>
+                  <p className={styles.portalCardLabel}>Mobile Shortcut</p>
+                  <h3>把 MakeXRank 添加到手机桌面</h3>
+                  <p>
+                    添加后可以像内部 App 一样从手机桌面直接打开，适合教练现场点名、查看任务和录入数据。
+                  </p>
+                </div>
+                <button className={styles.portalButton} type="button" onClick={handleInstallShortcut}>
+                  {pwaInstallAvailable ? '一键添加到桌面' : '查看添加方法'}
+                </button>
+              </article>
+
               <div className={styles.portalGrid}>
                 <article className={styles.portalCard}>
                   <div className={styles.portalCardTop}>
@@ -5331,6 +5555,22 @@ export default function App() {
                   </p>
                   <button className={styles.portalButton} onClick={handleOpenLogistics}>
                     进入赛事后勤管理
+                  </button>
+                </article>
+
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>个人入口</p>
+                      <h3>我的任务</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Tasks</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    登录后自动读取分配给自己的后勤点名节点，只显示自己需要负责确认的队员，适合教练和领队在手机端现场使用。
+                  </p>
+                  <button className={styles.portalButton} onClick={authUser ? handleOpenMyTasks : () => setViewMode('login')}>
+                    查看我的任务
                   </button>
                 </article>
 
@@ -5382,6 +5622,150 @@ export default function App() {
                   </button>
                 </article>
               </div>
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'my-tasks' ? (
+          <>
+            <Header
+              eyebrow="My Tasks"
+              title="我的任务"
+              subtitle="这里会自动汇总当前账号负责的后勤点名节点。教练或领队只需要处理自己名下的队员。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              {!authUser ? (
+                <article className={styles.logisticsEmpty}>
+                  请先登录个人账号，再查看分配给自己的节点任务。
+                </article>
+              ) : (
+                <>
+                  <div className={styles.logisticsSummaryGrid}>
+                    <article className={styles.parameterCard}>
+                      <span>任务节点</span>
+                      <strong>{personalLogisticsTasks.length}</strong>
+                      <small>来自后勤时间轴</small>
+                    </article>
+                    <article className={styles.parameterCard}>
+                      <span>点名进度</span>
+                      <strong>{personalTaskTotal ? `${personalTaskDone}/${personalTaskTotal}` : '0'}</strong>
+                      <small>只统计当前账号负责队员</small>
+                    </article>
+                    <article className={styles.parameterCard}>
+                      <span>时间提醒</span>
+                      <strong>{personalTaskWarningCount}</strong>
+                      <small>5 分钟内或已到时</small>
+                    </article>
+                    <article className={styles.parameterCard}>
+                      <span>当前账号</span>
+                      <strong>{authUser.displayName}</strong>
+                      <small>{authUser.role}</small>
+                    </article>
+                  </div>
+
+                  {personalLogisticsTasks.length === 0 ? (
+                    <article className={styles.logisticsEmpty}>
+                      暂时没有匹配到你的点名任务。请确认后勤人员表里的教练/领队中文名、英文名或手机号，与当前账号资料能够对应。
+                    </article>
+                  ) : (
+                    <div className={styles.personalTaskList}>
+                      {personalLogisticsTasks.map((task) => (
+                        <article
+                          key={`${task.event.id}-${task.node.id}`}
+                          className={`${styles.rollCallNode} ${
+                            task.timeAlertStatus === 'soon' ? styles.rollCallNodeSoon : ''
+                          } ${task.timeAlertStatus === 'due' ? styles.rollCallNodeDue : ''}`}
+                        >
+                          <div className={styles.portalCardTop}>
+                            <div>
+                              <p className={`${styles.portalCardLabel} ${styles.rollCallTimeLabel}`}>
+                                <span>{task.event.name}</span>
+                                <strong>{task.node.date || '未定日期'} {task.node.time || '未定时间'}</strong>
+                              </p>
+                              <h3>{task.node.title || '未命名节点'}</h3>
+                            </div>
+                            <div className={styles.rollCallStatusStack}>
+                              {task.timeAlertLabel && (
+                                <span className={`${styles.rollCallTimeAlert} ${
+                                  task.timeAlertStatus === 'soon' ? styles.rollCallTimeAlertSoon : styles.rollCallTimeAlertDue
+                                }`}
+                                >
+                                  {task.timeAlertLabel}
+                                </span>
+                              )}
+                              <span className={`${styles.portalBadge} ${styles.rollCallProgressBadge} ${
+                                task.isComplete ? styles.rollCallProgressComplete : styles.rollCallProgressWarning
+                              }`}
+                              >
+                                {task.arrivedCount}
+                                /{task.totalCount}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className={styles.personalTaskMeta}>
+                            {task.node.location && <span>地点：{task.node.location}</span>}
+                            {task.node.notes && <span>备注：{task.node.notes}</span>}
+                          </div>
+
+                          <div className={styles.mentorRollCallBlock}>
+                            <div className={styles.mentorRollCallTitle}>
+                              <strong>我的负责队员</strong>
+                              <span className={task.isComplete ? styles.rollCallProgressComplete : styles.rollCallProgressWarning}>
+                                {task.arrivedCount}
+                                /{task.totalCount}
+                              </span>
+                            </div>
+                            {task.students.map((student) => {
+                              const attendanceStatus = normalizeLogisticsAttendanceStatus(
+                                task.event.attendance[task.node.id]?.[student.id],
+                              );
+                              const nextAttendanceStatus: LogisticsAttendanceStatus =
+                                attendanceStatus === LOGISTICS_ATTENDANCE_STATUS[1]
+                                  ? LOGISTICS_ATTENDANCE_STATUS[0]
+                                  : LOGISTICS_ATTENDANCE_STATUS[1];
+
+                              return (
+                                <div key={student.id} className={styles.attendanceRow}>
+                                  <div>
+                                    <strong>{student.name}</strong>
+                                    <small>{[student.englishName, student.eventItem, student.teamNo, student.teamName].filter(Boolean).join(' / ')}</small>
+                                  </div>
+                                  <button
+                                    className={`${styles.attendanceToggleButton} ${
+                                      attendanceStatus === LOGISTICS_ATTENDANCE_STATUS[1] ? styles.attendanceToggleButtonArrived : ''
+                                    }`}
+                                    type="button"
+                                    onClick={() =>
+                                      handlePersonalLogisticsAttendanceChange(
+                                        task.event.id,
+                                        task.node.id,
+                                        student.id,
+                                        nextAttendanceStatus,
+                                      )}
+                                    disabled={!canEdit}
+                                  >
+                                    {attendanceStatus}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </section>
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />
@@ -8787,6 +9171,38 @@ export default function App() {
           onDeleteUser={handleDeleteManagedUser}
           onToggleUserActive={handleToggleUserActive}
         />
+      )}
+
+      {installGuideOpen && (
+        <div className={styles.installGuideOverlay} role="dialog" aria-modal="true" aria-label="添加到手机桌面">
+          <article className={styles.installGuidePanel}>
+            <div className={styles.portalCardTop}>
+              <div>
+                <p className={styles.portalCardLabel}>Install Guide</p>
+                <h2>添加到手机桌面</h2>
+              </div>
+              <button
+                className={styles.closeButton}
+                type="button"
+                onClick={() => setInstallGuideOpen(false)}
+                aria-label="关闭添加说明"
+              >
+                ×
+              </button>
+            </div>
+            <p className={styles.portalCardText}>
+              当前浏览器没有直接弹出安装按钮，可以按下面步骤手动添加。添加后桌面会出现 MakeXRank 图标。
+            </p>
+            <ol className={styles.installGuideSteps}>
+              {getPwaInstallInstructions().map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+            <button className={styles.portalButton} type="button" onClick={() => setInstallGuideOpen(false)}>
+              我知道了
+            </button>
+          </article>
+        </div>
       )}
 
       <NotificationContainer notifications={notifications} />

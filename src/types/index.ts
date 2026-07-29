@@ -141,6 +141,7 @@ export type TabName = 'ranking' | 'playoff' | 'focusSchedule';
 export type ViewMode =
   | 'home'
   | 'login'
+  | 'my-tasks'
   | 'event-types'
   | 'logistics'
   | 'logistics-roster'
