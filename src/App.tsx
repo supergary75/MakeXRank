@@ -43,6 +43,7 @@ import {
 } from './services/authService';
 import { calculateRanking, sortTeams } from './utils/rankingAlgorithm';
 import {
+  DEFAULT_TEAM_TAG_OPTIONS,
   getTeamTagKey,
   loadTeamTagOptions,
   loadTeamTags,
@@ -135,12 +136,26 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
 const TRAINING_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TRAINING_SYNC_TABLE?.trim() || 'training_sync';
 const TRAINING_SYNC_ID = 'global';
+const TEAM_TAG_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TEAM_TAG_SYNC_TABLE?.trim() || 'team_tag_sync';
+const TEAM_TAG_SYNC_ID = 'global';
 
 interface PracticeExplorerState {
   sourceText: string;
   teamsData: TeamRaw[];
   rows: PracticeExplorerMatchRow[];
   lastUpdate: string;
+}
+
+interface TeamTagCloudState {
+  tags: TeamTagMap;
+  options: string[];
+}
+
+interface TeamTagSyncRow {
+  id: string;
+  tags: unknown;
+  options: unknown;
+  updated_at: string;
 }
 
 type LogisticsAttendanceStatus = typeof LOGISTICS_ATTENDANCE_STATUS[number];
@@ -1511,6 +1526,79 @@ function mergeTrainingState(localState: TrainingCloudState, remoteState: Trainin
   return localState;
 }
 
+function normalizeTeamTagCloudMap(input: unknown): TeamTagMap {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(input as Record<string, unknown>)
+      .map(([key, value]) => [key.trim(), typeof value === 'string' ? value.trim() : ''])
+      .filter(([key, value]) => key && value),
+  );
+}
+
+function normalizeTeamTagCloudOptions(input: unknown): string[] {
+  const options = Array.isArray(input) ? input.filter((item): item is string => typeof item === 'string') : [];
+  return Array.from(new Set([...DEFAULT_TEAM_TAG_OPTIONS, ...options].map((item) => item.trim()).filter(Boolean)));
+}
+
+async function fetchRemoteTeamTagState(accessToken: string): Promise<TeamTagCloudState | null> {
+  const params = new URLSearchParams({
+    select: 'id,tags,options,updated_at',
+    id: `eq.${TEAM_TAG_SYNC_ID}`,
+    limit: '1',
+  });
+
+  const rows = await requestTrainingSync<TeamTagSyncRow[]>(
+    `/rest/v1/${TEAM_TAG_SYNC_TABLE}?${params.toString()}`,
+    accessToken,
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  return {
+    tags: normalizeTeamTagCloudMap(rows[0].tags),
+    options: normalizeTeamTagCloudOptions(rows[0].options),
+  };
+}
+
+async function saveRemoteTeamTagState(tags: TeamTagMap, options: string[], accessToken: string): Promise<void> {
+  const params = new URLSearchParams({ on_conflict: 'id' });
+  await requestTrainingSync<TeamTagSyncRow[]>(
+    `/rest/v1/${TEAM_TAG_SYNC_TABLE}?${params.toString()}`,
+    accessToken,
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({
+        id: TEAM_TAG_SYNC_ID,
+        tags,
+        options: normalizeTeamTagCloudOptions(options),
+        updated_at: new Date().toISOString(),
+      }),
+    },
+  );
+}
+
+function mergeTeamTagState(localState: TeamTagCloudState, remoteState: TeamTagCloudState | null): TeamTagCloudState {
+  if (!remoteState) {
+    return localState;
+  }
+
+  return {
+    tags: {
+      ...remoteState.tags,
+      ...localState.tags,
+    },
+    options: Array.from(new Set([...remoteState.options, ...localState.options].map((item) => item.trim()).filter(Boolean))),
+  };
+}
+
 function drawRoundedRect(
   context: CanvasRenderingContext2D,
   x: number,
@@ -1725,6 +1813,7 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [teamTags, setTeamTags] = useState<TeamTagMap>(() => loadTeamTags());
   const [teamTagOptions, setTeamTagOptions] = useState<string[]>(() => loadTeamTagOptions());
+  const [teamTagCloudReady, setTeamTagCloudReady] = useState(false);
   const [practiceExplorer, setPracticeExplorer] = useState<PracticeExplorerState>(() => loadPracticeExplorerState());
   const [practiceExplorerAwaitingPaste, setPracticeExplorerAwaitingPaste] = useState(false);
   const [logisticsEvents, setLogisticsEvents] = useState<LogisticsEventRecord[]>(() => loadLogisticsEvents());
@@ -1791,6 +1880,7 @@ export default function App() {
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const practiceExplorerPasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const trainingCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const teamTagCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logisticsFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsDocumentImageInputRef = useRef<HTMLInputElement>(null);
   const logisticsMasterFileInputRef = useRef<HTMLInputElement>(null);
@@ -2180,6 +2270,133 @@ export default function App() {
       }
     };
   }, [authUser, showNotification, trainingCloudReady, trainingEvents, trainingSchedules]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      if (!authUser) {
+        setTeamTagCloudReady(false);
+        return;
+      }
+
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        setTeamTagCloudReady(false);
+        return;
+      }
+
+      try {
+        const localState: TeamTagCloudState = {
+          tags: loadTeamTags(),
+          options: loadTeamTagOptions(),
+        };
+        const remoteState = await fetchRemoteTeamTagState(accessToken);
+        const mergedState = mergeTeamTagState(localState, remoteState);
+
+        if (cancelled) {
+          return;
+        }
+
+        setTeamTags(mergedState.tags);
+        setTeamTagOptions(mergedState.options);
+        saveTeamTags(mergedState.tags);
+        saveTeamTagOptions(mergedState.options);
+        await saveRemoteTeamTagState(mergedState.tags, mergedState.options, accessToken);
+
+        if (!cancelled) {
+          setTeamTagCloudReady(true);
+          showNotification('赛队标注已连接 Supabase，同一账号体系下的设备会共享标签。', 'success');
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setTeamTagCloudReady(false);
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`赛队标注云同步失败，暂时只使用本地标签。原因：${message}`, 'error');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, showNotification]);
+
+  useEffect(() => {
+    if (!authUser || !teamTagCloudReady) {
+      return;
+    }
+
+    const accessToken = getStoredAccessToken();
+    if (!accessToken) {
+      return;
+    }
+
+    if (teamTagCloudSaveTimerRef.current) {
+      clearTimeout(teamTagCloudSaveTimerRef.current);
+    }
+
+    teamTagCloudSaveTimerRef.current = setTimeout(() => {
+      void saveRemoteTeamTagState(teamTags, teamTagOptions, accessToken).catch((error) => {
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`赛队标注保存到 Supabase 失败：${message}`, 'error');
+      });
+    }, 500);
+
+    return () => {
+      if (teamTagCloudSaveTimerRef.current) {
+        clearTimeout(teamTagCloudSaveTimerRef.current);
+        teamTagCloudSaveTimerRef.current = null;
+      }
+    };
+  }, [authUser, showNotification, teamTagCloudReady, teamTagOptions, teamTags]);
+
+  useEffect(() => {
+    if (!authUser || !teamTagCloudReady) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        return;
+      }
+
+      void fetchRemoteTeamTagState(accessToken)
+        .then((remoteState) => {
+          if (!remoteState) {
+            return;
+          }
+
+          setTeamTags((previous) => {
+            const next = normalizeTeamTagCloudMap(remoteState.tags);
+            if (JSON.stringify(previous) === JSON.stringify(next)) {
+              return previous;
+            }
+
+            saveTeamTags(next);
+            return next;
+          });
+
+          setTeamTagOptions((previous) => {
+            const next = normalizeTeamTagCloudOptions(remoteState.options);
+            if (JSON.stringify(previous) === JSON.stringify(next)) {
+              return previous;
+            }
+
+            saveTeamTagOptions(next);
+            return next;
+          });
+        })
+        .catch(() => {
+          // Keep the UI quiet for transient background refresh failures.
+        });
+    }, 30 * 1000);
+
+    return () => window.clearInterval(timer);
+  }, [authUser, teamTagCloudReady]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
