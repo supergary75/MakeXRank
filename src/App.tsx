@@ -145,6 +145,8 @@ const TRAINING_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TRAINING_SYNC_TABLE?.t
 const TRAINING_SYNC_ID = 'global';
 const TEAM_TAG_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TEAM_TAG_SYNC_TABLE?.trim() || 'team_tag_sync';
 const TEAM_TAG_SYNC_ID = 'global';
+const LOGISTICS_SYNC_TABLE = import.meta.env.VITE_SUPABASE_LOGISTICS_SYNC_TABLE?.trim() || 'logistics_sync';
+const LOGISTICS_SYNC_ID = 'global';
 
 interface PracticeExplorerState {
   sourceText: string;
@@ -162,6 +164,16 @@ interface TeamTagSyncRow {
   id: string;
   tags: unknown;
   options: unknown;
+  updated_at: string;
+}
+
+interface LogisticsCloudState {
+  events: LogisticsEventRecord[];
+}
+
+interface LogisticsSyncRow {
+  id: string;
+  events: unknown;
   updated_at: string;
 }
 
@@ -897,6 +909,41 @@ function normalizeLogisticsAttendance(value: unknown): LogisticsAttendanceMap {
   return normalized;
 }
 
+function normalizeLogisticsEvents(input: unknown): LogisticsEventRecord[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .filter((item): item is Partial<LogisticsEventRecord> => item && typeof item === 'object')
+    .map((item) => {
+      const participants = Array.isArray(item.participants)
+        ? item.participants
+          .map(normalizeLogisticsParticipant)
+          .filter((participant): participant is LogisticsParticipant => Boolean(participant))
+        : [];
+
+      return {
+        id: typeof item.id === 'string' ? item.id : `logistics-${Date.now()}`,
+        name: typeof item.name === 'string' ? item.name : '',
+        date: typeof item.date === 'string' ? item.date : '',
+        venue: typeof item.venue === 'string' ? item.venue : '',
+        group: typeof item.group === 'string' ? item.group : '',
+        notes: typeof item.notes === 'string' ? item.notes : '',
+        createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
+        participants: mergeLogisticsEventParticipantsUnique([], participants).participants,
+        timeline: Array.isArray(item.timeline)
+          ? item.timeline.map(normalizeLogisticsTimelineItem).filter((timeline): timeline is LogisticsTimelineItem => Boolean(timeline))
+          : [],
+        rooms: Array.isArray(item.rooms)
+          ? item.rooms.map(normalizeLogisticsRoomAssignment).filter((room): room is LogisticsRoomAssignment => Boolean(room))
+          : [],
+        attendance: normalizeLogisticsAttendance(item.attendance),
+      };
+    })
+    .filter((item) => item.name.trim());
+}
+
 function loadLogisticsEvents(): LogisticsEventRecord[] {
   if (typeof window === 'undefined') {
     return [];
@@ -913,32 +960,7 @@ function loadLogisticsEvents(): LogisticsEventRecord[] {
       return [];
     }
 
-    return parsed
-      .filter((item): item is Partial<LogisticsEventRecord> => item && typeof item === 'object')
-      .map((item) => {
-        const participants = Array.isArray(item.participants)
-          ? item.participants.map(normalizeLogisticsParticipant).filter((participant): participant is LogisticsParticipant => Boolean(participant))
-          : [];
-
-        return {
-          id: typeof item.id === 'string' ? item.id : `logistics-${Date.now()}`,
-          name: typeof item.name === 'string' ? item.name : '',
-          date: typeof item.date === 'string' ? item.date : '',
-          venue: typeof item.venue === 'string' ? item.venue : '',
-          group: typeof item.group === 'string' ? item.group : '',
-          notes: typeof item.notes === 'string' ? item.notes : '',
-          createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
-          participants: mergeLogisticsEventParticipantsUnique([], participants).participants,
-          timeline: Array.isArray(item.timeline)
-            ? item.timeline.map(normalizeLogisticsTimelineItem).filter((timeline): timeline is LogisticsTimelineItem => Boolean(timeline))
-            : [],
-          rooms: Array.isArray(item.rooms)
-            ? item.rooms.map(normalizeLogisticsRoomAssignment).filter((room): room is LogisticsRoomAssignment => Boolean(room))
-            : [],
-          attendance: normalizeLogisticsAttendance(item.attendance),
-        };
-      })
-      .filter((item) => item.name.trim());
+    return normalizeLogisticsEvents(parsed);
   } catch {
     return [];
   }
@@ -1734,6 +1756,90 @@ function mergeTeamTagState(localState: TeamTagCloudState, remoteState: TeamTagCl
   };
 }
 
+function getLogisticsAttendanceCount(attendance: LogisticsAttendanceMap): number {
+  return Object.values(attendance).reduce((total, rows) => total + Object.keys(rows).length, 0);
+}
+
+function getLogisticsEventCompletenessScore(event: LogisticsEventRecord): number {
+  return (
+    event.participants.length * 100
+    + event.timeline.length * 60
+    + event.rooms.length * 60
+    + getLogisticsAttendanceCount(event.attendance) * 20
+    + (event.date ? 8 : 0)
+    + (event.venue ? 4 : 0)
+    + (event.group ? 4 : 0)
+    + (event.notes ? 2 : 0)
+  );
+}
+
+async function fetchRemoteLogisticsState(accessToken: string): Promise<LogisticsCloudState | null> {
+  const params = new URLSearchParams({
+    select: 'id,events,updated_at',
+    id: `eq.${LOGISTICS_SYNC_ID}`,
+    limit: '1',
+  });
+
+  const rows = await requestTrainingSync<LogisticsSyncRow[]>(
+    `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
+    accessToken,
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  return {
+    events: normalizeLogisticsEvents(rows[0].events),
+  };
+}
+
+async function saveRemoteLogisticsState(events: LogisticsEventRecord[], accessToken: string): Promise<void> {
+  const params = new URLSearchParams({ on_conflict: 'id' });
+
+  await requestTrainingSync<LogisticsSyncRow[]>(
+    `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
+    accessToken,
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({
+        id: LOGISTICS_SYNC_ID,
+        events: normalizeLogisticsEvents(events),
+        updated_at: new Date().toISOString(),
+      }),
+    },
+  );
+}
+
+function mergeLogisticsState(
+  localState: LogisticsCloudState,
+  remoteState: LogisticsCloudState | null,
+): LogisticsCloudState {
+  if (!remoteState) {
+    return localState;
+  }
+
+  const byId = new Map<string, LogisticsEventRecord>();
+
+  remoteState.events.forEach((event) => {
+    byId.set(event.id, event);
+  });
+
+  localState.events.forEach((event) => {
+    const remoteEvent = byId.get(event.id);
+    if (!remoteEvent || getLogisticsEventCompletenessScore(event) > getLogisticsEventCompletenessScore(remoteEvent)) {
+      byId.set(event.id, event);
+    }
+  });
+
+  return {
+    events: Array.from(byId.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+  };
+}
+
 function drawRoundedRect(
   context: CanvasRenderingContext2D,
   x: number,
@@ -2013,11 +2119,13 @@ export default function App() {
   const [visibleTrainingMonth, setVisibleTrainingMonth] = useState(() => getMonthKey(getTodayKey()));
   const [trainingSchedules, setTrainingSchedules] = useState<TrainingScheduleMap>(() => loadTrainingSchedules());
   const [trainingCloudReady, setTrainingCloudReady] = useState(false);
+  const [logisticsCloudReady, setLogisticsCloudReady] = useState(false);
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const practiceExplorerPasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const trainingCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const teamTagCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logisticsCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logisticsFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsDocumentImageInputRef = useRef<HTMLInputElement>(null);
   const logisticsMasterFileInputRef = useRef<HTMLInputElement>(null);
@@ -2423,6 +2531,85 @@ export default function App() {
       }
     };
   }, [authUser, showNotification, trainingCloudReady, trainingEvents, trainingSchedules]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      if (!authUser || !isSupabaseConfigured()) {
+        setLogisticsCloudReady(false);
+        return;
+      }
+
+      const accessToken = getStoredAccessToken();
+      if (!accessToken) {
+        setLogisticsCloudReady(false);
+        return;
+      }
+
+      try {
+        const localState: LogisticsCloudState = {
+          events: loadLogisticsEvents(),
+        };
+        const remoteState = await fetchRemoteLogisticsState(accessToken);
+        const mergedState = mergeLogisticsState(localState, remoteState);
+
+        if (cancelled) {
+          return;
+        }
+
+        setLogisticsEvents(mergedState.events);
+        saveLogisticsEvents(mergedState.events);
+        await saveRemoteLogisticsState(mergedState.events, accessToken);
+
+        if (!cancelled) {
+          setLogisticsCloudReady(true);
+          showNotification('赛事后勤数据已连接 Supabase，登录设备会共享同一份后勤卡片。', 'success');
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setLogisticsCloudReady(false);
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`赛事后勤云端同步失败，暂时使用本地数据。原因：${message}`, 'error');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, showNotification]);
+
+  useEffect(() => {
+    if (!authUser || !logisticsCloudReady) {
+      return;
+    }
+
+    const accessToken = getStoredAccessToken();
+    if (!accessToken) {
+      return;
+    }
+
+    if (logisticsCloudSaveTimerRef.current) {
+      clearTimeout(logisticsCloudSaveTimerRef.current);
+    }
+
+    logisticsCloudSaveTimerRef.current = setTimeout(() => {
+      void saveRemoteLogisticsState(logisticsEvents, accessToken).catch((error) => {
+        const message = error instanceof Error ? error.message : '未知错误';
+        showNotification(`赛事后勤保存到 Supabase 失败：${message}`, 'error');
+      });
+    }, 500);
+
+    return () => {
+      if (logisticsCloudSaveTimerRef.current) {
+        clearTimeout(logisticsCloudSaveTimerRef.current);
+        logisticsCloudSaveTimerRef.current = null;
+      }
+    };
+  }, [authUser, logisticsCloudReady, logisticsEvents, showNotification]);
 
   useEffect(() => {
     let cancelled = false;
