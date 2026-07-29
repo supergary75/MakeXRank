@@ -1,8 +1,8 @@
 .container {
   padding: 24px;
   background:
-    linear-gradient(135deg, rgba(0, 200, 255, 0.08) 0%, transparent 28%),
-    linear-gradient(180deg, rgba(242, 56, 69, 0.08), transparent 32%),
+    linear-gradient(135deg, rgba(93, 214, 255, 0.08) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(214, 169, 74, 0.08), transparent 32%),
     rgba(8, 12, 18, 0.42);
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
@@ -28,8 +28,8 @@
   font-size: 0.85em;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
-  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
-  color: var(--gray-800);
+  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
+  color: #07111f;
   cursor: pointer;
   font-weight: 600;
   transition: all var(--transition-base);
@@ -171,8 +171,8 @@
 
 .addBtn {
   padding: 10px 20px;
-  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
-  color: #fff7f8;
+  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
+  color: #07111f;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
   cursor: pointer;

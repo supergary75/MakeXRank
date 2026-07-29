@@ -2,9 +2,9 @@
   min-height: 100vh;
   padding: 24px;
   background:
-    radial-gradient(circle at top center, rgba(242, 56, 69, 0.18) 0%, transparent 30%),
-    radial-gradient(circle at 80% 16%, rgba(0, 200, 255, 0.12), transparent 28%),
-    linear-gradient(135deg, #151e28 0%, #090d13 52%, #040609 100%);
+    radial-gradient(circle at top center, rgba(214, 169, 74, 0.15) 0%, transparent 30%),
+    radial-gradient(circle at 80% 16%, rgba(93, 214, 255, 0.12), transparent 28%),
+    linear-gradient(135deg, #0d1f36 0%, #07111f 52%, #04101c 100%);
   position: relative;
 }
 
@@ -16,8 +16,8 @@
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(ellipse at 16% 18%, rgba(242, 56, 69, 0.12) 0%, transparent 46%),
-    radial-gradient(ellipse at 86% 24%, rgba(0, 200, 255, 0.1) 0%, transparent 34%),
+    radial-gradient(ellipse at 16% 18%, rgba(214, 169, 74, 0.12) 0%, transparent 46%),
+    radial-gradient(ellipse at 86% 24%, rgba(93, 214, 255, 0.1) 0%, transparent 34%),
     repeating-linear-gradient(
       90deg,
       rgba(217, 226, 236, 0.028) 0,
@@ -40,8 +40,8 @@
       45deg,
       transparent 0,
       transparent 38px,
-      rgba(242, 56, 69, 0.035) 38px,
-      rgba(242, 56, 69, 0.035) 39px
+      rgba(214, 169, 74, 0.035) 38px,
+      rgba(214, 169, 74, 0.035) 39px
     );
   mix-blend-mode: screen;
   opacity: 0.35;
@@ -55,9 +55,9 @@
   box-shadow:
     0 28px 70px rgba(0, 0, 0, 0.52),
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 200, 255, 0.08),
-    0 0 0 1px rgba(242, 56, 69, 0.14),
-    0 0 0 3px rgba(0, 200, 255, 0.04);
+    inset 0 -1px 0 rgba(93, 214, 255, 0.08),
+    0 0 0 1px rgba(214, 169, 74, 0.16),
+    0 0 0 3px rgba(93, 214, 255, 0.04);
   overflow: hidden;
   position: relative;
   z-index: 1;
@@ -71,13 +71,13 @@
   pointer-events: none;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 26%),
-    linear-gradient(180deg, rgba(0, 200, 255, 0.05), transparent 14%),
+    linear-gradient(180deg, rgba(93, 214, 255, 0.05), transparent 14%),
     repeating-linear-gradient(
       135deg,
       transparent 0,
       transparent 36px,
-      rgba(242, 56, 69, 0.026) 36px,
-      rgba(242, 56, 69, 0.026) 37px
+      rgba(214, 169, 74, 0.026) 36px,
+      rgba(214, 169, 74, 0.026) 37px
     );
 }
 
@@ -132,9 +132,9 @@
   min-height: 44px;
   padding: 10px 16px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 244, 217, 0.14);
-  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
-  color: #fff7f8;
+  border: 1px solid rgba(244, 214, 138, 0.34);
+  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 46%, #8f6421 100%);
+  color: #07111f;
   font-weight: 700;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -156,7 +156,7 @@
   border-radius: var(--radius-lg);
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    linear-gradient(145deg, rgba(0, 200, 255, 0.06), transparent 52%),
+    linear-gradient(145deg, rgba(93, 214, 255, 0.06), transparent 52%),
     rgba(18, 25, 34, 0.74);
   overflow: hidden;
   position: relative;
@@ -215,7 +215,7 @@
   border-radius: 22px;
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    linear-gradient(145deg, rgba(242, 56, 69, 0.08), transparent 52%),
+    linear-gradient(145deg, rgba(214, 169, 74, 0.1), transparent 52%),
     rgba(18, 25, 34, 0.8);
   display: grid;
   gap: 16px;
@@ -279,8 +279,8 @@
   min-height: 36px;
   padding: 0 14px;
   border-radius: var(--radius-full);
-  background: rgba(0, 200, 255, 0.1);
-  border: 1px solid rgba(0, 200, 255, 0.2);
+  background: rgba(93, 214, 255, 0.1);
+  border: 1px solid rgba(93, 214, 255, 0.2);
   color: var(--gray-700);
   font-size: 0.84rem;
   font-weight: 700;
@@ -296,9 +296,9 @@
   min-height: 48px;
   padding: 0 18px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 244, 217, 0.12);
-  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
-  color: #fff7f8;
+  border: 1px solid rgba(244, 214, 138, 0.34);
+  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
+  color: #07111f;
   font-weight: 700;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -319,10 +319,10 @@
 
 .secondaryButton {
   width: 100%;
-  border: 1px solid rgba(0, 200, 255, 0.22);
+  border: 1px solid rgba(93, 214, 255, 0.22);
   border-radius: 16px;
   padding: 13px 18px;
-  background: linear-gradient(145deg, rgba(0, 200, 255, 0.18), rgba(16, 24, 34, 0.92));
+  background: linear-gradient(145deg, rgba(93, 214, 255, 0.18), rgba(16, 42, 67, 0.92));
   color: var(--gray-800);
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -346,8 +346,8 @@
   border-radius: 22px;
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    radial-gradient(circle at 12% 0%, rgba(0, 200, 255, 0.14), transparent 34%),
-    linear-gradient(145deg, rgba(242, 56, 69, 0.08), transparent 58%),
+    radial-gradient(circle at 12% 0%, rgba(93, 214, 255, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(214, 169, 74, 0.08), transparent 58%),
     rgba(18, 25, 34, 0.82);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -392,7 +392,7 @@
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
-    linear-gradient(145deg, rgba(0, 200, 255, 0.1), rgba(242, 56, 69, 0.08)),
+    linear-gradient(145deg, rgba(93, 214, 255, 0.1), rgba(214, 169, 74, 0.08)),
     rgba(8, 12, 18, 0.72);
   display: grid;
   gap: 6px;
@@ -418,8 +418,8 @@
   border-radius: 22px;
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    linear-gradient(145deg, rgba(0, 200, 255, 0.08), transparent 46%),
-    linear-gradient(135deg, rgba(242, 56, 69, 0.08), transparent 60%),
+    linear-gradient(145deg, rgba(93, 214, 255, 0.08), transparent 46%),
+    linear-gradient(135deg, rgba(214, 169, 74, 0.08), transparent 60%),
     rgba(18, 25, 34, 0.82);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -429,6 +429,21 @@
 .logisticsFormPanel {
   display: grid;
   gap: 18px;
+}
+
+.logisticsFormPanel[hidden] {
+  display: none !important;
+}
+
+.secureRosterPanel {
+  max-width: 760px;
+}
+
+.secureRosterForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
 }
 
 .logisticsFormGrid {
@@ -519,11 +534,128 @@
   flex-wrap: wrap;
 }
 
+.inlineButtonGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.inlineButtonGroup .secondaryButton {
+  width: auto;
+}
+
+.portalBadgeButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  background: rgba(93, 214, 255, 0.1);
+  border: 1px solid rgba(93, 214, 255, 0.2);
+  color: var(--gray-700);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.portalBadgeButton:hover {
+  border-color: rgba(244, 214, 138, 0.58);
+  color: var(--gray-900);
+}
+
+.portalBadgeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .cardEnterHint {
   color: var(--secondary);
   font-size: 0.9rem;
   font-weight: 800;
   letter-spacing: 0.04em;
+}
+
+.cardTitleInput,
+.cardDateInput {
+  width: min(100%, 520px);
+  border: 1px solid rgba(93, 214, 255, 0.35);
+  border-radius: 14px;
+  background: rgba(5, 10, 18, 0.72);
+  color: var(--gray-900);
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 900;
+  padding: 11px 14px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(93, 214, 255, 0.08);
+}
+
+.cardDateInput {
+  width: 170px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.cardTitleInput:focus,
+.cardDateInput:focus {
+  border-color: rgba(244, 214, 138, 0.74);
+  box-shadow:
+    0 0 0 3px rgba(244, 214, 138, 0.12),
+    0 0 20px rgba(93, 214, 255, 0.16);
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.documentImagePanel {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px dashed rgba(93, 214, 255, 0.28);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(93, 214, 255, 0.08), rgba(214, 169, 74, 0.06)),
+    rgba(8, 12, 18, 0.52);
+}
+
+.documentImagePanel img,
+.documentImagePlaceholder {
+  width: 160px;
+  height: 104px;
+  border-radius: 14px;
+  border: 1px solid rgba(217, 226, 236, 0.12);
+  background: rgba(8, 12, 18, 0.74);
+  object-fit: cover;
+}
+
+.documentImagePlaceholder {
+  display: grid;
+  place-items: center;
+  color: var(--gray-400);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 10px;
+}
+
+.documentImageActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.documentThumb {
+  display: block;
+  width: 72px;
+  height: 46px;
+  margin-top: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(93, 214, 255, 0.28);
+  object-fit: cover;
 }
 
 .logisticsMeta {
@@ -549,12 +681,633 @@
   line-height: 1.8;
 }
 
+.logisticsSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.logisticsItemGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.logisticsItemCard {
+  min-height: 210px;
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid rgba(93, 214, 255, 0.18);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(93, 214, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 90% 90%, rgba(214, 169, 74, 0.14), transparent 32%),
+    linear-gradient(145deg, rgba(18, 25, 34, 0.92), rgba(8, 12, 18, 0.9));
+  color: var(--gray-800);
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 20px 44px rgba(2, 5, 10, 0.24);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.logisticsItemCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(93, 214, 255, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 26px 54px rgba(2, 5, 10, 0.34),
+    0 0 30px rgba(93, 214, 255, 0.14);
+}
+
+.logisticsItemCard strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  line-height: 1.1;
+  color: var(--gray-900);
+}
+
+.logisticsItemCard small {
+  color: var(--gray-500);
+  line-height: 1.6;
+}
+
+.logisticsItemCard em {
+  justify-self: start;
+  padding: 9px 13px;
+  border-radius: var(--radius-full);
+  background: rgba(214, 169, 74, 0.13);
+  color: var(--primary);
+  font-style: normal;
+  font-weight: 900;
+  font-size: 0.84rem;
+}
+
+.logisticsToggleLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gray-500);
+  font-weight: 800;
+}
+
+.logisticsToggleLine input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.logisticsTableWrap {
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+}
+
+.logisticsTable {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  background: rgba(8, 12, 18, 0.46);
+}
+
+.logisticsTable th,
+.logisticsTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(217, 226, 236, 0.08);
+  color: var(--gray-600);
+  text-align: left;
+  vertical-align: top;
+}
+
+.logisticsTable th {
+  color: var(--primary);
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(93, 214, 255, 0.06);
+}
+
+.logisticsTable td strong,
+.timelineItem strong,
+.attendanceRow strong,
+.mentorRollCallTitle strong {
+  display: block;
+  color: var(--gray-800);
+}
+
+.logisticsTable td small,
+.timelineItem small,
+.attendanceRow small {
+  display: block;
+  margin-top: 4px;
+  color: var(--gray-400);
+  line-height: 1.5;
+}
+
+.logisticsTable select,
+.logisticsTable input {
+  width: 100%;
+  border: 1px solid rgba(217, 226, 236, 0.14);
+  border-radius: 12px;
+  background: rgba(8, 12, 18, 0.82);
+  color: var(--gray-800);
+  padding: 9px 10px;
+  font: inherit;
+}
+
+.logisticsTable input:disabled,
+.logisticsTable select:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.tableInlineInput {
+  min-width: 120px;
+}
+
+.tableEditorStack {
+  display: grid;
+  gap: 8px;
+  min-width: 132px;
+}
+
+.statusPill {
+  display: inline-flex;
+  padding: 7px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(93, 214, 255, 0.1);
+  color: var(--secondary);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.eventItemBadgeGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.eventItemBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.eventItemBadgeInspire {
+  background: linear-gradient(135deg, rgba(244, 214, 138, 0.95), rgba(178, 121, 30, 0.95));
+  color: #161009;
+  border-color: rgba(244, 214, 138, 0.72);
+}
+
+.eventItemBadgeExplorer {
+  background: linear-gradient(135deg, rgba(93, 214, 255, 0.92), rgba(20, 96, 190, 0.95));
+  border-color: rgba(93, 214, 255, 0.72);
+}
+
+.eventItemBadgeChallenge {
+  background: linear-gradient(135deg, rgba(255, 92, 92, 0.95), rgba(191, 53, 24, 0.96));
+  border-color: rgba(255, 139, 92, 0.72);
+}
+
+.eventItemBadgeFrc {
+  background: linear-gradient(135deg, rgba(178, 123, 255, 0.95), rgba(78, 72, 211, 0.96));
+  border-color: rgba(178, 123, 255, 0.72);
+}
+
+.eventItemBadgeDefault {
+  background: linear-gradient(135deg, rgba(137, 150, 170, 0.8), rgba(69, 80, 99, 0.85));
+  color: var(--gray-800);
+}
+
+.smallDangerButton,
+.ghostButton {
+  border: 1px solid rgba(217, 226, 236, 0.14);
+  border-radius: 12px;
+  background: rgba(8, 12, 18, 0.58);
+  color: var(--gray-600);
+  padding: 9px 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.smallDangerButton {
+  border-color: rgba(244, 201, 106, 0.34);
+  color: #f4d68a;
+}
+
+.smallDangerButton:hover:not(:disabled),
+.ghostButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(93, 214, 255, 0.36);
+  box-shadow: 0 0 16px rgba(93, 214, 255, 0.12);
+}
+
+.smallDangerButton:disabled,
+.ghostButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.timelineList {
+  display: grid;
+  gap: 12px;
+}
+
+.timelineItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background:
+    linear-gradient(135deg, rgba(93, 214, 255, 0.08), rgba(214, 169, 74, 0.06)),
+    rgba(8, 12, 18, 0.52);
+}
+
+.timelineItem > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.timelineItem span {
+  display: block;
+  margin-top: 5px;
+  color: var(--gray-700);
+  font-weight: 900;
+}
+
+.timelineEditGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.timelineEditGrid label {
+  display: grid;
+  gap: 6px;
+  color: var(--gray-500);
+  font-weight: 800;
+}
+
+.timelineEditGrid input,
+.timelineEditGrid select {
+  width: 100%;
+  border: 1px solid rgba(217, 226, 236, 0.14);
+  border-radius: 12px;
+  background: rgba(8, 12, 18, 0.82);
+  color: var(--gray-800);
+  padding: 9px 10px;
+  font: inherit;
+}
+
+.timelineEditToggle {
+  align-self: end;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.timelineEditToggle span {
+  margin-top: 0;
+}
+
+.timelineActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rollCallGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.rollCallNode {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(93, 214, 255, 0.18);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(93, 214, 255, 0.14), transparent 34%),
+    rgba(8, 12, 18, 0.58);
+}
+
+.rollCallNodeSoon {
+  border-color: rgba(244, 178, 74, 0.54);
+  box-shadow: 0 0 24px rgba(244, 178, 74, 0.14);
+}
+
+.rollCallNodeDue {
+  border-color: rgba(255, 95, 95, 0.62);
+  box-shadow: 0 0 28px rgba(255, 78, 78, 0.16);
+}
+
+.rollCallTimeLabel {
+  display: inline-grid;
+  gap: 5px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.rollCallTimeLabel span {
+  color: var(--gray-300);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.rollCallTimeLabel strong {
+  color: #d8ecff;
+  font-size: 1.06rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 14px rgba(93, 214, 255, 0.18);
+}
+
+.rollCallStatusStack {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.rollCallTimeAlert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.rollCallTimeAlertSoon {
+  border: 1px solid rgba(244, 178, 74, 0.68);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 226, 150, 0.34), transparent 55%),
+    rgba(92, 58, 15, 0.76);
+  color: #ffe6a8;
+  box-shadow: 0 0 18px rgba(244, 178, 74, 0.18);
+}
+
+.rollCallTimeAlertDue {
+  border: 1px solid rgba(255, 95, 95, 0.72);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 150, 150, 0.34), transparent 55%),
+    rgba(92, 18, 26, 0.8);
+  color: #ffd7d7;
+  box-shadow: 0 0 22px rgba(255, 78, 78, 0.22);
+}
+
+.mentorRollCallBlock {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background: rgba(18, 25, 34, 0.72);
+}
+
+.mentorRollCallTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.mentorRollCallTitle span {
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(214, 169, 74, 0.12);
+  color: var(--primary);
+  font-weight: 900;
+}
+
+.rollCallProgressBadge {
+  min-width: 64px;
+  justify-content: center;
+}
+
+.rollCallProgressWarning {
+  border-color: rgba(255, 95, 95, 0.62) !important;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(255, 120, 120, 0.35), transparent 48%),
+    rgba(74, 18, 24, 0.74) !important;
+  color: #ffd3d3 !important;
+  box-shadow: 0 0 18px rgba(255, 78, 78, 0.16);
+}
+
+.rollCallProgressComplete {
+  border-color: rgba(93, 232, 157, 0.68) !important;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(93, 232, 157, 0.34), transparent 48%),
+    rgba(16, 72, 48, 0.78) !important;
+  color: #d9ffe9 !important;
+  box-shadow: 0 0 20px rgba(93, 232, 157, 0.18);
+}
+
+.attendanceRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid rgba(217, 226, 236, 0.08);
+}
+
+.attendanceToggleButton {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(217, 226, 236, 0.14);
+  border-radius: 16px;
+  background: rgba(8, 12, 18, 0.82);
+  color: var(--gray-700);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.attendanceToggleButton:hover:not(:disabled) {
+  border-color: rgba(93, 214, 255, 0.55);
+  color: var(--gray-800);
+  box-shadow: 0 0 18px rgba(93, 214, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.attendanceToggleButtonArrived {
+  border-color: rgba(244, 214, 138, 0.82);
+  background:
+    linear-gradient(135deg, rgba(214, 169, 74, 0.96), rgba(103, 78, 32, 0.92)),
+    rgba(214, 169, 74, 0.34);
+  color: #fff7df;
+  box-shadow: 0 0 18px rgba(214, 169, 74, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.attendanceToggleButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.roomPicker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.roomRecordHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.roomRecordHeader h3 {
+  margin: 4px 0 0;
+  color: var(--gray-900);
+}
+
+.roomPersonChip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 9px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(217, 226, 236, 0.1);
+  background: rgba(8, 12, 18, 0.52);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.roomPersonChipSelected {
+  border-color: rgba(244, 214, 138, 0.82);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(244, 214, 138, 0.24), transparent 42%),
+    linear-gradient(145deg, rgba(24, 64, 84, 0.82), rgba(74, 50, 20, 0.46));
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 214, 138, 0.2),
+    0 0 22px rgba(244, 214, 138, 0.14),
+    0 0 26px rgba(93, 214, 255, 0.1);
+}
+
+.roomPersonChipAssigned {
+  border-color: rgba(93, 214, 255, 0.5);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(93, 214, 255, 0.18), transparent 38%),
+    linear-gradient(145deg, rgba(21, 44, 58, 0.74), rgba(8, 12, 18, 0.62));
+  box-shadow: inset 0 0 0 1px rgba(93, 214, 255, 0.08);
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.roomPersonChip input {
+  accent-color: var(--primary);
+}
+
+.roomPersonChipSelected input {
+  accent-color: #f4d68a;
+}
+
+.roomPersonChipAssigned input {
+  accent-color: var(--secondary);
+}
+
+.roomPersonChip span {
+  color: var(--gray-800);
+  font-weight: 900;
+}
+
+.roomPersonChipSelected span {
+  color: #fff7df;
+}
+
+.roomPersonChipAssigned span {
+  color: #d9f4ff;
+}
+
+.roomPersonChip small {
+  grid-column: 2;
+  color: var(--gray-400);
+}
+
+.roomPersonChipSelected small {
+  color: #f4d68a;
+}
+
+.roomPersonChipAssigned small {
+  color: #7ddfff;
+}
+
+.roomGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.roomCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(93, 214, 255, 0.16);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(93, 214, 255, 0.12), transparent 34%),
+    rgba(8, 12, 18, 0.58);
+}
+
+.roomPeopleList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.roomPeopleList span {
+  display: inline-grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(214, 169, 74, 0.1);
+  color: var(--gray-800);
+  font-weight: 900;
+}
+
+.roomPeopleList small {
+  color: var(--gray-400);
+  font-weight: 700;
+}
+
 .dangerButton {
   justify-self: start;
-  border: 1px solid rgba(242, 56, 69, 0.35);
+  border: 1px solid rgba(244, 201, 106, 0.38);
   border-radius: 14px;
-  background: rgba(242, 56, 69, 0.12);
-  color: #ffdce0;
+  background: rgba(244, 201, 106, 0.13);
+  color: #f4d68a;
   padding: 10px 16px;
   font-weight: 800;
   cursor: pointer;
@@ -563,7 +1316,7 @@
 
 .dangerButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 0 18px rgba(242, 56, 69, 0.22);
+  box-shadow: 0 0 18px rgba(244, 201, 106, 0.22);
 }
 
 .trainingCalendarPanel,
@@ -572,8 +1325,8 @@
   border-radius: 22px;
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    radial-gradient(circle at 12% 0%, rgba(0, 200, 255, 0.12), transparent 34%),
-    linear-gradient(145deg, rgba(242, 56, 69, 0.08), transparent 58%),
+    radial-gradient(circle at 12% 0%, rgba(93, 214, 255, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(214, 169, 74, 0.08), transparent 58%),
     rgba(18, 25, 34, 0.82);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -839,10 +1592,10 @@
 }
 
 .trainingTimeSelectGrid button {
-  border: 1px solid rgba(242, 56, 69, 0.36);
+  border: 1px solid rgba(244, 201, 106, 0.38);
   border-radius: 16px;
-  background: rgba(242, 56, 69, 0.12);
-  color: #ffdce0;
+  background: rgba(244, 201, 106, 0.13);
+  color: #f4d68a;
   cursor: pointer;
   font-weight: 900;
   min-height: 48px;
@@ -1066,7 +1819,7 @@
   border: 1px solid rgba(217, 226, 236, 0.1);
   border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(0, 200, 255, 0.08), rgba(242, 56, 69, 0.08)),
+    linear-gradient(135deg, rgba(93, 214, 255, 0.08), rgba(214, 169, 74, 0.08)),
     rgba(8, 12, 18, 0.64);
 }
 
@@ -1087,8 +1840,8 @@
 }
 
 .trainingCoachBar input:focus {
-  border-color: rgba(0, 200, 255, 0.48);
-  box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+  border-color: rgba(93, 214, 255, 0.48);
+  box-shadow: 0 0 0 3px rgba(93, 214, 255, 0.1);
 }
 
 .trainingScheduleTableWrap {
@@ -1173,8 +1926,8 @@
   border-radius: 22px;
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    radial-gradient(circle at 84% 8%, rgba(242, 56, 69, 0.13), transparent 30%),
-    linear-gradient(145deg, rgba(0, 200, 255, 0.08), transparent 58%),
+    radial-gradient(circle at 84% 8%, rgba(214, 169, 74, 0.13), transparent 30%),
+    linear-gradient(145deg, rgba(93, 214, 255, 0.08), transparent 58%),
     rgba(18, 25, 34, 0.84);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -1213,7 +1966,7 @@
   border-radius: 18px;
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    linear-gradient(145deg, rgba(242, 56, 69, 0.1), rgba(0, 200, 255, 0.07)),
+    linear-gradient(145deg, rgba(214, 169, 74, 0.1), rgba(93, 214, 255, 0.07)),
     rgba(8, 12, 18, 0.72);
 }
 
@@ -1229,8 +1982,8 @@
 .trainingTypeBadge {
   border-radius: var(--radius-full);
   padding: 6px 10px;
-  background: rgba(242, 56, 69, 0.14);
-  color: #ffdce0;
+  background: rgba(214, 169, 74, 0.16);
+  color: #f4d68a;
   font-size: 0.82rem;
   font-style: normal;
   font-weight: 800;
@@ -1274,8 +2027,8 @@
   border-radius: 20px;
   border: 1px solid rgba(217, 226, 236, 0.1);
   background:
-    radial-gradient(circle at 88% 12%, rgba(0, 200, 255, 0.14), transparent 30%),
-    linear-gradient(145deg, rgba(242, 56, 69, 0.1), rgba(8, 12, 18, 0.78));
+    radial-gradient(circle at 88% 12%, rgba(93, 214, 255, 0.14), transparent 30%),
+    linear-gradient(145deg, rgba(214, 169, 74, 0.1), rgba(8, 23, 39, 0.78));
 }
 
 .practicePlanTitle {
@@ -1290,7 +2043,7 @@
   margin-bottom: 8px;
   padding: 6px 10px;
   border-radius: var(--radius-full);
-  background: rgba(0, 200, 255, 0.12);
+  background: rgba(93, 214, 255, 0.12);
   color: var(--secondary);
   font-size: 0.8rem;
   font-weight: 900;
@@ -1337,8 +2090,8 @@
   margin: 0;
   padding: 14px;
   border-radius: 16px;
-  background: rgba(242, 56, 69, 0.1);
-  border: 1px solid rgba(242, 56, 69, 0.16);
+  background: rgba(214, 169, 74, 0.1);
+  border: 1px solid rgba(214, 169, 74, 0.16);
   color: var(--gray-600);
   line-height: 1.7;
 }
@@ -1354,7 +2107,7 @@
   gap: 8px;
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid rgba(0, 200, 255, 0.14);
+  border: 1px solid rgba(93, 214, 255, 0.14);
   background: rgba(8, 12, 18, 0.72);
 }
 
@@ -1380,9 +2133,9 @@
   gap: 14px;
   padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(0, 200, 255, 0.14);
+  border: 1px solid rgba(93, 214, 255, 0.14);
   background:
-    linear-gradient(145deg, rgba(0, 200, 255, 0.1), rgba(242, 56, 69, 0.07)),
+    linear-gradient(145deg, rgba(93, 214, 255, 0.1), rgba(214, 169, 74, 0.07)),
     rgba(8, 12, 18, 0.72);
 }
 
@@ -1433,8 +2186,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(242, 56, 69, 0.16);
-  color: #ffdce0;
+  background: rgba(214, 169, 74, 0.18);
+  color: #f4d68a;
   font-weight: 900;
 }
 
@@ -1479,13 +2232,13 @@
 
 .practiceRankTable th {
   color: var(--gray-900);
-  background: rgba(0, 200, 255, 0.08);
+  background: rgba(93, 214, 255, 0.08);
   font-size: 0.86rem;
   letter-spacing: 0.04em;
 }
 
 .practiceRankTable tbody tr:hover {
-  background: rgba(242, 56, 69, 0.08);
+  background: rgba(214, 169, 74, 0.08);
 }
 
 .workspaceSummary {
@@ -1509,7 +2262,10 @@
     grid-template-columns: 1fr;
   }
 
-  .parameterGrid {
+  .parameterGrid,
+  .logisticsSummaryGrid,
+  .logisticsItemGrid,
+  .rollCallGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1526,7 +2282,9 @@
   .diagnosticGrid,
   .metricLeaderGrid,
   .metricRankingGrid,
-  .practicePlanGrid {
+  .practicePlanGrid,
+  .roomPicker,
+  .roomGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1580,6 +2338,45 @@
 
   .trainingTimeSelectGrid {
     grid-template-columns: 1fr;
+  }
+
+  .logisticsSummaryGrid,
+  .logisticsItemGrid,
+  .rollCallGrid,
+  .roomPicker,
+  .roomGrid,
+  .timelineEditGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .timelineItem {
+    display: grid;
+  }
+
+  .timelineActions {
+    justify-content: flex-start;
+  }
+
+  .rollCallNode .portalCardTop {
+    align-items: stretch;
+  }
+
+  .rollCallStatusStack {
+    justify-items: stretch;
+  }
+
+  .attendanceRow {
+    grid-template-columns: 1fr;
+  }
+
+  .documentImagePanel {
+    grid-template-columns: 1fr;
+  }
+
+  .documentImagePanel img,
+  .documentImagePlaceholder {
+    width: 100%;
+    height: 180px;
   }
 }
 

@@ -155,15 +155,15 @@
 }
 
 .primaryButton {
-  border: 1px solid rgba(255, 244, 217, 0.12);
-  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
-  color: #fff7f8;
+  border: 1px solid rgba(244, 214, 138, 0.34);
+  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
+  color: #07111f;
 }
 
 .secondaryButton,
 .inlineButton {
-  border: 1px solid rgba(0, 200, 255, 0.18);
-  background: rgba(0, 200, 255, 0.08);
+  border: 1px solid rgba(93, 214, 255, 0.18);
+  background: rgba(93, 214, 255, 0.08);
   color: var(--secondary);
 }
 

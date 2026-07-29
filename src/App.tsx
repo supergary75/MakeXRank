@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import * as XLSX from 'xlsx';
 import type {
   AuthUserProfile,
   CompetitionRecord,
@@ -112,8 +113,24 @@ const TRAINING_TIME_OPTIONS = [
 ];
 const PRACTICE_EXPLORER_STORAGE_KEY = 'competitive-ranking-board::practice-explorer';
 const LOGISTICS_EVENTS_STORAGE_KEY = 'competitive-ranking-board::logistics-events';
+const LOGISTICS_ROSTER_STORAGE_KEY = 'competitive-ranking-board::logistics-master-roster';
 const TRAINING_EVENTS_STORAGE_KEY = 'competitive-ranking-board::training-events';
 const TRAINING_SCHEDULES_STORAGE_KEY = 'competitive-ranking-board::training-schedules';
+const LOGISTICS_EVENT_ITEM_OPTIONS = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge', 'FRC'];
+const LOGISTICS_PARTICIPANT_ROLES = ['教练', '队员', '家长', '领队'];
+const LOGISTICS_ID_DOCUMENT_OPTIONS = ['身份证', '回乡证', '外籍护照', '中国护照'];
+const LOGISTICS_ROOM_NOTE_OPTIONS = ['男生房', '女生房', '教练开会房间'];
+const LOGISTICS_ATTENDANCE_STATUS = ['未到达', '已到达'] as const;
+const FIXED_LOGISTICS_STAFF = [
+  { name: '温宇', role: '教练' },
+  { name: '张珈硕', role: '教练' },
+  { name: '曹伟铭', role: '教练' },
+  { name: '尹培阳', role: '教练' },
+  { name: '王艳平', role: '领队' },
+  { name: '甄珍', role: '领队' },
+] as const;
+const LOGISTICS_ROSTER_ACCESS_PASSWORD =
+  import.meta.env.VITE_LOGISTICS_ROSTER_PASSWORD?.trim() || 'FV7509';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
 const TRAINING_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TRAINING_SYNC_TABLE?.trim() || 'training_sync';
@@ -126,6 +143,152 @@ interface PracticeExplorerState {
   lastUpdate: string;
 }
 
+type LogisticsAttendanceStatus = typeof LOGISTICS_ATTENDANCE_STATUS[number];
+type LogisticsTimeAlertStatus = 'normal' | 'soon' | 'due';
+
+function normalizeFixedStaffName(value: string): string {
+  return value.trim().replace(/\s+/g, '');
+}
+
+function getFixedLogisticsStaffRole(name: string): string | null {
+  const normalizedName = normalizeFixedStaffName(name);
+  const staff = FIXED_LOGISTICS_STAFF.find((item) => normalizeFixedStaffName(item.name) === normalizedName);
+  return staff?.role ?? null;
+}
+
+function getLogisticsEventItemBadgeClass(eventItem: string): string {
+  const normalized = eventItem.trim().toLowerCase();
+  if (normalized.includes('inspire') || normalized === 'ins') {
+    return styles.eventItemBadgeInspire;
+  }
+  if (normalized.includes('explorer') || normalized === 'exp') {
+    return styles.eventItemBadgeExplorer;
+  }
+  if (normalized.includes('challenge') || normalized === 'cha') {
+    return styles.eventItemBadgeChallenge;
+  }
+  if (normalized.includes('frc')) {
+    return styles.eventItemBadgeFrc;
+  }
+  return styles.eventItemBadgeDefault;
+}
+
+function getLogisticsEventItemLabel(eventItem: string): string {
+  const normalized = eventItem.trim().toLowerCase();
+  if (normalized.includes('inspire') || normalized === 'ins') {
+    return 'INSPIRE';
+  }
+  if (normalized.includes('explorer') || normalized === 'exp') {
+    return 'EXPLORER';
+  }
+  if (normalized.includes('challenge') || normalized === 'cha') {
+    return 'CHALLENGE';
+  }
+  if (normalized.includes('frc')) {
+    return 'FRC';
+  }
+  return eventItem.trim();
+}
+
+function renderLogisticsEventItemBadges(eventItem: string) {
+  const tokens = eventItem
+    .split(/[\/,，、;；]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (tokens.length === 0) {
+    return <span className={`${styles.eventItemBadge} ${styles.eventItemBadgeDefault}`}>无</span>;
+  }
+
+  return (
+    <span className={styles.eventItemBadgeGroup}>
+      {tokens.map((token) => (
+        <span
+          key={token}
+          className={`${styles.eventItemBadge} ${getLogisticsEventItemBadgeClass(token)}`}
+        >
+          {getLogisticsEventItemLabel(token)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+interface LogisticsParticipant {
+  id: string;
+  name: string;
+  englishName: string;
+  gender: string;
+  role: string;
+  eventItem: string;
+  teamNo: string;
+  teamName: string;
+  fieldPosition: string;
+  phone: string;
+  guardian: string;
+  guardianPhone: string;
+  allergy: string;
+  idNumber: string;
+  notes: string;
+  idDocumentImage: string;
+  mentorId: string;
+}
+
+interface LogisticsParticipantForm {
+  name: string;
+  englishName: string;
+  gender: string;
+  role: string;
+  eventItem: string;
+  teamNo: string;
+  teamName: string;
+  fieldPosition: string;
+  phone: string;
+  guardian: string;
+  guardianPhone: string;
+  allergy: string;
+  idNumber: string;
+  notes: string;
+  idDocumentImage: string;
+  mentorId: string;
+}
+
+interface LogisticsTimelineItem {
+  id: string;
+  date: string;
+  time: string;
+  title: string;
+  location: string;
+  owner: string;
+  notes: string;
+  rollCallEnabled: boolean;
+}
+
+interface LogisticsTimelineForm {
+  date: string;
+  time: string;
+  title: string;
+  location: string;
+  owner: string;
+  notes: string;
+  rollCallEnabled: boolean;
+}
+
+interface LogisticsRoomAssignment {
+  id: string;
+  roomNo: string;
+  participantIds: string[];
+  notes: string;
+}
+
+interface LogisticsRoomForm {
+  roomNo: string;
+  participantIds: string[];
+  notes: string;
+}
+
+type LogisticsAttendanceMap = Record<string, Record<string, LogisticsAttendanceStatus>>;
+
 interface LogisticsEventRecord {
   id: string;
   name: string;
@@ -134,6 +297,10 @@ interface LogisticsEventRecord {
   group: string;
   notes: string;
   createdAt: string;
+  participants: LogisticsParticipant[];
+  timeline: LogisticsTimelineItem[];
+  rooms: LogisticsRoomAssignment[];
+  attendance: LogisticsAttendanceMap;
 }
 
 interface LogisticsEventForm {
@@ -143,6 +310,41 @@ interface LogisticsEventForm {
   group: string;
   notes: string;
 }
+
+const DEFAULT_LOGISTICS_PARTICIPANT_FORM: LogisticsParticipantForm = {
+  name: '',
+  englishName: '',
+  gender: '',
+  role: '队员',
+  eventItem: '',
+  teamNo: '',
+  teamName: '',
+  fieldPosition: '',
+  phone: '',
+  guardian: '',
+  guardianPhone: '',
+  allergy: '',
+  idNumber: '',
+  notes: '身份证',
+  idDocumentImage: '',
+  mentorId: '',
+};
+
+const DEFAULT_LOGISTICS_TIMELINE_FORM: LogisticsTimelineForm = {
+  date: '',
+  time: '',
+  title: '',
+  location: '',
+  owner: '',
+  notes: '',
+  rollCallEnabled: true,
+};
+
+const DEFAULT_LOGISTICS_ROOM_FORM: LogisticsRoomForm = {
+  roomNo: '',
+  participantIds: [],
+  notes: '',
+};
 
 interface TrainingEventRecord {
   id: string;
@@ -289,6 +491,262 @@ function savePracticeExplorerState(state: PracticeExplorerState): void {
   window.localStorage.setItem(PRACTICE_EXPLORER_STORAGE_KEY, JSON.stringify(state));
 }
 
+function normalizeLogisticsAttendanceStatus(value: unknown): LogisticsAttendanceStatus {
+  if (value === '已到达' || value === '已到') {
+    return '已到达';
+  }
+
+  return '未到达';
+}
+
+function getLogisticsTimelineDateTime(date: string, time: string): Date | null {
+  const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = time.match(/^(\d{2}):(\d{2})$/);
+
+  if (!dateMatch || !timeMatch) {
+    return null;
+  }
+
+  const [, year, month, day] = dateMatch;
+  const [, hour, minute] = timeMatch;
+  const result = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+  );
+
+  return Number.isNaN(result.getTime()) ? null : result;
+}
+
+function getLogisticsTimeAlertStatus(date: string, time: string, now: Date): LogisticsTimeAlertStatus {
+  const target = getLogisticsTimelineDateTime(date, time);
+
+  if (!target) {
+    return 'normal';
+  }
+
+  const diffMs = target.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return 'due';
+  }
+
+  return diffMs <= 5 * 60 * 1000 ? 'soon' : 'normal';
+}
+
+function getLogisticsTimeAlertLabel(status: LogisticsTimeAlertStatus): string {
+  if (status === 'soon') {
+    return '5分钟内';
+  }
+
+  if (status === 'due') {
+    return '到点提醒';
+  }
+
+  return '';
+}
+
+function normalizeLogisticsEventItem(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function matchesLogisticsEventItem(value: string, selectedItem: string): boolean {
+  const normalizedValue = normalizeLogisticsEventItem(value);
+  const normalizedSelected = normalizeLogisticsEventItem(selectedItem);
+
+  if (!normalizedValue) {
+    return false;
+  }
+
+  return normalizedValue.includes(normalizedSelected)
+    || normalizedSelected.includes(normalizedValue)
+    || (normalizedSelected === 'makexinspire' && normalizedValue.includes('ins'))
+    || (normalizedSelected === 'makexexplorer' && normalizedValue.includes('exp'))
+    || (normalizedSelected === 'makexchallenge' && normalizedValue.includes('cha'))
+    || (normalizedSelected === 'frc' && normalizedValue.includes('frc'));
+}
+
+function parseDelimitedLine(line: string, delimiter: string): string[] {
+  const cells: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      cells.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function parseLogisticsRosterText(text: string): string[][] {
+  const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  if (!normalizedText) {
+    return [];
+  }
+
+  const delimiter = normalizedText.includes('\t') ? '\t' : ',';
+  return normalizedText
+    .split('\n')
+    .map((line) => parseDelimitedLine(line, delimiter))
+    .filter((row) => row.some(Boolean));
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function createCompressedImageDataUrl(file: File): Promise<string> {
+  const sourceUrl = await readFileAsDataUrl(file);
+  const image = new Image();
+  image.src = sourceUrl;
+
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error('Image load failed'));
+  });
+
+  const maxSize = 1200;
+  const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    return sourceUrl;
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+function normalizeLogisticsParticipant(item: unknown): LogisticsParticipant | null {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  const source = item as Partial<LogisticsParticipant>;
+  const name = typeof source.name === 'string' ? source.name.trim() : '';
+  if (!name) {
+    return null;
+  }
+  const fixedRole = getFixedLogisticsStaffRole(name);
+  const role = fixedRole ?? (typeof source.role === 'string' ? source.role : '队员');
+  const isTeamMember = role === '队员';
+
+  return {
+    id: typeof source.id === 'string' ? source.id : `participant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    englishName: typeof source.englishName === 'string' ? source.englishName : '',
+    gender: typeof source.gender === 'string' ? source.gender : '',
+    role,
+    eventItem: isTeamMember && typeof source.eventItem === 'string' ? source.eventItem : '',
+    teamNo: isTeamMember && typeof source.teamNo === 'string' ? source.teamNo : '',
+    teamName: isTeamMember && typeof source.teamName === 'string' ? source.teamName : '',
+    fieldPosition: isTeamMember && typeof source.fieldPosition === 'string' ? source.fieldPosition : '',
+    phone: typeof source.phone === 'string' ? source.phone : '',
+    guardian: isTeamMember && typeof source.guardian === 'string' ? source.guardian : '',
+    guardianPhone: isTeamMember && typeof source.guardianPhone === 'string' ? source.guardianPhone : '',
+    allergy: typeof source.allergy === 'string' ? source.allergy : '',
+    idNumber: typeof source.idNumber === 'string' ? source.idNumber : '',
+    notes: typeof source.notes === 'string' ? source.notes : '',
+    idDocumentImage: typeof source.idDocumentImage === 'string' ? source.idDocumentImage : '',
+    mentorId: isTeamMember && typeof source.mentorId === 'string' ? source.mentorId : '',
+  };
+}
+
+function normalizeLogisticsTimelineItem(item: unknown): LogisticsTimelineItem | null {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  const source = item as Partial<LogisticsTimelineItem>;
+  const title = typeof source.title === 'string' ? source.title.trim() : '';
+  if (!title) {
+    return null;
+  }
+
+  return {
+    id: typeof source.id === 'string' ? source.id : `timeline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    date: typeof source.date === 'string' ? source.date : '',
+    time: typeof source.time === 'string' ? source.time : '',
+    title,
+    location: typeof source.location === 'string' ? source.location : '',
+    owner: typeof source.owner === 'string' ? source.owner : '',
+    notes: typeof source.notes === 'string' ? source.notes : '',
+    rollCallEnabled: typeof source.rollCallEnabled === 'boolean' ? source.rollCallEnabled : true,
+  };
+}
+
+function normalizeLogisticsRoomAssignment(item: unknown): LogisticsRoomAssignment | null {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  const source = item as Partial<LogisticsRoomAssignment>;
+  const roomNo = typeof source.roomNo === 'string' ? source.roomNo.trim() : '';
+  if (!roomNo) {
+    return null;
+  }
+
+  return {
+    id: typeof source.id === 'string' ? source.id : `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    roomNo,
+    participantIds: Array.isArray(source.participantIds)
+      ? source.participantIds.filter((id): id is string => typeof id === 'string')
+      : [],
+    notes: typeof source.notes === 'string' ? source.notes : '',
+  };
+}
+
+function normalizeLogisticsAttendance(value: unknown): LogisticsAttendanceMap {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  const normalized: LogisticsAttendanceMap = {};
+  Object.entries(value as Record<string, unknown>).forEach(([timelineId, rows]) => {
+    if (!rows || typeof rows !== 'object' || Array.isArray(rows)) {
+      return;
+    }
+
+    normalized[timelineId] = {};
+    Object.entries(rows as Record<string, unknown>).forEach(([participantId, status]) => {
+      normalized[timelineId][participantId] = normalizeLogisticsAttendanceStatus(status);
+    });
+  });
+
+  return normalized;
+}
+
 function loadLogisticsEvents(): LogisticsEventRecord[] {
   if (typeof window === 'undefined') {
     return [];
@@ -307,15 +765,29 @@ function loadLogisticsEvents(): LogisticsEventRecord[] {
 
     return parsed
       .filter((item): item is Partial<LogisticsEventRecord> => item && typeof item === 'object')
-      .map((item) => ({
-        id: typeof item.id === 'string' ? item.id : `logistics-${Date.now()}`,
-        name: typeof item.name === 'string' ? item.name : '',
-        date: typeof item.date === 'string' ? item.date : '',
-        venue: typeof item.venue === 'string' ? item.venue : '',
-        group: typeof item.group === 'string' ? item.group : '',
-        notes: typeof item.notes === 'string' ? item.notes : '',
-        createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
-      }))
+      .map((item) => {
+        const participants = Array.isArray(item.participants)
+          ? item.participants.map(normalizeLogisticsParticipant).filter((participant): participant is LogisticsParticipant => Boolean(participant))
+          : [];
+
+        return {
+          id: typeof item.id === 'string' ? item.id : `logistics-${Date.now()}`,
+          name: typeof item.name === 'string' ? item.name : '',
+          date: typeof item.date === 'string' ? item.date : '',
+          venue: typeof item.venue === 'string' ? item.venue : '',
+          group: typeof item.group === 'string' ? item.group : '',
+          notes: typeof item.notes === 'string' ? item.notes : '',
+          createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
+          participants: mergeLogisticsEventParticipantsUnique([], participants).participants,
+          timeline: Array.isArray(item.timeline)
+            ? item.timeline.map(normalizeLogisticsTimelineItem).filter((timeline): timeline is LogisticsTimelineItem => Boolean(timeline))
+            : [],
+          rooms: Array.isArray(item.rooms)
+            ? item.rooms.map(normalizeLogisticsRoomAssignment).filter((room): room is LogisticsRoomAssignment => Boolean(room))
+            : [],
+          attendance: normalizeLogisticsAttendance(item.attendance),
+        };
+      })
       .filter((item) => item.name.trim());
   } catch {
     return [];
@@ -328,6 +800,327 @@ function saveLogisticsEvents(events: LogisticsEventRecord[]): void {
   }
 
   window.localStorage.setItem(LOGISTICS_EVENTS_STORAGE_KEY, JSON.stringify(events));
+}
+
+function loadLogisticsMasterRoster(): LogisticsParticipant[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(LOGISTICS_ROSTER_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map(normalizeLogisticsParticipant)
+      .filter((participant): participant is LogisticsParticipant => Boolean(participant));
+  } catch {
+    return [];
+  }
+}
+
+function saveLogisticsMasterRoster(participants: LogisticsParticipant[]): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(LOGISTICS_ROSTER_STORAGE_KEY, JSON.stringify(participants));
+}
+
+function normalizeRosterIdentity(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, '');
+}
+
+function normalizeRosterPhone(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+function getLogisticsParticipantRosterKey(participant: LogisticsParticipant): string {
+  const role = normalizeRosterIdentity(participant.role || '队员');
+  const phone = normalizeRosterPhone(participant.phone || participant.guardianPhone);
+  if (phone.length >= 6) {
+    return `${role}:phone:${phone}`;
+  }
+
+  const name = normalizeRosterIdentity(participant.name);
+  const englishName = normalizeRosterIdentity(participant.englishName);
+  const teamNo = normalizeRosterIdentity(participant.teamNo);
+
+  if (name && teamNo) {
+    return `${role}:name:${name}:team:${teamNo}`;
+  }
+
+  if (name && englishName) {
+    return `${role}:name:${name}:en:${englishName}`;
+  }
+
+  return `${role}:name:${name}`;
+}
+
+function normalizeRosterDocument(value: string): string {
+  return value.trim().toLowerCase().replace(/[\s-]/g, '');
+}
+
+function getLogisticsParticipantRosterKeys(participant: LogisticsParticipant): string[] {
+  const role = normalizeRosterIdentity(participant.role || '队员');
+  const name = normalizeRosterIdentity(participant.name);
+  const englishName = normalizeRosterIdentity(participant.englishName);
+  const phone = normalizeRosterPhone(participant.phone || participant.guardianPhone);
+  const documentNumber = normalizeRosterDocument(participant.idNumber);
+  const keys = new Set<string>();
+
+  if (documentNumber.length >= 6 && !documentNumber.includes('#n/a')) {
+    keys.add(`doc:${documentNumber}`);
+  }
+
+  if (phone.length >= 6) {
+    keys.add(`phone:${phone}`);
+    keys.add(`${role}:phone:${phone}`);
+  }
+
+  if (name) {
+    keys.add(`name:${name}`);
+    keys.add(`${role}:name:${name}`);
+  }
+
+  if (name && englishName) {
+    keys.add(`name:${name}:en:${englishName}`);
+    keys.add(`${role}:name:${name}:en:${englishName}`);
+  }
+
+  return keys.size > 0 ? Array.from(keys) : [getLogisticsParticipantRosterKey(participant)];
+}
+
+function indexLogisticsParticipantKeys(
+  keyToIndex: Map<string, number>,
+  participant: LogisticsParticipant,
+  index: number,
+): void {
+  getLogisticsParticipantRosterKeys(participant).forEach((key) => {
+    keyToIndex.set(key, index);
+  });
+}
+
+function findLogisticsParticipantIndex(
+  keyToIndex: Map<string, number>,
+  participant: LogisticsParticipant,
+): number | undefined {
+  for (const key of getLogisticsParticipantRosterKeys(participant)) {
+    const existingIndex = keyToIndex.get(key);
+    if (existingIndex !== undefined) {
+      return existingIndex;
+    }
+  }
+
+  return undefined;
+}
+
+function mergeRosterText(left: string, right: string): string {
+  const values = [left, right]
+    .flatMap((value) => value.split('/'))
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return Array.from(new Set(values)).join(' / ');
+}
+
+function mergeLogisticsParticipantRecord(
+  existing: LogisticsParticipant,
+  incoming: LogisticsParticipant,
+): LogisticsParticipant {
+  return {
+    ...existing,
+    englishName: existing.englishName || incoming.englishName,
+    gender: existing.gender || incoming.gender,
+    role: existing.role || incoming.role,
+    eventItem: mergeRosterText(existing.eventItem, incoming.eventItem),
+    teamNo: '',
+    teamName: '',
+    fieldPosition: '',
+    phone: existing.phone || incoming.phone,
+    guardian: existing.guardian || incoming.guardian,
+    guardianPhone: existing.guardianPhone || incoming.guardianPhone,
+    allergy: mergeRosterText(existing.allergy, incoming.allergy),
+    idNumber: existing.idNumber || incoming.idNumber,
+    notes: existing.notes || incoming.notes,
+    idDocumentImage: existing.idDocumentImage || incoming.idDocumentImage,
+    mentorId: existing.mentorId || incoming.mentorId,
+  };
+}
+
+function mergeLogisticsEventParticipantRecord(
+  existing: LogisticsParticipant,
+  incoming: LogisticsParticipant,
+): LogisticsParticipant {
+  const fixedRole = getFixedLogisticsStaffRole(existing.name) ?? getFixedLogisticsStaffRole(incoming.name);
+  const role = fixedRole ?? (existing.role || incoming.role || '队员');
+  const isTeamMember = role === '队员';
+
+  return {
+    ...existing,
+    englishName: existing.englishName || incoming.englishName,
+    gender: existing.gender || incoming.gender,
+    role,
+    eventItem: isTeamMember ? mergeRosterText(existing.eventItem, incoming.eventItem) : '',
+    teamNo: isTeamMember ? existing.teamNo || incoming.teamNo : '',
+    teamName: isTeamMember ? existing.teamName || incoming.teamName : '',
+    fieldPosition: isTeamMember ? existing.fieldPosition || incoming.fieldPosition : '',
+    phone: existing.phone || incoming.phone,
+    guardian: isTeamMember ? existing.guardian || incoming.guardian : '',
+    guardianPhone: isTeamMember ? existing.guardianPhone || incoming.guardianPhone : '',
+    allergy: mergeRosterText(existing.allergy, incoming.allergy),
+    idNumber: existing.idNumber || incoming.idNumber,
+    notes: existing.notes || incoming.notes,
+    idDocumentImage: existing.idDocumentImage || incoming.idDocumentImage,
+    mentorId: isTeamMember ? existing.mentorId || incoming.mentorId : '',
+  };
+}
+
+function createMasterRosterParticipant(participant: LogisticsParticipant): LogisticsParticipant {
+  return {
+    ...participant,
+    teamNo: '',
+    teamName: '',
+    fieldPosition: '',
+  };
+}
+
+function createFixedLogisticsStaffParticipants(idPrefix: string): LogisticsParticipant[] {
+  return FIXED_LOGISTICS_STAFF.map((staff, index) => ({
+    id: `${idPrefix}-${staff.role}-${index}-${Date.now()}`,
+    name: staff.name,
+    englishName: '',
+    gender: '',
+    role: staff.role,
+    eventItem: '',
+    teamNo: '',
+    teamName: '',
+    fieldPosition: '',
+    phone: '',
+    guardian: '',
+    guardianPhone: '',
+    allergy: '',
+    idNumber: '',
+    notes: '',
+    idDocumentImage: '',
+    mentorId: '',
+  }));
+}
+
+function mergeLogisticsEventParticipantsUnique(
+  existingParticipants: LogisticsParticipant[],
+  incomingParticipants: LogisticsParticipant[],
+): {
+  participants: LogisticsParticipant[];
+  added: number;
+  merged: number;
+} {
+  let added = 0;
+  let merged = 0;
+  const participants = existingParticipants
+    .map(normalizeLogisticsParticipant)
+    .filter((participant): participant is LogisticsParticipant => Boolean(participant));
+  const keyToIndex = new Map<string, number>();
+  participants.forEach((participant, index) => indexLogisticsParticipantKeys(keyToIndex, participant, index));
+
+  incomingParticipants.forEach((participant) => {
+    const normalizedParticipant = normalizeLogisticsParticipant(participant);
+    if (!normalizedParticipant) {
+      return;
+    }
+
+    const existingIndex = findLogisticsParticipantIndex(keyToIndex, normalizedParticipant);
+    if (existingIndex === undefined) {
+      participants.push(normalizedParticipant);
+      indexLogisticsParticipantKeys(keyToIndex, normalizedParticipant, participants.length - 1);
+      added += 1;
+      return;
+    }
+
+    participants[existingIndex] = mergeLogisticsEventParticipantRecord(participants[existingIndex], normalizedParticipant);
+    indexLogisticsParticipantKeys(keyToIndex, participants[existingIndex], existingIndex);
+    merged += 1;
+  });
+
+  return { participants, added, merged };
+}
+
+function mergeLogisticsParticipantsUnique(
+  existingParticipants: LogisticsParticipant[],
+  incomingParticipants: LogisticsParticipant[],
+): {
+  participants: LogisticsParticipant[];
+  added: number;
+  merged: number;
+} {
+  let added = 0;
+  let merged = 0;
+  const participants = existingParticipants
+    .map(normalizeLogisticsParticipant)
+    .filter((participant): participant is LogisticsParticipant => Boolean(participant));
+  const keyToIndex = new Map<string, number>();
+  participants.forEach((participant, index) => indexLogisticsParticipantKeys(keyToIndex, participant, index));
+
+  incomingParticipants.forEach((participant) => {
+    const normalizedParticipant = normalizeLogisticsParticipant(participant);
+    if (!normalizedParticipant) {
+      return;
+    }
+
+    const existingIndex = findLogisticsParticipantIndex(keyToIndex, normalizedParticipant);
+
+    if (existingIndex === undefined) {
+      participants.push({
+        ...createMasterRosterParticipant(normalizedParticipant),
+        id: `master-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      });
+      indexLogisticsParticipantKeys(keyToIndex, participants[participants.length - 1], participants.length - 1);
+      added += 1;
+      return;
+    }
+
+    participants[existingIndex] = mergeLogisticsParticipantRecord(participants[existingIndex], normalizedParticipant);
+    indexLogisticsParticipantKeys(keyToIndex, participants[existingIndex], existingIndex);
+    merged += 1;
+  });
+
+  return { participants, added, merged };
+}
+
+function aggregateLogisticsParticipantsFromEvents(events: LogisticsEventRecord[]): LogisticsParticipant[] {
+  const participants: LogisticsParticipant[] = [];
+  const keyToIndex = new Map<string, number>();
+
+  events.forEach((event) => {
+    event.participants.forEach((participant) => {
+      const normalizedParticipant = normalizeLogisticsParticipant(participant);
+      if (!normalizedParticipant) {
+        return;
+      }
+
+      const existingIndex = findLogisticsParticipantIndex(keyToIndex, normalizedParticipant);
+
+      if (existingIndex === undefined) {
+        participants.push({
+          ...createMasterRosterParticipant(normalizedParticipant),
+          id: `aggregate-${event.id}-${participant.id}`,
+        });
+        indexLogisticsParticipantKeys(keyToIndex, participants[participants.length - 1], participants.length - 1);
+        return;
+      }
+
+      participants[existingIndex] = mergeLogisticsParticipantRecord(participants[existingIndex], normalizedParticipant);
+      indexLogisticsParticipantKeys(keyToIndex, participants[existingIndex], existingIndex);
+    });
+  });
+
+  return participants;
 }
 
 function isTrainingDateMode(value: unknown): value is TrainingDateMode {
@@ -916,6 +1709,8 @@ export default function App() {
   const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCachedCompetitions());
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [activeCompetitionId, setActiveCompetitionId] = useState<string | null>(null);
+  const [activeLogisticsEventId, setActiveLogisticsEventId] = useState<string | null>(null);
+  const [activeLogisticsEventItem, setActiveLogisticsEventItem] = useState<string | null>(null);
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(null);
   const [sortField, setSortField] = useState<SortField>('totalWinLossScore');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -940,6 +1735,35 @@ export default function App() {
     group: '',
     notes: '',
   });
+  const [editingLogisticsEventId, setEditingLogisticsEventId] = useState<string | null>(null);
+  const [editingLogisticsEventName, setEditingLogisticsEventName] = useState('');
+  const [editingLogisticsEventDateId, setEditingLogisticsEventDateId] = useState<string | null>(null);
+  const [editingLogisticsEventDate, setEditingLogisticsEventDate] = useState('');
+  const [logisticsParticipantForm, setLogisticsParticipantForm] =
+    useState<LogisticsParticipantForm>(DEFAULT_LOGISTICS_PARTICIPANT_FORM);
+  const [logisticsTimelineForm, setLogisticsTimelineForm] =
+    useState<LogisticsTimelineForm>(DEFAULT_LOGISTICS_TIMELINE_FORM);
+  const [editingLogisticsTimelineId, setEditingLogisticsTimelineId] = useState<string | null>(null);
+  const [editingLogisticsTimelineForm, setEditingLogisticsTimelineForm] =
+    useState<LogisticsTimelineForm>(DEFAULT_LOGISTICS_TIMELINE_FORM);
+  const [logisticsRoomForm, setLogisticsRoomForm] =
+    useState<LogisticsRoomForm>(DEFAULT_LOGISTICS_ROOM_FORM);
+  const [logisticsRoomNoteMode, setLogisticsRoomNoteMode] = useState('');
+  const [logisticsRosterPaste, setLogisticsRosterPaste] = useState('');
+  const [logisticsRosterInputOpen, setLogisticsRosterInputOpen] = useState(false);
+  const [editingLogisticsParticipantId, setEditingLogisticsParticipantId] = useState<string | null>(null);
+  const [editingLogisticsParticipantForm, setEditingLogisticsParticipantForm] =
+    useState<LogisticsParticipantForm>(DEFAULT_LOGISTICS_PARTICIPANT_FORM);
+  const [, setLogisticsMasterRoster] =
+    useState<LogisticsParticipant[]>(() => loadLogisticsMasterRoster());
+  const [logisticsMasterParticipantForm, setLogisticsMasterParticipantForm] =
+    useState<LogisticsParticipantForm>(DEFAULT_LOGISTICS_PARTICIPANT_FORM);
+  const [logisticsMasterRosterPaste, setLogisticsMasterRosterPaste] = useState('');
+  const [logisticsMasterInputOpen, setLogisticsMasterInputOpen] = useState(false);
+  const [logisticsRosterPassword, setLogisticsRosterPassword] = useState('');
+  const [logisticsRosterUnlocked, setLogisticsRosterUnlocked] = useState(false);
+  const [activeLogisticsRosterSourceId, setActiveLogisticsRosterSourceId] = useState<string | null>(null);
+  const [logisticsAlertNow, setLogisticsAlertNow] = useState(() => new Date());
   const [trainingEvents, setTrainingEvents] = useState<TrainingEventRecord[]>(() => loadTrainingEvents());
   const [trainingEventForm, setTrainingEventForm] = useState<TrainingEventForm>({
     name: '',
@@ -967,11 +1791,55 @@ export default function App() {
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const practiceExplorerPasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const trainingCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logisticsFileInputRef = useRef<HTMLInputElement>(null);
+  const logisticsDocumentImageInputRef = useRef<HTMLInputElement>(null);
+  const logisticsMasterFileInputRef = useRef<HTMLInputElement>(null);
+  const logisticsMasterDocumentImageInputRef = useRef<HTMLInputElement>(null);
   const { notifications, showNotification } = useNotification();
   const { featuredTeams, addTeam, removeTeam, toggleTeam } = useFeaturedTeams();
 
   const activeCompetition =
     competitions.find((competition) => competition.id === activeCompetitionId) ?? null;
+  const activeLogisticsEvent =
+    logisticsEvents.find((event) => event.id === activeLogisticsEventId) ?? null;
+  const activeLogisticsRosterSourceEvent =
+    logisticsEvents.find((event) => event.id === activeLogisticsRosterSourceId) ?? null;
+  const logisticsParticipantsForSelectedItem = activeLogisticsEvent
+    ? activeLogisticsEvent.participants.filter((participant) =>
+      !activeLogisticsEventItem
+      || participant.role !== '队员'
+      || matchesLogisticsEventItem(participant.eventItem, activeLogisticsEventItem))
+    : [];
+  const logisticsMentors = activeLogisticsEvent
+    ? activeLogisticsEvent.participants.filter((participant) =>
+      ['教练', '领队'].includes(participant.role))
+    : [];
+  const logisticsStudents = activeLogisticsEvent
+    ? activeLogisticsEvent.participants.filter((participant) =>
+      participant.role === '队员'
+      && (!activeLogisticsEventItem || matchesLogisticsEventItem(participant.eventItem, activeLogisticsEventItem)))
+    : [];
+  const logisticsRollCallNodes = activeLogisticsEvent
+    ? activeLogisticsEvent.timeline.filter((item) => item.rollCallEnabled)
+    : [];
+  const logisticsRoomsForSelectedItem = activeLogisticsEvent
+    ? activeLogisticsEvent.rooms.filter((room) =>
+      room.participantIds.some((participantId) =>
+        logisticsParticipantsForSelectedItem.some((participant) => participant.id === participantId)))
+    : [];
+  const logisticsRollCallTotal = logisticsRollCallNodes.length * logisticsStudents.length;
+  const logisticsRollCallDone = activeLogisticsEvent
+    ? logisticsRollCallNodes.reduce(
+        (total, node) =>
+        total + logisticsStudents.filter((student) =>
+          normalizeLogisticsAttendanceStatus(activeLogisticsEvent.attendance[node.id]?.[student.id]) === '已到达').length,
+        0,
+      )
+    : 0;
+  const logisticsAggregatedRoster = aggregateLogisticsParticipantsFromEvents(logisticsEvents);
+  const logisticsMasterStudents = logisticsAggregatedRoster.filter((participant) => participant.role === '队员');
+  const logisticsMasterMentors = logisticsAggregatedRoster.filter((participant) =>
+    participant.role === '教练' || participant.role === '领队');
   const activeTrainingEvent =
     trainingEvents.find((event) => event.id === activeTrainingEventId) ?? null;
   const activeTrainingTableDates = activeTrainingEvent
@@ -1139,6 +2007,39 @@ export default function App() {
   useEffect(() => {
     saveTrainingSchedules(trainingSchedules);
   }, [trainingSchedules]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setLogisticsAlertNow(new Date());
+    }, 30 * 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    setLogisticsEvents((previous) => {
+      let changed = false;
+      const next = previous.map((event) => {
+        const result = mergeLogisticsEventParticipantsUnique([], event.participants);
+        if (result.participants.length !== event.participants.length || result.merged > 0) {
+          changed = true;
+          return {
+            ...event,
+            participants: result.participants,
+          };
+        }
+
+        return event;
+      });
+
+      if (!changed) {
+        return previous;
+      }
+
+      saveLogisticsEvents(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1341,6 +2242,17 @@ export default function App() {
       setViewMode('lobby');
     }
   }, [viewMode, activeCompetition]);
+
+  useEffect(() => {
+    if (
+      (viewMode === 'logistics-event'
+        || viewMode === 'logistics-event-roster'
+        || viewMode === 'logistics-event-rooms')
+      && !activeLogisticsEvent
+    ) {
+      setViewMode('logistics');
+    }
+  }, [viewMode, activeLogisticsEvent]);
 
   useEffect(() => {
     if (viewMode === 'lobby' && !selectedEventType) {
@@ -1741,6 +2653,7 @@ export default function App() {
   const handleBackToEventTypes = useCallback(() => {
     setViewMode('event-types');
     setActiveCompetitionId(null);
+    setActiveLogisticsEventItem(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
   }, []);
@@ -1748,6 +2661,7 @@ export default function App() {
   const handleOpenDataAnalysis = useCallback(() => {
     setViewMode('event-types');
     setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
   }, []);
@@ -1755,8 +2669,68 @@ export default function App() {
   const handleOpenLogistics = useCallback(() => {
     setViewMode('logistics');
     setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
+  }, []);
+
+  const handleOpenLogisticsRosterLibrary = useCallback(() => {
+    setViewMode('logistics-roster');
+    setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
+    setActiveLogisticsRosterSourceId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
+  const handleOpenLogisticsRosterSource = useCallback((eventId: string) => {
+    const event = logisticsEvents.find((item) => item.id === eventId);
+    if (!event) {
+      showNotification('没有找到这场赛事。', 'error');
+      return;
+    }
+
+    const detectedEventItem =
+      LOGISTICS_EVENT_ITEM_OPTIONS.find((item) => matchesLogisticsEventItem(event.group, item)) || '';
+
+    setActiveLogisticsRosterSourceId(eventId);
+    setActiveLogisticsEventId(eventId);
+    setActiveLogisticsEventItem(null);
+    setLogisticsParticipantForm((previous) => ({
+      ...previous,
+      eventItem: detectedEventItem || previous.eventItem,
+    }));
+    setLogisticsRosterPaste('');
+  }, [logisticsEvents, showNotification]);
+
+  const handleBackToLogisticsRosterSources = useCallback(() => {
+    setActiveLogisticsRosterSourceId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
+    setLogisticsRosterPaste('');
+  }, []);
+
+  const handleOpenLogisticsEvent = useCallback((id: string) => {
+    setActiveLogisticsEventId(id);
+    setActiveLogisticsEventItem(null);
+    setViewMode('logistics-event');
+    setActiveCompetitionId(null);
+    setActiveTrainingEventId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
+  const handleBackToLogistics = useCallback(() => {
+    setViewMode('logistics');
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
   }, []);
 
   const handleOpenTrainingPlan = useCallback(() => {
@@ -1766,6 +2740,8 @@ export default function App() {
     }
     setViewMode('training-plan');
     setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
     setActiveTrainingEventId(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
@@ -1803,6 +2779,10 @@ export default function App() {
       group: logisticsEventForm.group.trim(),
       notes: logisticsEventForm.notes.trim(),
       createdAt: now,
+      participants: [],
+      timeline: [],
+      rooms: [],
+      attendance: {},
     };
 
     setLogisticsEvents((previous) => {
@@ -1832,9 +2812,1077 @@ export default function App() {
         saveLogisticsEvents(next);
         return next;
       });
+      setActiveLogisticsEventId((currentId) => (currentId === id ? null : currentId));
       showNotification('已删除后勤赛事卡片。', 'info');
     },
     [canEdit, showNotification],
+  );
+
+  const handleStartEditLogisticsEventName = useCallback(
+    (event: LogisticsEventRecord) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      setEditingLogisticsEventId(event.id);
+      setEditingLogisticsEventName(event.name);
+    },
+    [canEdit, showNotification],
+  );
+
+  const handleCancelEditLogisticsEventName = useCallback(() => {
+    setEditingLogisticsEventId(null);
+    setEditingLogisticsEventName('');
+  }, []);
+
+  const handleSaveLogisticsEventName = useCallback(
+    (id: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      const nextName = editingLogisticsEventName.trim();
+      if (!nextName) {
+        showNotification('赛事名称不能为空。', 'error');
+        return;
+      }
+
+      setLogisticsEvents((previous) => {
+        const next = previous.map((event) =>
+          event.id === id
+            ? {
+              ...event,
+              name: nextName,
+            }
+            : event,
+        );
+        saveLogisticsEvents(next);
+        return next;
+      });
+      setEditingLogisticsEventId(null);
+      setEditingLogisticsEventName('');
+      showNotification('赛事名称已更新。', 'success');
+    },
+    [canEdit, editingLogisticsEventName, showNotification],
+  );
+
+  const handleStartEditLogisticsEventDate = useCallback(
+    (event: LogisticsEventRecord) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      setEditingLogisticsEventDateId(event.id);
+      setEditingLogisticsEventDate(event.date);
+    },
+    [canEdit, showNotification],
+  );
+
+  const handleCancelEditLogisticsEventDate = useCallback(() => {
+    setEditingLogisticsEventDateId(null);
+    setEditingLogisticsEventDate('');
+  }, []);
+
+  const handleSaveLogisticsEventDate = useCallback(
+    (id: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      const nextDate = editingLogisticsEventDate.trim();
+      setLogisticsEvents((previous) => {
+        const next = previous.map((event) =>
+          event.id === id
+            ? {
+              ...event,
+              date: nextDate,
+            }
+            : event,
+        );
+        saveLogisticsEvents(next);
+        return next;
+      });
+      setEditingLogisticsEventDateId(null);
+      setEditingLogisticsEventDate('');
+      showNotification(nextDate ? '赛事日期已更新。' : '赛事日期已清空。', 'success');
+    },
+    [canEdit, editingLogisticsEventDate, showNotification],
+  );
+
+  const updateActiveLogisticsEvent = useCallback(
+    (updater: (event: LogisticsEventRecord) => LogisticsEventRecord) => {
+      if (!activeLogisticsEventId) {
+        return;
+      }
+
+      setLogisticsEvents((previous) => {
+        const next = previous.map((event) =>
+          event.id === activeLogisticsEventId ? updater(event) : event,
+        );
+        saveLogisticsEvents(next);
+        return next;
+      });
+    },
+    [activeLogisticsEventId],
+  );
+
+  const handleLogisticsParticipantFormChange = useCallback(
+    (field: keyof LogisticsParticipantForm, value: string) => {
+      setLogisticsParticipantForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleEditingLogisticsParticipantFormChange = useCallback(
+    (field: keyof LogisticsParticipantForm, value: string) => {
+      setEditingLogisticsParticipantForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleLogisticsMasterParticipantFormChange = useCallback(
+    (field: keyof LogisticsParticipantForm, value: string) => {
+      setLogisticsMasterParticipantForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleUnlockLogisticsRoster = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (logisticsRosterPassword.trim() !== LOGISTICS_ROSTER_ACCESS_PASSWORD) {
+        showNotification('统一管理库密码不正确。', 'error');
+        return;
+      }
+
+      setLogisticsRosterUnlocked(true);
+      setLogisticsRosterPassword('');
+      showNotification('已解锁队员信息统一管理库。', 'success');
+    },
+    [logisticsRosterPassword, showNotification],
+  );
+
+  const handleLockLogisticsRoster = useCallback(() => {
+    setLogisticsRosterUnlocked(false);
+    setLogisticsRosterPassword('');
+    showNotification('已锁定队员信息统一管理库。', 'info');
+  }, [showNotification]);
+
+  const updateLogisticsMasterRoster = useCallback((updater: (participants: LogisticsParticipant[]) => LogisticsParticipant[]) => {
+    setLogisticsMasterRoster((previous) => {
+      const next = updater(previous);
+      saveLogisticsMasterRoster(next);
+      return next;
+    });
+  }, []);
+
+  const handleAddFixedLogisticsStaffToMaster = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    updateLogisticsMasterRoster((previous) => {
+      const result = mergeLogisticsParticipantsUnique(
+        previous,
+        createFixedLogisticsStaffParticipants('fixed-master'),
+      );
+      showNotification(
+        `固定教练/领队已同步到统一库：新增 ${result.added} 人，合并 ${result.merged} 人。`,
+        'success',
+      );
+      return result.participants;
+    });
+  }, [canEdit, showNotification, updateLogisticsMasterRoster]);
+
+  const handleLogisticsTimelineFormChange = useCallback(
+    (field: keyof LogisticsTimelineForm, value: string | boolean) => {
+      setLogisticsTimelineForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleEditingLogisticsTimelineFormChange = useCallback(
+    (field: keyof LogisticsTimelineForm, value: string | boolean) => {
+      setEditingLogisticsTimelineForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleLogisticsRoomFormChange = useCallback(
+    (field: keyof LogisticsRoomForm, value: string | string[]) => {
+      setLogisticsRoomForm((previous) => ({
+        ...previous,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleToggleLogisticsRoomParticipant = useCallback((participantId: string) => {
+    setLogisticsRoomForm((previous) => ({
+      ...previous,
+      participantIds: previous.participantIds.includes(participantId)
+        ? previous.participantIds.filter((id) => id !== participantId)
+        : [...previous.participantIds, participantId],
+    }));
+  }, []);
+
+  const handleLogisticsDocumentImageFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) {
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        showNotification('请选择证件照片图片文件。', 'error');
+        return;
+      }
+
+      try {
+        const dataUrl = await createCompressedImageDataUrl(file);
+        setLogisticsParticipantForm((previous) => ({
+          ...previous,
+          idDocumentImage: dataUrl,
+        }));
+        showNotification('证件图像已添加。', 'success');
+      } catch {
+        showNotification('证件图像读取失败，请重新拍照或选择图片。', 'error');
+      } finally {
+        if (logisticsDocumentImageInputRef.current) {
+          logisticsDocumentImageInputRef.current.value = '';
+        }
+      }
+    },
+    [showNotification],
+  );
+
+  const handleLogisticsMasterDocumentImageFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) {
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        showNotification('请选择证件照片图片文件。', 'error');
+        return;
+      }
+
+      try {
+        const dataUrl = await createCompressedImageDataUrl(file);
+        setLogisticsMasterParticipantForm((previous) => ({
+          ...previous,
+          idDocumentImage: dataUrl,
+        }));
+        showNotification('统一库证件图像已添加。', 'success');
+      } catch {
+        showNotification('证件图像读取失败，请重新拍照或选择图片。', 'error');
+      } finally {
+        if (logisticsMasterDocumentImageInputRef.current) {
+          logisticsMasterDocumentImageInputRef.current.value = '';
+        }
+      }
+    },
+    [showNotification],
+  );
+
+  const handleAddLogisticsParticipant = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    const name = logisticsParticipantForm.name.trim();
+    if (!name) {
+      showNotification('请先填写人员姓名。', 'error');
+      return;
+    }
+
+    const resolvedRole = getFixedLogisticsStaffRole(name) ?? (logisticsParticipantForm.role.trim() || '队员');
+    const isTeamMember = resolvedRole === '队员';
+    const nextParticipant: LogisticsParticipant = {
+      id: `participant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      englishName: logisticsParticipantForm.englishName.trim(),
+      gender: logisticsParticipantForm.gender.trim(),
+      role: resolvedRole,
+      eventItem: isTeamMember
+        ? logisticsParticipantForm.eventItem.trim()
+        : '',
+      teamNo: isTeamMember
+        ? logisticsParticipantForm.teamNo.trim()
+        : '',
+      teamName: isTeamMember
+        ? logisticsParticipantForm.teamName.trim()
+        : '',
+      fieldPosition: isTeamMember
+        ? logisticsParticipantForm.fieldPosition.trim()
+        : '',
+      phone: logisticsParticipantForm.phone.trim(),
+      guardian: isTeamMember
+        ? logisticsParticipantForm.guardian.trim()
+        : '',
+      guardianPhone: isTeamMember
+        ? logisticsParticipantForm.guardianPhone.trim()
+        : '',
+      allergy: logisticsParticipantForm.allergy.trim(),
+      idNumber: logisticsParticipantForm.idNumber.trim(),
+      notes: logisticsParticipantForm.notes.trim(),
+      idDocumentImage: logisticsParticipantForm.idDocumentImage,
+      mentorId: isTeamMember ? logisticsParticipantForm.mentorId : '',
+    };
+
+    updateActiveLogisticsEvent((event) => ({
+      ...event,
+      participants: mergeLogisticsEventParticipantsUnique(event.participants, [nextParticipant]).participants,
+    }));
+    setLogisticsParticipantForm({
+      ...DEFAULT_LOGISTICS_PARTICIPANT_FORM,
+      eventItem: logisticsParticipantForm.eventItem,
+      mentorId: logisticsParticipantForm.mentorId,
+    });
+    showNotification(`已加入后勤人员：${name}`, 'success');
+  }, [canEdit, logisticsParticipantForm, showNotification, updateActiveLogisticsEvent]);
+
+  const handleAddLogisticsMasterParticipant = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    const name = logisticsMasterParticipantForm.name.trim();
+    if (!name) {
+      showNotification('请先填写人员姓名。', 'error');
+      return;
+    }
+
+    const resolvedRole = getFixedLogisticsStaffRole(name) ?? (logisticsMasterParticipantForm.role.trim() || '队员');
+    const isTeamMember = resolvedRole === '队员';
+    const nextParticipant: LogisticsParticipant = {
+      id: `participant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      englishName: logisticsMasterParticipantForm.englishName.trim(),
+      gender: logisticsMasterParticipantForm.gender.trim(),
+      role: resolvedRole,
+      eventItem: isTeamMember
+        ? logisticsMasterParticipantForm.eventItem.trim()
+        : '',
+      teamNo: isTeamMember
+        ? logisticsMasterParticipantForm.teamNo.trim()
+        : '',
+      teamName: '',
+      fieldPosition: '',
+      phone: logisticsMasterParticipantForm.phone.trim(),
+      guardian: isTeamMember
+        ? logisticsMasterParticipantForm.guardian.trim()
+        : '',
+      guardianPhone: isTeamMember
+        ? logisticsMasterParticipantForm.guardianPhone.trim()
+        : '',
+      allergy: logisticsMasterParticipantForm.allergy.trim(),
+      idNumber: logisticsMasterParticipantForm.idNumber.trim(),
+      notes: logisticsMasterParticipantForm.notes.trim(),
+      idDocumentImage: logisticsMasterParticipantForm.idDocumentImage,
+      mentorId: '',
+    };
+
+    updateLogisticsMasterRoster((previous) => [nextParticipant, ...previous]);
+    setLogisticsMasterParticipantForm({
+      ...DEFAULT_LOGISTICS_PARTICIPANT_FORM,
+      role: logisticsMasterParticipantForm.role,
+      eventItem: logisticsMasterParticipantForm.eventItem,
+    });
+    showNotification(`已加入统一管理库：${name}`, 'success');
+  }, [canEdit, logisticsMasterParticipantForm, showNotification, updateLogisticsMasterRoster]);
+
+  const handleStartEditLogisticsParticipant = useCallback((participant: LogisticsParticipant) => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    setEditingLogisticsParticipantId(participant.id);
+    setEditingLogisticsParticipantForm({
+      name: participant.name,
+      englishName: participant.englishName,
+      gender: participant.gender,
+      role: participant.role || '队员',
+      eventItem: participant.eventItem,
+      teamNo: participant.teamNo,
+      teamName: participant.teamName,
+      fieldPosition: participant.fieldPosition,
+      phone: participant.phone,
+      guardian: participant.guardian,
+      guardianPhone: participant.guardianPhone,
+      allergy: participant.allergy,
+      idNumber: participant.idNumber,
+      notes: participant.notes || '身份证',
+      idDocumentImage: participant.idDocumentImage,
+      mentorId: participant.mentorId,
+    });
+  }, [canEdit, showNotification]);
+
+  const handleCancelEditLogisticsParticipant = useCallback(() => {
+    setEditingLogisticsParticipantId(null);
+    setEditingLogisticsParticipantForm(DEFAULT_LOGISTICS_PARTICIPANT_FORM);
+  }, []);
+
+  const handleSaveLogisticsParticipant = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    if (!editingLogisticsParticipantId) {
+      return;
+    }
+
+    const name = editingLogisticsParticipantForm.name.trim();
+    if (!name) {
+      showNotification('人员中文名不能为空。', 'error');
+      return;
+    }
+
+    const resolvedRole = getFixedLogisticsStaffRole(name) ?? (editingLogisticsParticipantForm.role.trim() || '队员');
+    const isTeamMember = resolvedRole === '队员';
+    const nextParticipant: LogisticsParticipant = {
+      id: editingLogisticsParticipantId,
+      name,
+      englishName: editingLogisticsParticipantForm.englishName.trim(),
+      gender: editingLogisticsParticipantForm.gender.trim(),
+      role: resolvedRole,
+      eventItem: isTeamMember ? editingLogisticsParticipantForm.eventItem.trim() : '',
+      teamNo: isTeamMember ? editingLogisticsParticipantForm.teamNo.trim() : '',
+      teamName: isTeamMember ? editingLogisticsParticipantForm.teamName.trim() : '',
+      fieldPosition: isTeamMember ? editingLogisticsParticipantForm.fieldPosition.trim() : '',
+      phone: editingLogisticsParticipantForm.phone.trim(),
+      guardian: isTeamMember ? editingLogisticsParticipantForm.guardian.trim() : '',
+      guardianPhone: isTeamMember ? editingLogisticsParticipantForm.guardianPhone.trim() : '',
+      allergy: editingLogisticsParticipantForm.allergy.trim(),
+      idNumber: editingLogisticsParticipantForm.idNumber.trim(),
+      notes: editingLogisticsParticipantForm.notes.trim(),
+      idDocumentImage: editingLogisticsParticipantForm.idDocumentImage,
+      mentorId: isTeamMember ? editingLogisticsParticipantForm.mentorId : '',
+    };
+
+    updateActiveLogisticsEvent((event) => ({
+      ...event,
+      participants: event.participants.map((participant) =>
+        participant.id === editingLogisticsParticipantId ? nextParticipant : participant,
+      ),
+    }));
+    setEditingLogisticsParticipantId(null);
+    setEditingLogisticsParticipantForm(DEFAULT_LOGISTICS_PARTICIPANT_FORM);
+    showNotification(`已更新人员信息：${name}`, 'success');
+  }, [
+    canEdit,
+    editingLogisticsParticipantForm,
+    editingLogisticsParticipantId,
+    showNotification,
+    updateActiveLogisticsEvent,
+  ]);
+
+  const handleDeleteLogisticsParticipant = useCallback(
+    (participantId: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      updateActiveLogisticsEvent((event) => {
+        const attendance = Object.fromEntries(
+          Object.entries(event.attendance).map(([nodeId, rows]) => {
+            const { [participantId]: _removed, ...restRows } = rows;
+            return [nodeId, restRows];
+          }),
+        );
+
+        return {
+          ...event,
+          participants: event.participants
+            .filter((participant) => participant.id !== participantId)
+            .map((participant) => ({
+              ...participant,
+              mentorId: participant.mentorId === participantId ? '' : participant.mentorId,
+            })),
+          attendance,
+        };
+      });
+    },
+    [canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
+  const syncLogisticsEventParticipantsToMaster = useCallback(
+    (events: LogisticsEventRecord[], sourceLabel: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      const incomingParticipants = events.flatMap((event) => event.participants);
+      if (incomingParticipants.length === 0) {
+        showNotification(`${sourceLabel}暂无可同步人员。`, 'error');
+        return;
+      }
+
+      let added = 0;
+      let merged = 0;
+      updateLogisticsMasterRoster((previous) => {
+        const result = mergeLogisticsParticipantsUnique(previous, incomingParticipants);
+        added = result.added;
+        merged = result.merged;
+        return result.participants;
+      });
+
+      showNotification(`${sourceLabel}同步完成：新增 ${added} 人，合并去重 ${merged} 人。`, 'success');
+    },
+    [canEdit, showNotification, updateLogisticsMasterRoster],
+  );
+
+  const handleSyncSingleLogisticsEventToMaster = useCallback(
+    (eventId: string) => {
+      const event = logisticsEvents.find((item) => item.id === eventId);
+      if (!event) {
+        showNotification('没有找到这场赛事。', 'error');
+        return;
+      }
+
+      syncLogisticsEventParticipantsToMaster([event], event.name);
+    },
+    [logisticsEvents, showNotification, syncLogisticsEventParticipantsToMaster],
+  );
+
+  const handleSyncAllLogisticsEventsToMaster = useCallback(() => {
+    syncLogisticsEventParticipantsToMaster(logisticsEvents, '全部后勤赛事');
+  }, [logisticsEvents, syncLogisticsEventParticipantsToMaster]);
+
+  const handleAssignLogisticsMentor = useCallback(
+    (participantId: string, mentorId: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      updateActiveLogisticsEvent((event) => ({
+        ...event,
+        participants: event.participants.map((participant) =>
+          participant.id === participantId ? { ...participant, mentorId } : participant,
+        ),
+      }));
+    },
+    [canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
+  const handleAddLogisticsTimelineItem = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    const title = logisticsTimelineForm.title.trim();
+    if (!title) {
+      showNotification('请先填写时间节点事项。', 'error');
+      return;
+    }
+
+    const nextItem: LogisticsTimelineItem = {
+      id: `timeline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      date: logisticsTimelineForm.date,
+      time: logisticsTimelineForm.time,
+      title,
+      location: logisticsTimelineForm.location.trim(),
+      owner: logisticsTimelineForm.owner.trim(),
+      notes: logisticsTimelineForm.notes.trim(),
+      rollCallEnabled: logisticsTimelineForm.rollCallEnabled,
+    };
+
+    updateActiveLogisticsEvent((event) => ({
+      ...event,
+      timeline: [...event.timeline, nextItem].sort((left, right) =>
+        `${left.date} ${left.time}`.localeCompare(`${right.date} ${right.time}`)),
+      attendance: {
+        ...event.attendance,
+        [nextItem.id]: {},
+      },
+    }));
+    setLogisticsTimelineForm({
+      ...DEFAULT_LOGISTICS_TIMELINE_FORM,
+      date: logisticsTimelineForm.date,
+      time: logisticsTimelineForm.time,
+    });
+    showNotification(`已添加行程节点：${title}`, 'success');
+  }, [canEdit, logisticsTimelineForm, showNotification, updateActiveLogisticsEvent]);
+
+  const handleStartEditLogisticsTimelineItem = useCallback((item: LogisticsTimelineItem) => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    setEditingLogisticsTimelineId(item.id);
+    setEditingLogisticsTimelineForm({
+      date: item.date,
+      time: item.time,
+      title: item.title,
+      location: item.location,
+      owner: item.owner,
+      notes: item.notes,
+      rollCallEnabled: item.rollCallEnabled,
+    });
+  }, [canEdit, showNotification]);
+
+  const handleCancelEditLogisticsTimelineItem = useCallback(() => {
+    setEditingLogisticsTimelineId(null);
+    setEditingLogisticsTimelineForm(DEFAULT_LOGISTICS_TIMELINE_FORM);
+  }, []);
+
+  const handleSaveLogisticsTimelineItem = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    if (!editingLogisticsTimelineId) {
+      return;
+    }
+
+    const title = editingLogisticsTimelineForm.title.trim();
+    if (!title) {
+      showNotification('时间节点事项不能为空。', 'error');
+      return;
+    }
+
+    updateActiveLogisticsEvent((event) => ({
+      ...event,
+      timeline: event.timeline
+        .map((item) =>
+          item.id === editingLogisticsTimelineId
+            ? {
+              ...item,
+              date: editingLogisticsTimelineForm.date,
+              time: editingLogisticsTimelineForm.time,
+              title,
+              location: editingLogisticsTimelineForm.location.trim(),
+              owner: editingLogisticsTimelineForm.owner.trim(),
+              notes: editingLogisticsTimelineForm.notes.trim(),
+              rollCallEnabled: editingLogisticsTimelineForm.rollCallEnabled,
+            }
+            : item,
+        )
+        .sort((left, right) => `${left.date} ${left.time}`.localeCompare(`${right.date} ${right.time}`)),
+    }));
+    setEditingLogisticsTimelineId(null);
+    setEditingLogisticsTimelineForm(DEFAULT_LOGISTICS_TIMELINE_FORM);
+    showNotification(`已更新行程节点：${title}`, 'success');
+  }, [
+    canEdit,
+    editingLogisticsTimelineForm,
+    editingLogisticsTimelineId,
+    showNotification,
+    updateActiveLogisticsEvent,
+  ]);
+
+  const handleDeleteLogisticsTimelineItem = useCallback(
+    (timelineId: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      updateActiveLogisticsEvent((event) => {
+        const { [timelineId]: _removed, ...attendance } = event.attendance;
+        return {
+          ...event,
+          timeline: event.timeline.filter((item) => item.id !== timelineId),
+          attendance,
+        };
+      });
+    },
+    [canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
+  const handleAddLogisticsRoom = useCallback(() => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+
+    const roomNo = logisticsRoomForm.roomNo.trim();
+    if (!roomNo) {
+      showNotification('请先填写房间号。', 'error');
+      return;
+    }
+
+    if (logisticsRoomForm.participantIds.length === 0) {
+      showNotification('请至少选择 1 名入住人员。', 'error');
+      return;
+    }
+
+    const nextRoom: LogisticsRoomAssignment = {
+      id: `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      roomNo,
+      participantIds: logisticsRoomForm.participantIds,
+      notes: logisticsRoomForm.notes.trim(),
+    };
+
+    updateActiveLogisticsEvent((event) => ({
+      ...event,
+      rooms: [nextRoom, ...event.rooms],
+    }));
+    setLogisticsRoomForm((previous) => ({
+      ...previous,
+      roomNo: '',
+      participantIds: [],
+    }));
+    showNotification(`已添加房间：${roomNo}`, 'success');
+  }, [canEdit, logisticsRoomForm, showNotification, updateActiveLogisticsEvent]);
+
+  const handleDeleteLogisticsRoom = useCallback(
+    (roomId: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      updateActiveLogisticsEvent((event) => ({
+        ...event,
+        rooms: event.rooms.filter((room) => room.id !== roomId),
+      }));
+      showNotification('已删除住房分配。', 'info');
+    },
+    [canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
+  const handleToggleLogisticsRollCall = useCallback(
+    (timelineId: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      updateActiveLogisticsEvent((event) => ({
+        ...event,
+        timeline: event.timeline.map((item) =>
+          item.id === timelineId ? { ...item, rollCallEnabled: !item.rollCallEnabled } : item,
+        ),
+      }));
+    },
+    [canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
+  const handleLogisticsAttendanceChange = useCallback(
+    (timelineId: string, participantId: string, status: LogisticsAttendanceStatus) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      updateActiveLogisticsEvent((event) => ({
+        ...event,
+        attendance: {
+          ...event.attendance,
+          [timelineId]: {
+            ...(event.attendance[timelineId] ?? {}),
+            [participantId]: status,
+          },
+        },
+      }));
+    },
+    [canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
+  const importLogisticsRosterRows = useCallback((rows: string[][], sourceLabel: string) => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return false;
+    }
+
+    if (rows.length < 2) {
+      showNotification(`请提供带表头的队员信息表。${sourceLabel} 没有识别到有效数据。`, 'error');
+      return false;
+    }
+
+    const headers = rows[0].map((header) => header.trim());
+    const findColumn = (...names: string[]) =>
+      headers.findIndex((header) => names.some((name) => header.includes(name)));
+    const column = {
+      name: findColumn('中文名', '姓名'),
+      englishName: findColumn('英文名'),
+      gender: findColumn('性别'),
+      role: findColumn('角色'),
+      eventItem: findColumn('赛项', '组别'),
+      teamNo: findColumn('队号', '战队编号'),
+      teamName: findColumn('队名', '战队名称'),
+      fieldPosition: findColumn('赛场位置', '场地位置', '座位号'),
+      phone: findColumn('手机', '小天才'),
+      guardian: findColumn('监护人'),
+      guardianPhone: findColumn('监护人联系电话', '联系电话'),
+      allergy: findColumn('过敏史'),
+      idNumber: findColumn('证件号码', '证件号'),
+      notes: findColumn('证件类型', '证件信息', '备注'),
+    };
+
+    const imported = rows.slice(1).map((row) => {
+      const value = (index: number) => (index >= 0 ? (row[index] ?? '').trim() : '');
+      const name = value(column.name);
+      if (!name) {
+        return null;
+      }
+
+      const rawRole = value(column.role);
+      const resolvedRole = getFixedLogisticsStaffRole(name)
+        ?? (LOGISTICS_PARTICIPANT_ROLES.includes(rawRole) ? rawRole : '队员');
+      const isTeamMember = resolvedRole === '队员';
+
+      return {
+        id: `participant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name,
+        englishName: value(column.englishName),
+        gender: value(column.gender),
+        role: resolvedRole,
+        eventItem: isTeamMember ? value(column.eventItem) || activeLogisticsEventItem || '' : '',
+        teamNo: isTeamMember ? value(column.teamNo) : '',
+        teamName: isTeamMember ? value(column.teamName) : '',
+        fieldPosition: isTeamMember ? value(column.fieldPosition) : '',
+        phone: value(column.phone),
+        guardian: isTeamMember ? value(column.guardian) : '',
+        guardianPhone: isTeamMember ? value(column.guardianPhone) : '',
+        allergy: value(column.allergy),
+        idNumber: value(column.idNumber),
+        notes: value(column.notes),
+        idDocumentImage: '',
+        mentorId: isTeamMember ? '' : '',
+      } satisfies LogisticsParticipant;
+    }).filter((participant): participant is LogisticsParticipant => Boolean(participant));
+
+    if (imported.length === 0) {
+      showNotification('没有识别到可导入的队员姓名。', 'error');
+      return false;
+    }
+
+    let added = 0;
+    let merged = 0;
+    updateActiveLogisticsEvent((event) => {
+      const result = mergeLogisticsEventParticipantsUnique(event.participants, imported);
+      added = result.added;
+      merged = result.merged;
+      return {
+        ...event,
+        participants: result.participants,
+      };
+    });
+    showNotification(`已从${sourceLabel}导入 ${imported.length} 条人员信息：新增 ${added} 人，合并 ${merged} 人。`, 'success');
+    return true;
+  }, [activeLogisticsEventItem, canEdit, showNotification, updateActiveLogisticsEvent]);
+
+  const handleImportLogisticsRoster = useCallback(() => {
+    const imported = importLogisticsRosterRows(parseLogisticsRosterText(logisticsRosterPaste), '粘贴文本');
+    if (imported) {
+      setLogisticsRosterPaste('');
+    }
+  }, [importLogisticsRosterRows, logisticsRosterPaste]);
+
+  const handleImportLogisticsRosterFromClipboard = useCallback(async () => {
+    if (!navigator.clipboard?.readText) {
+      showNotification('当前浏览器不支持直接读取剪切板，请使用下方粘贴框导入。', 'error');
+      return;
+    }
+
+    try {
+      const text = await navigator.clipboard.readText();
+      setLogisticsRosterPaste(text);
+      importLogisticsRosterRows(parseLogisticsRosterText(text), '剪切板');
+    } catch {
+      showNotification('读取剪切板失败。请确认浏览器权限，或直接 Ctrl+V 粘贴到输入框。', 'error');
+    }
+  }, [importLogisticsRosterRows, showNotification]);
+
+  const handleImportLogisticsRosterFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) {
+        return;
+      }
+
+      try {
+        const fileName = file.name.toLowerCase();
+        let rows: string[][] = [];
+
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
+            header: 1,
+            raw: false,
+            defval: '',
+          }).map((row) => row.map((cell) => String(cell).trim()));
+        } else {
+          rows = parseLogisticsRosterText(await file.text());
+        }
+
+        importLogisticsRosterRows(rows, 'Excel 文件');
+      } catch {
+        showNotification('Excel 文件解析失败，请确认文件格式，或复制表格内容后用剪切板导入。', 'error');
+      } finally {
+        if (logisticsFileInputRef.current) {
+          logisticsFileInputRef.current.value = '';
+        }
+      }
+    },
+    [importLogisticsRosterRows, showNotification],
+  );
+
+  const importLogisticsMasterRosterRows = useCallback((rows: string[][], sourceLabel: string) => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return false;
+    }
+
+    if (rows.length < 2) {
+      showNotification(`请提供带表头的队员信息表。${sourceLabel} 没有识别到有效数据。`, 'error');
+      return false;
+    }
+
+    const headers = rows[0].map((header) => header.trim());
+    const findColumn = (...names: string[]) =>
+      headers.findIndex((header) => names.some((name) => header.includes(name)));
+    const column = {
+      name: findColumn('中文名', '姓名'),
+      englishName: findColumn('英文名'),
+      gender: findColumn('性别'),
+      role: findColumn('角色', '身份'),
+      eventItem: findColumn('赛项', '组别'),
+      teamNo: findColumn('队号', '战队编号'),
+      teamName: findColumn('队名', '战队名称'),
+      phone: findColumn('手机'),
+      guardian: findColumn('监护人'),
+      guardianPhone: findColumn('监护人联系电话', '联系电话'),
+      allergy: findColumn('过敏史'),
+      idNumber: findColumn('证件号码', '证件号'),
+      notes: findColumn('证件类型', '证件信息', '备注'),
+    };
+
+    const imported = rows.slice(1).map((row) => {
+      const value = (index: number) => (index >= 0 ? (row[index] ?? '').trim() : '');
+      const name = value(column.name);
+      if (!name) {
+        return null;
+      }
+
+      const rawRole = value(column.role);
+      const role = getFixedLogisticsStaffRole(name) ?? (LOGISTICS_PARTICIPANT_ROLES.includes(rawRole)
+        ? rawRole
+        : '队员');
+      const isTeamMember = role === '队员';
+
+      return {
+        id: `participant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name,
+        englishName: value(column.englishName),
+        gender: value(column.gender),
+        role,
+        eventItem: isTeamMember ? value(column.eventItem) : '',
+        teamNo: isTeamMember ? value(column.teamNo) : '',
+        teamName: '',
+        fieldPosition: '',
+        phone: value(column.phone),
+        guardian: isTeamMember ? value(column.guardian) : '',
+        guardianPhone: isTeamMember ? value(column.guardianPhone) : '',
+        allergy: value(column.allergy),
+        idNumber: value(column.idNumber),
+        notes: value(column.notes) || '身份证',
+        idDocumentImage: '',
+        mentorId: '',
+      } satisfies LogisticsParticipant;
+    }).filter((participant): participant is LogisticsParticipant => Boolean(participant));
+
+    if (imported.length === 0) {
+      showNotification('没有识别到可导入的人员姓名。', 'error');
+      return false;
+    }
+
+    updateLogisticsMasterRoster((previous) => [...imported, ...previous]);
+    showNotification(`已从${sourceLabel}导入 ${imported.length} 条统一库人员信息。`, 'success');
+    return true;
+  }, [canEdit, showNotification, updateLogisticsMasterRoster]);
+
+  const handleImportLogisticsMasterRoster = useCallback(() => {
+    const imported = importLogisticsMasterRosterRows(parseLogisticsRosterText(logisticsMasterRosterPaste), '粘贴文本');
+    if (imported) {
+      setLogisticsMasterRosterPaste('');
+    }
+  }, [importLogisticsMasterRosterRows, logisticsMasterRosterPaste]);
+
+  const handleImportLogisticsMasterRosterFromClipboard = useCallback(async () => {
+    if (!navigator.clipboard?.readText) {
+      showNotification('当前浏览器不支持直接读取剪切板，请使用下方粘贴框导入。', 'error');
+      return;
+    }
+
+    try {
+      const text = await navigator.clipboard.readText();
+      setLogisticsMasterRosterPaste(text);
+      importLogisticsMasterRosterRows(parseLogisticsRosterText(text), '剪切板');
+    } catch {
+      showNotification('读取剪切板失败。请确认浏览器权限，或直接 Ctrl+V 粘贴到输入框。', 'error');
+    }
+  }, [importLogisticsMasterRosterRows, showNotification]);
+
+  const handleImportLogisticsMasterRosterFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) {
+        return;
+      }
+
+      try {
+        const fileName = file.name.toLowerCase();
+        let rows: string[][] = [];
+
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
+            header: 1,
+            raw: false,
+            defval: '',
+          }).map((row) => row.map((cell) => String(cell).trim()));
+        } else {
+          rows = parseLogisticsRosterText(await file.text());
+        }
+
+        importLogisticsMasterRosterRows(rows, 'Excel 文件');
+      } catch {
+        showNotification('Excel 文件解析失败，请确认文件格式，或复制表格内容后用剪切板导入。', 'error');
+      } finally {
+        if (logisticsMasterFileInputRef.current) {
+          logisticsMasterFileInputRef.current.value = '';
+        }
+      }
+    },
+    [importLogisticsMasterRosterRows, showNotification],
   );
 
   const handleTrainingFormChange = useCallback(
@@ -2464,6 +4512,8 @@ export default function App() {
   const handleOpenPracticeAnalysis = useCallback(() => {
     setViewMode('practice-analysis');
     setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
     setPracticeExplorerAwaitingPaste(false);
@@ -2472,6 +4522,8 @@ export default function App() {
   const handleOpenPracticeExplorer = useCallback(() => {
     setViewMode('practice-explorer');
     setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
     setSortField('totalWinLossScore');
     setSortOrder('desc');
     setSearchKeyword('');
@@ -2488,6 +4540,8 @@ export default function App() {
   const handleBackToHome = useCallback(() => {
     setViewMode('home');
     setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
     setActiveTrainingEventId(null);
     setSearchKeyword('');
     setAwaitingPaste(false);
@@ -3039,9 +5093,6 @@ export default function App() {
               subtitle="先在首页登录，再根据工作内容进入对应入口。当前已提供赛事后勤管理、赛事数据分析、练习赛数据分析与集训安排入口。"
               action={
                 <div className={styles.headerActions}>
-                  <button className={styles.backButton} onClick={handleBackToHome}>
-                    返回首页
-                  </button>
                   {accountAction}
                 </div>
               }
@@ -3131,7 +5182,14 @@ export default function App() {
               eyebrow="Event Selection"
               title="赛项选择"
               subtitle="先选赛项，再进入对应的二级赛事大厅。每个赛项都会独立保存自己的比赛卡片和数据。"
-              action={accountAction}
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
             />
 
             <EventTypeSelector
@@ -3166,6 +5224,30 @@ export default function App() {
                   这个入口已经独立出来，后面你可以继续往里接物资清单、人员分工、场地布置、签到流程或任务排班功能。
                 </p>
               </div>
+
+              <article
+                className={`${styles.logisticsEventCard} ${styles.clickableCard}`}
+                onClick={handleOpenLogisticsRosterLibrary}
+              >
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>敏感信息库</p>
+                    <h3>队员信息统一管理库</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Password</span>
+                </div>
+                <p className={styles.portalCardText}>
+                  集中保存队员、家长、教练和领队信息。进入后需要再次输入密码，适合存放证件、手机、监护人等重要资料。
+                </p>
+                <div className={styles.logisticsMeta}>
+                  <span>人员：{logisticsAggregatedRoster.length}</span>
+                  <span>队员：{logisticsMasterStudents.length}</span>
+                  <span>教练/领队：{logisticsMasterMentors.length}</span>
+                </div>
+                <div className={styles.cardActionRow}>
+                  <span className={styles.cardEnterHint}>点击进入统一管理库</span>
+                </div>
+              </article>
 
               <article className={styles.logisticsFormPanel}>
                 <div className={styles.portalCardTop}>
@@ -3235,28 +5317,2321 @@ export default function App() {
                     还没有后勤赛事卡片。先填写上方赛事信息，再点击“生成赛事卡片”。
                   </div>
                 ) : (
-                  logisticsEvents.map((event) => (
-                    <article key={event.id} className={styles.logisticsEventCard}>
-                      <div className={styles.portalCardTop}>
-                        <div>
-                          <p className={styles.portalCardLabel}>赛事卡片</p>
-                          <h3>{event.name}</h3>
+                  logisticsEvents.map((event) => {
+                    const isEditingName = editingLogisticsEventId === event.id;
+                    const isEditingDate = editingLogisticsEventDateId === event.id;
+
+                    return (
+                      <article
+                        key={event.id}
+                        className={`${styles.logisticsEventCard} ${styles.clickableCard}`}
+                        onClick={() => {
+                          if (!isEditingName && !isEditingDate) {
+                            handleOpenLogisticsEvent(event.id);
+                          }
+                        }}
+                      >
+                        <div className={styles.portalCardTop}>
+                          <div>
+                            <p className={styles.portalCardLabel}>赛事卡片</p>
+                            {isEditingName ? (
+                              <input
+                                className={styles.cardTitleInput}
+                                value={editingLogisticsEventName}
+                                onClick={(clickEvent) => clickEvent.stopPropagation()}
+                                onChange={(changeEvent) => setEditingLogisticsEventName(changeEvent.target.value)}
+                                onKeyDown={(keyEvent) => {
+                                  if (keyEvent.key === 'Enter') {
+                                    keyEvent.preventDefault();
+                                    handleSaveLogisticsEventName(event.id);
+                                  }
+                                  if (keyEvent.key === 'Escape') {
+                                    handleCancelEditLogisticsEventName();
+                                  }
+                                }}
+                                disabled={!canEdit}
+                                autoFocus
+                              />
+                            ) : (
+                              <h3>{event.name}</h3>
+                            )}
+                          </div>
+                          {isEditingDate ? (
+                            <input
+                              className={styles.cardDateInput}
+                              type="date"
+                              value={editingLogisticsEventDate}
+                              onClick={(clickEvent) => clickEvent.stopPropagation()}
+                              onChange={(changeEvent) => setEditingLogisticsEventDate(changeEvent.target.value)}
+                              onKeyDown={(keyEvent) => {
+                                if (keyEvent.key === 'Enter') {
+                                  keyEvent.preventDefault();
+                                  handleSaveLogisticsEventDate(event.id);
+                                }
+                                if (keyEvent.key === 'Escape') {
+                                  handleCancelEditLogisticsEventDate();
+                                }
+                              }}
+                              disabled={!canEdit}
+                              autoFocus
+                            />
+                          ) : (
+                            <button
+                              className={styles.portalBadgeButton}
+                              onClick={(clickEvent) => {
+                                clickEvent.stopPropagation();
+                                handleStartEditLogisticsEventDate(event);
+                              }}
+                              disabled={!canEdit}
+                              title="修改赛事日期"
+                            >
+                              {event.date || '未定日期'}
+                            </button>
+                          )}
                         </div>
-                        <span className={styles.portalBadge}>{event.date || '未定日期'}</span>
-                      </div>
-                      <div className={styles.logisticsMeta}>
-                        <span>地点：{event.venue || '未填写'}</span>
-                        <span>组别：{event.group || '未填写'}</span>
-                        <span>创建：{new Date(event.createdAt).toLocaleDateString('zh-CN')}</span>
-                      </div>
-                      {event.notes && <p className={styles.portalCardText}>{event.notes}</p>}
-                      <button className={styles.dangerButton} onClick={() => handleDeleteLogisticsEvent(event.id)}>
-                        删除卡片
-                      </button>
-                    </article>
-                  ))
+                        <div className={styles.logisticsMeta}>
+                          <span>地点：{event.venue || '未填写'}</span>
+                          <span>组别：{event.group || '未填写'}</span>
+                          <span>创建：{new Date(event.createdAt).toLocaleDateString('zh-CN')}</span>
+                        </div>
+                        {event.notes && <p className={styles.portalCardText}>{event.notes}</p>}
+                        <div className={styles.cardActionRow}>
+                          <span className={styles.cardEnterHint}>
+                            {isEditingName
+                              ? '正在更改赛事名称'
+                              : isEditingDate
+                                ? '正在修改赛事日期'
+                                : '点击进入后勤工作台'}
+                          </span>
+                          <div className={styles.inlineButtonGroup}>
+                            {isEditingName ? (
+                              <>
+                                <button
+                                  className={styles.secondaryButton}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleSaveLogisticsEventName(event.id);
+                                  }}
+                                  disabled={!canEdit}
+                                >
+                                  保存名称
+                                </button>
+                                <button
+                                  className={styles.dangerButton}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleCancelEditLogisticsEventName();
+                                  }}
+                                >
+                                  取消
+                                </button>
+                              </>
+                            ) : isEditingDate ? (
+                              <>
+                                <button
+                                  className={styles.secondaryButton}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleSaveLogisticsEventDate(event.id);
+                                  }}
+                                  disabled={!canEdit}
+                                >
+                                  保存日期
+                                </button>
+                                <button
+                                  className={styles.dangerButton}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleCancelEditLogisticsEventDate();
+                                  }}
+                                >
+                                  取消
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className={styles.secondaryButton}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleStartEditLogisticsEventName(event);
+                                  }}
+                                  disabled={!canEdit}
+                                >
+                                  更改名称
+                                </button>
+                                <button
+                                  className={styles.secondaryButton}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleStartEditLogisticsEventDate(event);
+                                  }}
+                                  disabled={!canEdit}
+                                >
+                                  修改日期
+                                </button>
+                                <button
+                                  className={styles.dangerButton}
+                                  onClick={(clickEvent) => {
+                                    clickEvent.stopPropagation();
+                                    handleDeleteLogisticsEvent(event.id);
+                                  }}
+                                >
+                                  删除卡片
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })
                 )}
               </div>
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'logistics-roster' ? (
+          <>
+            <Header
+              eyebrow="Secure Roster"
+              title="队员信息统一管理库"
+              subtitle="这里集中维护队员、家长、教练和领队的重要资料。进入查看和编辑前需要单独输入密码。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleOpenLogistics}>
+                    返回后勤管理
+                  </button>
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              {!logisticsRosterUnlocked ? (
+                <article className={`${styles.logisticsFormPanel} ${styles.secureRosterPanel}`}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>Password Required</p>
+                      <h3>输入统一管理库密码</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Locked</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    这个库会显示手机、监护人、证件类型和证件图像等重要信息，所以需要二次密码确认。
+                  </p>
+                  <form className={styles.secureRosterForm} onSubmit={handleUnlockLogisticsRoster}>
+                    <label className={styles.logisticsField}>
+                      <span>访问密码</span>
+                      <input
+                        type="password"
+                        value={logisticsRosterPassword}
+                        onChange={(event) => setLogisticsRosterPassword(event.target.value)}
+                        placeholder="请输入统一管理库密码"
+                        autoComplete="off"
+                      />
+                    </label>
+                    <button className={styles.portalButton} type="submit">
+                      解锁查看
+                    </button>
+                  </form>
+                </article>
+              ) : (
+                <>
+                  <div className={styles.logisticsSummaryGrid}>
+                    <article className={styles.parameterCard}>
+                      <span>总人员</span>
+                      <strong>{logisticsAggregatedRoster.length}</strong>
+                      <small>从单场比赛读取</small>
+                    </article>
+                    <article className={styles.parameterCard}>
+                      <span>队员</span>
+                      <strong>{logisticsMasterStudents.length}</strong>
+                      <small>包含赛项与队伍信息</small>
+                    </article>
+                    <article className={styles.parameterCard}>
+                      <span>教练/领队</span>
+                      <strong>{logisticsMasterMentors.length}</strong>
+                      <small>后续可绑定队员点名</small>
+                    </article>
+                    <article className={styles.parameterCard}>
+                      <span>证件图像</span>
+                      <strong>{logisticsAggregatedRoster.filter((participant) => participant.idDocumentImage).length}</strong>
+                      <small>来自单场人员分表</small>
+                    </article>
+                  </div>
+
+                  <article className={styles.logisticsFormPanel} hidden>
+                    <div className={styles.portalCardTop}>
+                      <div>
+                        <p className={styles.portalCardLabel}>Event Sources</p>
+                        <h3>按赛事同步到总表</h3>
+                      </div>
+                      <button
+                        className={styles.secondaryButton}
+                        onClick={handleSyncAllLogisticsEventsToMaster}
+                        disabled={!canEdit || logisticsEvents.length === 0}
+                      >
+                        一键同步全部赛事
+                      </button>
+                    </div>
+                    {activeLogisticsRosterSourceEvent ? (
+                      <>
+                        <div className={styles.cardActionRow}>
+                          <button className={styles.backButton} onClick={handleBackToLogisticsRosterSources}>
+                            返回赛事来源
+                          </button>
+                          <button
+                            className={styles.portalButton}
+                            onClick={() => handleSyncSingleLogisticsEventToMaster(activeLogisticsRosterSourceEvent.id)}
+                            disabled={!canEdit || activeLogisticsRosterSourceEvent.participants.length === 0}
+                          >
+                            同步这场到总表
+                          </button>
+                        </div>
+
+                        <div className={styles.logisticsEventCard}>
+                          <div className={styles.portalCardTop}>
+                            <div>
+                              <p className={styles.portalCardLabel}>当前录入赛事</p>
+                              <h3>{activeLogisticsRosterSourceEvent.name}</h3>
+                            </div>
+                            <span className={styles.portalBadge}>{activeLogisticsRosterSourceEvent.date || '未定日期'}</span>
+                          </div>
+                          <div className={styles.logisticsMeta}>
+                            <span>地点：{activeLogisticsRosterSourceEvent.venue || '未填写'}</span>
+                            <span>组别：{activeLogisticsRosterSourceEvent.group || '未填写'}</span>
+                            <span>当前人员：{activeLogisticsRosterSourceEvent.participants.length}</span>
+                          </div>
+                        </div>
+
+                        <div className={styles.logisticsFormGrid}>
+                          <label className={styles.logisticsField}>
+                            <span>身份</span>
+                            <select
+                              value={logisticsParticipantForm.role}
+                              onChange={(event) => handleLogisticsParticipantFormChange('role', event.target.value)}
+                              disabled={!canEdit}
+                            >
+                              {LOGISTICS_PARTICIPANT_ROLES.map((role) => (
+                                <option key={role} value={role}>{role}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>中文名</span>
+                            <input
+                              value={logisticsParticipantForm.name}
+                              onChange={(event) => handleLogisticsParticipantFormChange('name', event.target.value)}
+                              placeholder="姓名"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>英文名</span>
+                            <input
+                              value={logisticsParticipantForm.englishName}
+                              onChange={(event) => handleLogisticsParticipantFormChange('englishName', event.target.value)}
+                              placeholder="English name"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>性别</span>
+                            <input
+                              value={logisticsParticipantForm.gender}
+                              onChange={(event) => handleLogisticsParticipantFormChange('gender', event.target.value)}
+                              placeholder="男 / 女"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>手机</span>
+                            <input
+                              value={logisticsParticipantForm.phone}
+                              onChange={(event) => handleLogisticsParticipantFormChange('phone', event.target.value)}
+                              placeholder="联系电话"
+                              disabled={!canEdit}
+                            />
+                          </label>
+
+                          {logisticsParticipantForm.role === '队员' && (
+                            <>
+                              <label className={styles.logisticsField}>
+                                <span>赛项</span>
+                                <select
+                                  value={logisticsParticipantForm.eventItem}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('eventItem', event.target.value)}
+                                  disabled={!canEdit}
+                                >
+                                  <option value="">请选择赛项</option>
+                                  {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => (
+                                    <option key={item} value={item}>{item}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>队号</span>
+                                <input
+                                  value={logisticsParticipantForm.teamNo}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('teamNo', event.target.value)}
+                                  placeholder="战队编号"
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>队名</span>
+                                <input
+                                  value={logisticsParticipantForm.teamName}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('teamName', event.target.value)}
+                                  placeholder="战队名称"
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>赛场位置</span>
+                                <input
+                                  value={logisticsParticipantForm.fieldPosition}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('fieldPosition', event.target.value)}
+                                  placeholder="例如：GIN22 / XE09"
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>监护人</span>
+                                <input
+                                  value={logisticsParticipantForm.guardian}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('guardian', event.target.value)}
+                                  placeholder="监护人姓名"
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>监护人电话</span>
+                                <input
+                                  value={logisticsParticipantForm.guardianPhone}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('guardianPhone', event.target.value)}
+                                  placeholder="监护人联系电话"
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>过敏史</span>
+                                <input
+                                  value={logisticsParticipantForm.allergy}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('allergy', event.target.value)}
+                                  placeholder="无 / 具体说明"
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>证件信息</span>
+                                <select
+                                  value={logisticsParticipantForm.notes}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('notes', event.target.value)}
+                                  disabled={!canEdit}
+                                >
+                                  {LOGISTICS_ID_DOCUMENT_OPTIONS.map((documentType) => (
+                                    <option key={documentType} value={documentType}>{documentType}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className={styles.logisticsField}>
+                                <span>证件号码</span>
+                                <input
+                                  value={logisticsParticipantForm.idNumber}
+                                  onChange={(event) => handleLogisticsParticipantFormChange('idNumber', event.target.value)}
+                                  placeholder="证件号码"
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                            </>
+                          )}
+                        </div>
+
+                        <div className={styles.cardActionRow}>
+                          <button className={styles.portalButton} onClick={handleAddLogisticsParticipant} disabled={!canEdit}>
+                            新增到这场赛事
+                          </button>
+                          <input
+                            ref={logisticsFileInputRef}
+                            className={styles.hiddenFileInput}
+                            type="file"
+                            accept=".xlsx,.xls,.csv,.tsv,.txt"
+                            onChange={(event) => handleImportLogisticsRosterFile(event.target.files?.[0])}
+                            disabled={!canEdit}
+                          />
+                          <button
+                            className={styles.secondaryButton}
+                            onClick={() => logisticsFileInputRef.current?.click()}
+                            disabled={!canEdit}
+                          >
+                            Excel 表格导入
+                          </button>
+                          <button
+                            className={styles.secondaryButton}
+                            onClick={handleImportLogisticsRosterFromClipboard}
+                            disabled={!canEdit}
+                          >
+                            读取剪切板导入
+                          </button>
+                        </div>
+
+                        <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                          <span>手动粘贴表格内容</span>
+                          <textarea
+                            value={logisticsRosterPaste}
+                            onChange={(event) => setLogisticsRosterPaste(event.target.value)}
+                            placeholder="从 Excel 复制包含“中文名、身份/角色、赛项、队号、队名、手机、监护人、过敏史、证件信息”等表头的区域后粘贴到这里"
+                            disabled={!canEdit}
+                          />
+                        </label>
+                        <button className={styles.secondaryButton} onClick={handleImportLogisticsRoster} disabled={!canEdit}>
+                          解析粘贴框内容
+                        </button>
+
+                        <div className={styles.logisticsTableWrap}>
+                          {activeLogisticsRosterSourceEvent.participants.length === 0 ? (
+                            <div className={styles.logisticsEmpty}>这场赛事暂无人员。可以手动新增，也可以从剪切板或 Excel 表格导入。</div>
+                          ) : (
+                            <table className={styles.logisticsTable}>
+                              <thead>
+                                <tr>
+                                  <th>中文名</th>
+                                  <th>英文名</th>
+                                  <th>性别</th>
+                                  <th>身份</th>
+                                  <th>赛项 / 队伍</th>
+                                  <th>赛场位置</th>
+                                  <th>手机</th>
+                                  <th>监护信息</th>
+                                  <th>证件 / 过敏史</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {activeLogisticsRosterSourceEvent.participants.map((participant) => (
+                                  <tr key={participant.id}>
+                                    <td><strong>{participant.name}</strong></td>
+                                    <td>{participant.englishName || '未填'}</td>
+                                    <td>{participant.gender || '未填'}</td>
+                                    <td>{participant.role}</td>
+                                    <td>
+                                      {renderLogisticsEventItemBadges(participant.eventItem)}
+                                      {(participant.teamNo || participant.teamName) && (
+                                        <small>{[participant.teamNo, participant.teamName].filter(Boolean).join(' / ')}</small>
+                                      )}
+                                    </td>
+                                    <td>{participant.fieldPosition || '未填'}</td>
+                                    <td>{participant.phone || '未填'}</td>
+                                    <td>
+                                      {participant.guardian || '无'}
+                                      {participant.guardianPhone && <small>{participant.guardianPhone}</small>}
+                                    </td>
+                                    <td>
+                                      {participant.notes || '未填'}
+                                      {participant.idNumber && <small>{participant.idNumber}</small>}
+                                      {participant.allergy && <small>过敏史：{participant.allergy}</small>}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className={styles.portalCardText}>
+                          下方卡片来自“后勤管理工作台”中创建的每一场比赛。点击卡片进入后，可以手动输入人员，也可以从剪切板或 Excel 表格导入，再同步到统一人员总表。
+                        </p>
+
+                        <div className={styles.logisticsCards}>
+                          {logisticsEvents.length === 0 ? (
+                            <div className={styles.logisticsEmpty}>
+                              暂无赛事卡片。请先回到后勤管理工作台，填写赛事信息并生成比赛卡片。
+                            </div>
+                          ) : (
+                            logisticsEvents.map((event) => {
+                              const eventStudents = event.participants.filter((participant) => participant.role === '队员');
+                              const eventMentors = event.participants.filter((participant) =>
+                                participant.role === '教练' || participant.role === '领队');
+
+                              return (
+                                <article
+                                  key={event.id}
+                                  className={`${styles.logisticsEventCard} ${styles.clickableCard}`}
+                                  onClick={() => handleOpenLogisticsRosterSource(event.id)}
+                                >
+                                  <div className={styles.portalCardTop}>
+                                    <div>
+                                      <p className={styles.portalCardLabel}>赛事人员来源</p>
+                                      <h3>{event.name}</h3>
+                                    </div>
+                                    <span className={styles.portalBadge}>{event.date || '未定日期'}</span>
+                                  </div>
+                                  <div className={styles.logisticsMeta}>
+                                    <span>地点：{event.venue || '未填写'}</span>
+                                    <span>组别：{event.group || '未填写'}</span>
+                                    <span>人员：{event.participants.length}</span>
+                                    <span>队员：{eventStudents.length}</span>
+                                    <span>教练/领队：{eventMentors.length}</span>
+                                  </div>
+                                  <div className={styles.cardActionRow}>
+                                    <span className={styles.cardEnterHint}>点击录入 / 导入这场人员</span>
+                                    <button
+                                      className={styles.portalButton}
+                                      onClick={(clickEvent) => {
+                                        clickEvent.stopPropagation();
+                                        handleSyncSingleLogisticsEventToMaster(event.id);
+                                      }}
+                                      disabled={!canEdit || event.participants.length === 0}
+                                    >
+                                      同步这场到总表
+                                    </button>
+                                  </div>
+                                </article>
+                              );
+                            })
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </article>
+
+                  <article className={styles.logisticsFormPanel} hidden>
+                    <div className={styles.portalCardTop}>
+                      <div>
+                        <p className={styles.portalCardLabel}>Roster Input</p>
+                        <h3>新增统一库人员</h3>
+                      </div>
+                      <div className={styles.timelineActions}>
+                        <button
+                          className={styles.secondaryButton}
+                          onClick={handleAddFixedLogisticsStaffToMaster}
+                          disabled={!canEdit}
+                        >
+                          同步固定教练/领队
+                        </button>
+                        <button
+                          className={styles.secondaryButton}
+                          onClick={() => setLogisticsMasterInputOpen((previous) => !previous)}
+                        >
+                          {logisticsMasterInputOpen ? '收起新增' : '展开新增'}
+                        </button>
+                        <button className={styles.ghostButton} onClick={handleLockLogisticsRoster}>
+                          锁定
+                        </button>
+                      </div>
+                    </div>
+                    <p className={styles.portalCardText}>
+                      需要单独录入人员时再展开。只有“队员”会显示赛项、队号、队名、监护人、证件图像等扩展信息。
+                    </p>
+
+                    {logisticsMasterInputOpen && (
+                      <>
+                        <div className={styles.logisticsFormGrid}>
+                          <label className={styles.logisticsField}>
+                            <span>身份</span>
+                            <select
+                              value={logisticsMasterParticipantForm.role}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('role', event.target.value)}
+                              disabled={!canEdit}
+                            >
+                              {LOGISTICS_PARTICIPANT_ROLES.map((role) => (
+                                <option key={role} value={role}>{role}</option>
+                              ))}
+                            </select>
+                          </label>
+                      <label className={styles.logisticsField}>
+                        <span>中文名</span>
+                        <input
+                          value={logisticsMasterParticipantForm.name}
+                          onChange={(event) => handleLogisticsMasterParticipantFormChange('name', event.target.value)}
+                          placeholder="姓名"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>英文名</span>
+                        <input
+                          value={logisticsMasterParticipantForm.englishName}
+                          onChange={(event) => handleLogisticsMasterParticipantFormChange('englishName', event.target.value)}
+                          placeholder="English name"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>手机</span>
+                        <input
+                          value={logisticsMasterParticipantForm.phone}
+                          onChange={(event) => handleLogisticsMasterParticipantFormChange('phone', event.target.value)}
+                          placeholder="联系电话"
+                          disabled={!canEdit}
+                        />
+                      </label>
+
+                      {logisticsMasterParticipantForm.role === '队员' && (
+                        <>
+                          <label className={styles.logisticsField}>
+                            <span>赛项</span>
+                            <select
+                              value={logisticsMasterParticipantForm.eventItem}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('eventItem', event.target.value)}
+                              disabled={!canEdit}
+                            >
+                              <option value="">请选择赛项</option>
+                              {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => (
+                                <option key={item} value={item}>{item}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>队号</span>
+                            <input
+                              value={logisticsMasterParticipantForm.teamNo}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('teamNo', event.target.value)}
+                              placeholder="战队编号"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>队名</span>
+                            <input
+                              value={logisticsMasterParticipantForm.teamName}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('teamName', event.target.value)}
+                              placeholder="战队名称"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>监护人</span>
+                            <input
+                              value={logisticsMasterParticipantForm.guardian}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('guardian', event.target.value)}
+                              placeholder="监护人姓名"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>监护人电话</span>
+                            <input
+                              value={logisticsMasterParticipantForm.guardianPhone}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('guardianPhone', event.target.value)}
+                              placeholder="监护人联系电话"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>过敏史</span>
+                            <input
+                              value={logisticsMasterParticipantForm.allergy}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('allergy', event.target.value)}
+                              placeholder="无 / 具体说明"
+                              disabled={!canEdit}
+                            />
+                          </label>
+                          <label className={styles.logisticsField}>
+                            <span>证件信息</span>
+                            <select
+                              value={logisticsMasterParticipantForm.notes}
+                              onChange={(event) => handleLogisticsMasterParticipantFormChange('notes', event.target.value)}
+                              disabled={!canEdit}
+                            >
+                              {LOGISTICS_ID_DOCUMENT_OPTIONS.map((documentType) => (
+                                <option key={documentType} value={documentType}>{documentType}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                            <span>证件图像</span>
+                            <input
+                              ref={logisticsMasterDocumentImageInputRef}
+                              className={styles.hiddenFileInput}
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              onChange={(event) => handleLogisticsMasterDocumentImageFile(event.target.files?.[0])}
+                              disabled={!canEdit}
+                            />
+                            <div className={styles.documentImagePanel}>
+                              {logisticsMasterParticipantForm.idDocumentImage ? (
+                                <img src={logisticsMasterParticipantForm.idDocumentImage} alt="统一库证件图像预览" />
+                              ) : (
+                                <div className={styles.documentImagePlaceholder}>尚未上传证件图像</div>
+                              )}
+                              <div className={styles.documentImageActions}>
+                                <button
+                                  className={styles.secondaryButton}
+                                  onClick={() => logisticsMasterDocumentImageInputRef.current?.click()}
+                                  disabled={!canEdit}
+                                >
+                                  上传/拍照证件图像
+                                </button>
+                                {logisticsMasterParticipantForm.idDocumentImage && (
+                                  <button
+                                    className={styles.ghostButton}
+                                    onClick={() => handleLogisticsMasterParticipantFormChange('idDocumentImage', '')}
+                                    disabled={!canEdit}
+                                  >
+                                    移除图像
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className={styles.cardActionRow}>
+                      <button className={styles.portalButton} onClick={handleAddLogisticsMasterParticipant} disabled={!canEdit}>
+                        新增到统一库
+                      </button>
+                      <input
+                        ref={logisticsMasterFileInputRef}
+                        className={styles.hiddenFileInput}
+                        type="file"
+                        accept=".xlsx,.xls,.csv,.tsv,.txt"
+                        onChange={(event) => handleImportLogisticsMasterRosterFile(event.target.files?.[0])}
+                        disabled={!canEdit}
+                      />
+                      <button
+                        className={styles.secondaryButton}
+                        onClick={() => logisticsMasterFileInputRef.current?.click()}
+                        disabled={!canEdit}
+                      >
+                        Excel 表格导入
+                      </button>
+                      <button
+                        className={styles.secondaryButton}
+                        onClick={handleImportLogisticsMasterRosterFromClipboard}
+                        disabled={!canEdit}
+                      >
+                        读取剪切板导入
+                      </button>
+                    </div>
+
+                    <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                      <span>手动粘贴表格内容</span>
+                      <textarea
+                        value={logisticsMasterRosterPaste}
+                        onChange={(event) => setLogisticsMasterRosterPaste(event.target.value)}
+                        placeholder="从 Excel 复制包含“中文名、身份、赛项、队号、队名、手机、监护人、过敏史、证件信息”等表头的区域后粘贴到这里"
+                        disabled={!canEdit}
+                      />
+                    </label>
+                    <button className={styles.secondaryButton} onClick={handleImportLogisticsMasterRoster} disabled={!canEdit}>
+                      解析粘贴框内容
+                    </button>
+                      </>
+                    )}
+                  </article>
+
+                  <article className={styles.logisticsFormPanel}>
+                    <div className={styles.portalCardTop}>
+                      <div>
+                        <p className={styles.portalCardLabel}>Master Roster</p>
+                        <h3>统一人员信息表</h3>
+                      </div>
+                      <span className={styles.portalBadge}>{logisticsAggregatedRoster.length} 人</span>
+                    </div>
+
+                    {logisticsAggregatedRoster.length === 0 ? (
+                      <div className={styles.logisticsEmpty}>暂无人员。请先进入某一场后勤赛事，在“本场人员分表”中录入或导入人员。</div>
+                    ) : (
+                      <div className={styles.logisticsTableWrap}>
+                        <table className={styles.logisticsTable}>
+                          <thead>
+                            <tr>
+                              <th>中文名</th>
+                              <th>英文名</th>
+                              <th>身份</th>
+                              <th>赛项</th>
+                              <th>手机</th>
+                              <th>监护信息</th>
+                              <th>证件 / 过敏史</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {logisticsAggregatedRoster.map((participant) => (
+                              <tr key={participant.id}>
+                                <td><strong>{participant.name}</strong></td>
+                                <td>{participant.englishName || '未填'}</td>
+                                <td>{participant.role}</td>
+                                <td>
+                                  {renderLogisticsEventItemBadges(participant.eventItem)}
+                                </td>
+                                <td>{participant.phone || '未填'}</td>
+                                <td>
+                                  {participant.guardian || '无'}
+                                  {participant.guardianPhone && <small>{participant.guardianPhone}</small>}
+                                </td>
+                                <td>
+                                  {participant.notes || '未填'}
+                                  {participant.idNumber && <small>{participant.idNumber}</small>}
+                                  {participant.allergy && <small>过敏史：{participant.allergy}</small>}
+                                  {participant.idDocumentImage && (
+                                    <img
+                                      className={styles.documentThumb}
+                                      src={participant.idDocumentImage}
+                                      alt={`${participant.name} 证件图像`}
+                                    />
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </article>
+                </>
+              )}
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : (
+          viewMode === 'logistics-event'
+          || viewMode === 'logistics-event-roster'
+          || viewMode === 'logistics-event-rooms'
+        ) && activeLogisticsEvent ? (
+          <>
+            <Header
+              eyebrow={
+                viewMode === 'logistics-event-roster'
+                  ? 'Roster Sheet'
+                  : viewMode === 'logistics-event-rooms'
+                    ? 'Room Assignment'
+                    : 'Logistics Event'
+              }
+              title={
+                viewMode === 'logistics-event-roster'
+                  ? '本场人员分表'
+                  : viewMode === 'logistics-event-rooms'
+                    ? '住房分配'
+                    : activeLogisticsEvent.name
+              }
+              subtitle={
+                viewMode === 'logistics-event-roster'
+                  ? '在这里录入、导入和维护本场比赛人员。队名和赛场位置只保存在本场分表。'
+                  : viewMode === 'logistics-event-rooms'
+                    ? '在这里选择入住人员、生成房间记录，并统一查看本场住宿安排。'
+                    : '这里是单场赛事的后勤二级工作台，可以继续承载物资、人员、场地、签到和任务分工。'
+              }
+              action={
+                <div className={styles.headerActions}>
+                  {viewMode === 'logistics-event-roster' || viewMode === 'logistics-event-rooms' ? (
+                    <button className={styles.backButton} onClick={() => setViewMode('logistics-event')}>
+                      返回单场后勤
+                    </button>
+                  ) : (
+                    <button className={styles.backButton} onClick={handleBackToLogistics}>
+                      返回后勤管理
+                    </button>
+                  )}
+                  <button className={styles.backButton} onClick={handleBackToHome}>
+                    返回首页
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              <article className={styles.logisticsEventCard}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>赛事信息</p>
+                    <h3>{activeLogisticsEvent.name}</h3>
+                  </div>
+                  <span className={styles.portalBadge}>{activeLogisticsEvent.date || '未定日期'}</span>
+                </div>
+                <div className={styles.logisticsMeta}>
+                  <span>地点：{activeLogisticsEvent.venue || '未填写'}</span>
+                  <span>组别/赛项：{activeLogisticsEvent.group || '未填写'}</span>
+                  <span>创建：{new Date(activeLogisticsEvent.createdAt).toLocaleDateString('zh-CN')}</span>
+                </div>
+                {activeLogisticsEvent.notes && (
+                  <p className={styles.portalCardText}>{activeLogisticsEvent.notes}</p>
+                )}
+              </article>
+
+              {viewMode === 'logistics-event' && !activeLogisticsEventItem && (
+                <article
+                  className={`${styles.logisticsEventCard} ${styles.clickableCard}`}
+                  onClick={() => setViewMode('logistics-event-roster')}
+                >
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>Roster Sheet</p>
+                      <h3>本场人员分表</h3>
+                    </div>
+                    <span className={styles.portalBadge}>{activeLogisticsEvent.participants.length} 人</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    录入、导入和维护本场比赛人员。队名、队号和赛场位置只保存在本场分表。
+                  </p>
+                  <div className={styles.cardActionRow}>
+                    <span className={styles.cardEnterHint}>点击进入本场人员分表</span>
+                    <button className={styles.portalButton} type="button">
+                      进入人员分表
+                    </button>
+                  </div>
+                </article>
+              )}
+
+              {viewMode === 'logistics-event' && !activeLogisticsEventItem && (
+                <article
+                  className={`${styles.logisticsEventCard} ${styles.clickableCard}`}
+                  onClick={() => setViewMode('logistics-event-rooms')}
+                >
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>住宿管理</p>
+                      <h3>住房分配</h3>
+                    </div>
+                    <span className={styles.portalBadge}>{logisticsRoomsForSelectedItem.length} 间房</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    选择入住人员、生成房间号记录，并查看本场全部住宿安排。
+                  </p>
+                  <div className={styles.cardActionRow}>
+                    <span className={styles.cardEnterHint}>点击进入住房分配</span>
+                    <button className={styles.portalButton} type="button">
+                      进入住房分配
+                    </button>
+                  </div>
+                </article>
+              )}
+
+              {viewMode === 'logistics-event-roster' && !activeLogisticsEventItem && (
+                <article className={styles.logisticsFormPanel}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>Roster Sheet</p>
+                      <h3>本场人员分表</h3>
+                    </div>
+                    <div className={styles.timelineActions}>
+                      <button
+                        className={styles.portalButton}
+                        onClick={() => handleSyncSingleLogisticsEventToMaster(activeLogisticsEvent.id)}
+                        disabled={!canEdit || activeLogisticsEvent.participants.length === 0}
+                      >
+                        同步本场到统一总表
+                      </button>
+                      <button
+                        className={styles.secondaryButton}
+                        onClick={() => setLogisticsRosterInputOpen((previous) => !previous)}
+                      >
+                        {logisticsRosterInputOpen ? '收起录入' : '展开录入'}
+                      </button>
+                    </div>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    在这里录入或粘贴本场比赛人员表。队名和赛场位置只保存在本场分表，同步到统一总表时会自动过滤。
+                  </p>
+
+                  {logisticsRosterInputOpen && (
+                    <>
+                      <div className={styles.logisticsFormGrid}>
+                        <label className={styles.logisticsField}>
+                          <span>身份</span>
+                          <select
+                            value={logisticsParticipantForm.role}
+                            onChange={(event) => handleLogisticsParticipantFormChange('role', event.target.value)}
+                            disabled={!canEdit}
+                          >
+                            {LOGISTICS_PARTICIPANT_ROLES.map((role) => (
+                              <option key={role} value={role}>{role}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className={styles.logisticsField}>
+                          <span>中文名</span>
+                          <input
+                            value={logisticsParticipantForm.name}
+                            onChange={(event) => handleLogisticsParticipantFormChange('name', event.target.value)}
+                            placeholder="姓名"
+                            disabled={!canEdit}
+                          />
+                        </label>
+                        <label className={styles.logisticsField}>
+                          <span>英文名</span>
+                          <input
+                            value={logisticsParticipantForm.englishName}
+                            onChange={(event) => handleLogisticsParticipantFormChange('englishName', event.target.value)}
+                            placeholder="English name"
+                            disabled={!canEdit}
+                          />
+                        </label>
+                        <label className={styles.logisticsField}>
+                          <span>性别</span>
+                          <input
+                            value={logisticsParticipantForm.gender}
+                            onChange={(event) => handleLogisticsParticipantFormChange('gender', event.target.value)}
+                            placeholder="男 / 女"
+                            disabled={!canEdit}
+                          />
+                        </label>
+                        <label className={styles.logisticsField}>
+                          <span>手机</span>
+                          <input
+                            value={logisticsParticipantForm.phone}
+                            onChange={(event) => handleLogisticsParticipantFormChange('phone', event.target.value)}
+                            placeholder="联系电话"
+                            disabled={!canEdit}
+                          />
+                        </label>
+
+                        {logisticsParticipantForm.role === '队员' && (
+                          <>
+                            <label className={styles.logisticsField}>
+                              <span>赛项</span>
+                              <select
+                                value={logisticsParticipantForm.eventItem}
+                                onChange={(event) => handleLogisticsParticipantFormChange('eventItem', event.target.value)}
+                                disabled={!canEdit}
+                              >
+                                <option value="">请选择赛项</option>
+                                {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => (
+                                  <option key={item} value={item}>{item}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>队号</span>
+                              <input
+                                value={logisticsParticipantForm.teamNo}
+                                onChange={(event) => handleLogisticsParticipantFormChange('teamNo', event.target.value)}
+                                placeholder="战队编号"
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>队名</span>
+                              <input
+                                value={logisticsParticipantForm.teamName}
+                                onChange={(event) => handleLogisticsParticipantFormChange('teamName', event.target.value)}
+                                placeholder="只保存在本场分表"
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>赛场位置</span>
+                              <input
+                                value={logisticsParticipantForm.fieldPosition}
+                                onChange={(event) => handleLogisticsParticipantFormChange('fieldPosition', event.target.value)}
+                                placeholder="例如：GIN22 / XE09"
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>监护人</span>
+                              <input
+                                value={logisticsParticipantForm.guardian}
+                                onChange={(event) => handleLogisticsParticipantFormChange('guardian', event.target.value)}
+                                placeholder="监护人姓名"
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>监护人电话</span>
+                              <input
+                                value={logisticsParticipantForm.guardianPhone}
+                                onChange={(event) => handleLogisticsParticipantFormChange('guardianPhone', event.target.value)}
+                                placeholder="监护人联系电话"
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>过敏史</span>
+                              <input
+                                value={logisticsParticipantForm.allergy}
+                                onChange={(event) => handleLogisticsParticipantFormChange('allergy', event.target.value)}
+                                placeholder="无 / 具体说明"
+                                disabled={!canEdit}
+                              />
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>证件信息</span>
+                              <select
+                                value={logisticsParticipantForm.notes}
+                                onChange={(event) => handleLogisticsParticipantFormChange('notes', event.target.value)}
+                                disabled={!canEdit}
+                              >
+                                {LOGISTICS_ID_DOCUMENT_OPTIONS.map((documentType) => (
+                                  <option key={documentType} value={documentType}>{documentType}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className={styles.logisticsField}>
+                              <span>证件号码</span>
+                              <input
+                                value={logisticsParticipantForm.idNumber}
+                                onChange={(event) => handleLogisticsParticipantFormChange('idNumber', event.target.value)}
+                                placeholder="证件号码"
+                                disabled={!canEdit}
+                              />
+                            </label>
+                          </>
+                        )}
+                      </div>
+
+                      <div className={styles.cardActionRow}>
+                        <button className={styles.portalButton} onClick={handleAddLogisticsParticipant} disabled={!canEdit}>
+                          新增到本场
+                        </button>
+                        <input
+                          ref={logisticsFileInputRef}
+                          className={styles.hiddenFileInput}
+                          type="file"
+                          accept=".xlsx,.xls,.csv,.tsv,.txt"
+                          onChange={(event) => handleImportLogisticsRosterFile(event.target.files?.[0])}
+                          disabled={!canEdit}
+                        />
+                        <button
+                          className={styles.secondaryButton}
+                          onClick={() => logisticsFileInputRef.current?.click()}
+                          disabled={!canEdit}
+                        >
+                          Excel 表格导入
+                        </button>
+                        <button
+                          className={styles.secondaryButton}
+                          onClick={handleImportLogisticsRosterFromClipboard}
+                          disabled={!canEdit}
+                        >
+                          读取剪切板导入
+                        </button>
+                      </div>
+
+                      <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                        <span>手动粘贴表格内容</span>
+                        <textarea
+                          value={logisticsRosterPaste}
+                          onChange={(event) => setLogisticsRosterPaste(event.target.value)}
+                          placeholder="从 Excel 复制三亚信息表后粘贴到这里，支持中文名、英文名、性别、证件类型、证件号码、手机、监护人、过敏史、赛项、队号、队名、赛场位置"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <button className={styles.secondaryButton} onClick={handleImportLogisticsRoster} disabled={!canEdit}>
+                        解析粘贴框内容
+                      </button>
+                    </>
+                  )}
+
+                  <div className={styles.logisticsTableWrap}>
+                    {activeLogisticsEvent.participants.length === 0 ? (
+                      <div className={styles.logisticsEmpty}>本场暂无人员。可以手动新增，也可以从剪切板或 Excel 表格导入。</div>
+                    ) : (
+                      <table className={styles.logisticsTable}>
+                        <thead>
+                          <tr>
+                            <th>中文名</th>
+                            <th>英文名</th>
+                            <th>性别</th>
+                            <th>身份</th>
+                            <th>赛项 / 队伍</th>
+                            <th>赛场位置</th>
+                            <th>手机</th>
+                            <th>监护信息</th>
+                            <th>证件 / 过敏史</th>
+                            <th>操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeLogisticsEvent.participants.map((participant) => {
+                            const isEditing = editingLogisticsParticipantId === participant.id;
+                            const editingRole = editingLogisticsParticipantForm.role;
+                            const isEditingTeamMember = editingRole === '队员';
+
+                            return (
+                              <tr key={participant.id}>
+                                <td>
+                                  {isEditing ? (
+                                    <input
+                                      className={styles.tableInlineInput}
+                                      value={editingLogisticsParticipantForm.name}
+                                      onChange={(event) => handleEditingLogisticsParticipantFormChange('name', event.target.value)}
+                                    />
+                                  ) : (
+                                    <strong>{participant.name}</strong>
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <input
+                                      className={styles.tableInlineInput}
+                                      value={editingLogisticsParticipantForm.englishName}
+                                      onChange={(event) => handleEditingLogisticsParticipantFormChange('englishName', event.target.value)}
+                                    />
+                                  ) : (
+                                    participant.englishName || '未填'
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <input
+                                      className={styles.tableInlineInput}
+                                      value={editingLogisticsParticipantForm.gender}
+                                      onChange={(event) => handleEditingLogisticsParticipantFormChange('gender', event.target.value)}
+                                      placeholder="男 / 女"
+                                    />
+                                  ) : (
+                                    participant.gender || '未填'
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <select
+                                      value={editingLogisticsParticipantForm.role}
+                                      onChange={(event) => handleEditingLogisticsParticipantFormChange('role', event.target.value)}
+                                    >
+                                      {LOGISTICS_PARTICIPANT_ROLES.map((role) => (
+                                        <option key={role} value={role}>{role}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    participant.role
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <div className={styles.tableEditorStack}>
+                                      <select
+                                        value={editingLogisticsParticipantForm.eventItem}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('eventItem', event.target.value)}
+                                        disabled={!isEditingTeamMember}
+                                      >
+                                        <option value="">请选择赛项</option>
+                                        {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => (
+                                          <option key={item} value={item}>{item}</option>
+                                        ))}
+                                      </select>
+                                      <input
+                                        className={styles.tableInlineInput}
+                                        value={editingLogisticsParticipantForm.teamNo}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('teamNo', event.target.value)}
+                                        placeholder="队号"
+                                        disabled={!isEditingTeamMember}
+                                      />
+                                      <input
+                                        className={styles.tableInlineInput}
+                                        value={editingLogisticsParticipantForm.teamName}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('teamName', event.target.value)}
+                                        placeholder="队名"
+                                        disabled={!isEditingTeamMember}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {renderLogisticsEventItemBadges(participant.eventItem)}
+                                      {(participant.teamNo || participant.teamName) && (
+                                        <small>{[participant.teamNo, participant.teamName].filter(Boolean).join(' / ')}</small>
+                                      )}
+                                    </>
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <input
+                                      className={styles.tableInlineInput}
+                                      value={editingLogisticsParticipantForm.fieldPosition}
+                                      onChange={(event) => handleEditingLogisticsParticipantFormChange('fieldPosition', event.target.value)}
+                                      placeholder="赛场位置"
+                                      disabled={!isEditingTeamMember}
+                                    />
+                                  ) : (
+                                    participant.fieldPosition || '未填'
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <input
+                                      className={styles.tableInlineInput}
+                                      value={editingLogisticsParticipantForm.phone}
+                                      onChange={(event) => handleEditingLogisticsParticipantFormChange('phone', event.target.value)}
+                                    />
+                                  ) : (
+                                    participant.phone || '未填'
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <div className={styles.tableEditorStack}>
+                                      <input
+                                        className={styles.tableInlineInput}
+                                        value={editingLogisticsParticipantForm.guardian}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('guardian', event.target.value)}
+                                        placeholder="监护人"
+                                        disabled={!isEditingTeamMember}
+                                      />
+                                      <input
+                                        className={styles.tableInlineInput}
+                                        value={editingLogisticsParticipantForm.guardianPhone}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('guardianPhone', event.target.value)}
+                                        placeholder="监护人电话"
+                                        disabled={!isEditingTeamMember}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {participant.guardian || '无'}
+                                      {participant.guardianPhone && <small>{participant.guardianPhone}</small>}
+                                    </>
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <div className={styles.tableEditorStack}>
+                                      <select
+                                        value={editingLogisticsParticipantForm.notes}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('notes', event.target.value)}
+                                      >
+                                        {LOGISTICS_ID_DOCUMENT_OPTIONS.map((documentType) => (
+                                          <option key={documentType} value={documentType}>{documentType}</option>
+                                        ))}
+                                      </select>
+                                      <input
+                                        className={styles.tableInlineInput}
+                                        value={editingLogisticsParticipantForm.idNumber}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('idNumber', event.target.value)}
+                                        placeholder="证件号码"
+                                      />
+                                      <input
+                                        className={styles.tableInlineInput}
+                                        value={editingLogisticsParticipantForm.allergy}
+                                        onChange={(event) => handleEditingLogisticsParticipantFormChange('allergy', event.target.value)}
+                                        placeholder="过敏史"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {participant.notes || '未填'}
+                                      {participant.idNumber && <small>{participant.idNumber}</small>}
+                                      {participant.allergy && <small>过敏史：{participant.allergy}</small>}
+                                    </>
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <div className={styles.tableEditorStack}>
+                                      <button
+                                        className={styles.ghostButton}
+                                        onClick={handleSaveLogisticsParticipant}
+                                        disabled={!canEdit}
+                                      >
+                                        保存
+                                      </button>
+                                      <button
+                                        className={styles.smallDangerButton}
+                                        onClick={handleCancelEditLogisticsParticipant}
+                                      >
+                                        取消
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className={styles.tableEditorStack}>
+                                      <button
+                                        className={styles.ghostButton}
+                                        onClick={() => handleStartEditLogisticsParticipant(participant)}
+                                        disabled={!canEdit}
+                                      >
+                                        编辑
+                                      </button>
+                                      <button
+                                        className={styles.smallDangerButton}
+                                        onClick={() => handleDeleteLogisticsParticipant(participant.id)}
+                                        disabled={!canEdit}
+                                      >
+                                        删除
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </article>
+              )}
+
+              {viewMode === 'logistics-event-rooms' && !activeLogisticsEventItem && (
+                <article className={styles.logisticsFormPanel}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>住宿管理</p>
+                      <h3>住房分配</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Rooms</span>
+                  </div>
+
+                  <div className={styles.logisticsFormGrid}>
+                    <label className={styles.logisticsField}>
+                      <span>房间号</span>
+                      <input
+                        value={logisticsRoomForm.roomNo}
+                        onChange={(event) => handleLogisticsRoomFormChange('roomNo', event.target.value)}
+                        placeholder="例如：1208 / A301"
+                        disabled={!canEdit}
+                      />
+                    </label>
+                    <label className={styles.logisticsField}>
+                      <span>备注</span>
+                      <select
+                        value={
+                          logisticsRoomNoteMode
+                          || (LOGISTICS_ROOM_NOTE_OPTIONS.includes(logisticsRoomForm.notes)
+                            ? logisticsRoomForm.notes
+                            : logisticsRoomForm.notes
+                              ? '自定义输入'
+                              : '')
+                        }
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setLogisticsRoomNoteMode(value);
+                          handleLogisticsRoomFormChange('notes', value === '自定义输入' ? '' : value);
+                        }}
+                        disabled={!canEdit}
+                      >
+                        <option value="">请选择房间类型</option>
+                        {LOGISTICS_ROOM_NOTE_OPTIONS.map((note) => (
+                          <option key={note} value={note}>{note}</option>
+                        ))}
+                        <option value="自定义输入">自定义输入</option>
+                      </select>
+                      {(logisticsRoomNoteMode === '自定义输入'
+                        || (!LOGISTICS_ROOM_NOTE_OPTIONS.includes(logisticsRoomForm.notes) && logisticsRoomForm.notes)) && (
+                        <input
+                          value={logisticsRoomForm.notes}
+                          onChange={(event) => handleLogisticsRoomFormChange('notes', event.target.value)}
+                          placeholder="请输入自定义备注"
+                          disabled={!canEdit}
+                        />
+                      )}
+                    </label>
+                  </div>
+
+                  <div className={styles.roomPicker}>
+                    {logisticsParticipantsForSelectedItem.length === 0 ? (
+                      <div className={styles.logisticsEmpty}>暂无可选入住人员。进入对应赛项后，先在队员基础信息库中新增人员。</div>
+                    ) : (
+                      logisticsParticipantsForSelectedItem.map((participant) => {
+                        const isSelectedForRoom = logisticsRoomForm.participantIds.includes(participant.id);
+                        const isAssignedToRoom = logisticsRoomsForSelectedItem.some((room) =>
+                          room.participantIds.includes(participant.id));
+
+                        return (
+                          <label
+                            key={participant.id}
+                            className={[
+                              styles.roomPersonChip,
+                              isAssignedToRoom ? styles.roomPersonChipAssigned : '',
+                              isSelectedForRoom ? styles.roomPersonChipSelected : '',
+                            ].filter(Boolean).join(' ')}
+                          >
+                          <input
+                            type="checkbox"
+                            checked={isSelectedForRoom}
+                            onChange={() => handleToggleLogisticsRoomParticipant(participant.id)}
+                            disabled={!canEdit || isAssignedToRoom}
+                          />
+                          <span>{participant.name}</span>
+                          <small>
+                            {participant.englishName && `${participant.englishName} · `}
+                            {participant.role}{participant.teamNo ? ` · ${participant.teamNo}` : ''}
+                            {isAssignedToRoom ? ' · 已入住' : ''}
+                          </small>
+                        </label>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <button className={styles.portalButton} onClick={handleAddLogisticsRoom} disabled={!canEdit}>
+                    添加住房分配
+                  </button>
+
+                  <div className={styles.roomRecordHeader}>
+                    <div>
+                      <p className={styles.portalCardLabel}>住房记录表</p>
+                      <h3>房间与入住人员</h3>
+                    </div>
+                    <span className={styles.portalBadge}>{logisticsRoomsForSelectedItem.length} 间房</span>
+                  </div>
+
+                  <div className={styles.logisticsTableWrap}>
+                    {logisticsRoomsForSelectedItem.length === 0 ? (
+                      <div className={styles.logisticsEmpty}>暂无住房分配。填写房间号并选择入住人员后生成记录。</div>
+                    ) : (
+                      <table className={styles.logisticsTable}>
+                        <thead>
+                          <tr>
+                            <th>房间号</th>
+                            <th>入住人员</th>
+                            <th>人数</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {logisticsRoomsForSelectedItem.map((room) => {
+                            const roomParticipants = room.participantIds
+                              .map((participantId) => activeLogisticsEvent.participants.find((participant) => participant.id === participantId))
+                              .filter((participant): participant is LogisticsParticipant => Boolean(participant));
+
+                            return (
+                              <tr key={room.id}>
+                                <td><strong>{room.roomNo}</strong></td>
+                                <td>
+                                  <div className={styles.roomPeopleList}>
+                                    {roomParticipants.map((participant) => (
+                                      <span key={participant.id}>
+                                        {participant.name}
+                                        <small>{participant.role}{participant.teamNo ? ` · ${participant.teamNo}` : ''}</small>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td>{roomParticipants.length} 人</td>
+                                <td>{room.notes || '无'}</td>
+                                <td>
+                                  <button
+                                    className={styles.smallDangerButton}
+                                    onClick={() => handleDeleteLogisticsRoom(room.id)}
+                                    disabled={!canEdit}
+                                  >
+                                    删除
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </article>
+              )}
+
+              {viewMode === 'logistics-event' && (!activeLogisticsEventItem ? (
+                <div className={styles.logisticsItemGrid}>
+                  {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => {
+                    const itemStudents = activeLogisticsEvent.participants.filter((participant) =>
+                      participant.role === '队员' && matchesLogisticsEventItem(participant.eventItem, item));
+                    const itemNodes = activeLogisticsEvent.timeline.filter((node) => node.rollCallEnabled);
+
+                    return (
+                      <button
+                        key={item}
+                        className={styles.logisticsItemCard}
+                        onClick={() => {
+                          setActiveLogisticsEventItem(item);
+                          setLogisticsParticipantForm((previous) => ({
+                            ...previous,
+                            eventItem: item,
+                          }));
+                        }}
+                      >
+                        <span className={styles.portalCardLabel}>赛项后勤</span>
+                        <strong>{item}</strong>
+                        <small>
+                          {itemStudents.length} 名队员 · {itemNodes.length} 个点名节点
+                        </small>
+                        <em>进入 {item} 后勤工作台</em>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
+                  <div className={styles.cardActionRow}>
+                    <button className={styles.backButton} onClick={() => setActiveLogisticsEventItem(null)}>
+                      返回赛项选择
+                    </button>
+                    <span className={styles.portalBadge}>当前赛项：{activeLogisticsEventItem}</span>
+                  </div>
+
+              <div className={styles.logisticsSummaryGrid}>
+                <article className={styles.parameterCard}>
+                  <span>基础人员</span>
+                  <strong>{logisticsParticipantsForSelectedItem.length}</strong>
+                  <small>{activeLogisticsEventItem} 范围内人员</small>
+                </article>
+                <article className={styles.parameterCard}>
+                  <span>已分配队员</span>
+                  <strong>{logisticsStudents.filter((student) => student.mentorId).length}</strong>
+                  <small>教练/领队负责关系</small>
+                </article>
+                <article className={styles.parameterCard}>
+                  <span>点名节点</span>
+                  <strong>{logisticsRollCallNodes.length}</strong>
+                  <small>机场、登机口、大巴等</small>
+                </article>
+                <article className={styles.parameterCard}>
+                  <span>点名完成</span>
+                  <strong>{logisticsRollCallTotal ? `${logisticsRollCallDone}/${logisticsRollCallTotal}` : '0'}</strong>
+                  <small>全部教练/领队合计</small>
+                </article>
+              </div>
+
+              <article className={styles.logisticsFormPanel} hidden>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>Step 2</p>
+                    <h3>队员基础信息库</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Roster</span>
+                </div>
+                <p className={styles.portalCardText}>
+                  这里先录入本场比赛所有人员。后面的教练分配、交通住宿和点名节点，都会从这个人员库里读取。
+                </p>
+
+                <div className={styles.logisticsFormGrid}>
+                  <label className={styles.logisticsField}>
+                    <span>身份</span>
+                    <select
+                      value={logisticsParticipantForm.role}
+                      onChange={(event) => handleLogisticsParticipantFormChange('role', event.target.value)}
+                      disabled={!canEdit}
+                    >
+                      {LOGISTICS_PARTICIPANT_ROLES.map((role) => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>中文名</span>
+                    <input
+                      value={logisticsParticipantForm.name}
+                      onChange={(event) => handleLogisticsParticipantFormChange('name', event.target.value)}
+                      placeholder="例如：刘子颢 / Jason"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>英文名</span>
+                    <input
+                      value={logisticsParticipantForm.englishName}
+                      onChange={(event) => handleLogisticsParticipantFormChange('englishName', event.target.value)}
+                      placeholder="可选"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>手机</span>
+                    <input
+                      value={logisticsParticipantForm.phone}
+                      onChange={(event) => handleLogisticsParticipantFormChange('phone', event.target.value)}
+                      placeholder="现场联系号码"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  {logisticsParticipantForm.role === '队员' && (
+                    <>
+                      <label className={styles.logisticsField}>
+                        <span>赛项</span>
+                        <input
+                          value={logisticsParticipantForm.eventItem}
+                          onChange={(event) => handleLogisticsParticipantFormChange('eventItem', event.target.value)}
+                          placeholder="INS / EXP / CHA / FRC"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>队号</span>
+                        <input
+                          value={logisticsParticipantForm.teamNo}
+                          onChange={(event) => handleLogisticsParticipantFormChange('teamNo', event.target.value)}
+                          placeholder="战队编号"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>队名</span>
+                        <input
+                          value={logisticsParticipantForm.teamName}
+                          onChange={(event) => handleLogisticsParticipantFormChange('teamName', event.target.value)}
+                          placeholder="战队名称"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>负责教练/领队</span>
+                        <select
+                          value={logisticsParticipantForm.mentorId}
+                          onChange={(event) => handleLogisticsParticipantFormChange('mentorId', event.target.value)}
+                          disabled={!canEdit}
+                        >
+                          <option value="">暂不分配</option>
+                          {logisticsMentors.map((mentor) => (
+                            <option key={mentor.id} value={mentor.id}>{mentor.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>监护人</span>
+                        <input
+                          value={logisticsParticipantForm.guardian}
+                          onChange={(event) => handleLogisticsParticipantFormChange('guardian', event.target.value)}
+                          placeholder="可选"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>监护人电话</span>
+                        <input
+                          value={logisticsParticipantForm.guardianPhone}
+                          onChange={(event) => handleLogisticsParticipantFormChange('guardianPhone', event.target.value)}
+                          placeholder="可选"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>过敏史</span>
+                        <input
+                          value={logisticsParticipantForm.allergy}
+                          onChange={(event) => handleLogisticsParticipantFormChange('allergy', event.target.value)}
+                          placeholder="无 / 具体说明"
+                          disabled={!canEdit}
+                        />
+                      </label>
+                      <label className={styles.logisticsField}>
+                        <span>证件信息</span>
+                        <select
+                          value={logisticsParticipantForm.notes}
+                          onChange={(event) => handleLogisticsParticipantFormChange('notes', event.target.value)}
+                          disabled={!canEdit}
+                        >
+                          {LOGISTICS_ID_DOCUMENT_OPTIONS.map((documentType) => (
+                            <option key={documentType} value={documentType}>{documentType}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                        <span>证件图像</span>
+                        <input
+                          ref={logisticsDocumentImageInputRef}
+                          className={styles.hiddenFileInput}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(event) => handleLogisticsDocumentImageFile(event.target.files?.[0])}
+                          disabled={!canEdit}
+                        />
+                        <div className={styles.documentImagePanel}>
+                          {logisticsParticipantForm.idDocumentImage ? (
+                            <img src={logisticsParticipantForm.idDocumentImage} alt="证件图像预览" />
+                          ) : (
+                            <div className={styles.documentImagePlaceholder}>尚未上传证件图像</div>
+                          )}
+                          <div className={styles.documentImageActions}>
+                            <button
+                              className={styles.secondaryButton}
+                              onClick={() => logisticsDocumentImageInputRef.current?.click()}
+                              disabled={!canEdit}
+                            >
+                              上传/拍照证件图像
+                            </button>
+                            {logisticsParticipantForm.idDocumentImage && (
+                              <button
+                                className={styles.ghostButton}
+                                onClick={() => handleLogisticsParticipantFormChange('idDocumentImage', '')}
+                                disabled={!canEdit}
+                              >
+                                移除图像
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className={styles.cardActionRow}>
+                  <button className={styles.portalButton} onClick={handleAddLogisticsParticipant} disabled={!canEdit}>
+                    新增人员
+                  </button>
+                  <input
+                    ref={logisticsFileInputRef}
+                    className={styles.hiddenFileInput}
+                    type="file"
+                    accept=".xlsx,.xls,.csv,.tsv,.txt"
+                    onChange={(event) => handleImportLogisticsRosterFile(event.target.files?.[0])}
+                    disabled={!canEdit}
+                  />
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => logisticsFileInputRef.current?.click()}
+                    disabled={!canEdit}
+                  >
+                    Excel 表格导入
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={handleImportLogisticsRosterFromClipboard}
+                    disabled={!canEdit}
+                  >
+                    读取剪切板导入
+                  </button>
+                </div>
+
+                <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                  <span>手动粘贴表格内容</span>
+                  <textarea
+                    value={logisticsRosterPaste}
+                    onChange={(event) => setLogisticsRosterPaste(event.target.value)}
+                    placeholder="从 Excel 复制包含“中文名、角色、赛项、队号、队名、手机、监护人、过敏史、证件类型”等表头的区域后粘贴到这里"
+                    disabled={!canEdit}
+                  />
+                </label>
+                <button className={styles.secondaryButton} onClick={handleImportLogisticsRoster} disabled={!canEdit}>
+                  解析粘贴框内容
+                </button>
+              </article>
+
+              <article className={styles.logisticsFormPanel}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>Step 3</p>
+                    <h3>教练/领队分配</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Mentor Map</span>
+                </div>
+
+                {logisticsParticipantsForSelectedItem.length === 0 ? (
+                  <div className={styles.logisticsEmpty}>暂无人员。先在上方新增教练、领队和队员。</div>
+                ) : (
+                  <div className={styles.logisticsTableWrap}>
+                    <table className={styles.logisticsTable}>
+                      <thead>
+                        <tr>
+                          <th>中文名</th>
+                          <th>英文名</th>
+                          <th>角色</th>
+                          <th>赛项 / 队伍</th>
+                          <th>联系方式</th>
+                          <th>负责教练/领队</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {logisticsParticipantsForSelectedItem.map((participant) => (
+                          <tr key={participant.id}>
+                            <td><strong>{participant.name}</strong></td>
+                            <td>{participant.englishName || '未填'}</td>
+                            <td>{participant.role}</td>
+                            <td>
+                              {renderLogisticsEventItemBadges(participant.eventItem)}
+                              {(participant.teamNo || participant.teamName) && (
+                                <small>{[participant.teamNo, participant.teamName].filter(Boolean).join(' / ')}</small>
+                              )}
+                            </td>
+                            <td>
+                              {participant.phone || '未填'}
+                              {participant.guardianPhone && <small>监护人：{participant.guardianPhone}</small>}
+                              {participant.idDocumentImage && (
+                                <img
+                                  className={styles.documentThumb}
+                                  src={participant.idDocumentImage}
+                                  alt={`${participant.name} 证件图像`}
+                                />
+                              )}
+                            </td>
+                            <td>
+                              {participant.role === '队员' ? (
+                                <select
+                                  value={participant.mentorId}
+                                  onChange={(event) => handleAssignLogisticsMentor(participant.id, event.target.value)}
+                                  disabled={!canEdit}
+                                >
+                                  <option value="">未分配</option>
+                                  {logisticsMentors.map((mentor) => (
+                                    <option key={mentor.id} value={mentor.id}>{mentor.name}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className={styles.statusPill}>可负责队员</span>
+                              )}
+                            </td>
+                            <td>
+                              <button
+                                className={styles.smallDangerButton}
+                                onClick={() => handleDeleteLogisticsParticipant(participant.id)}
+                                disabled={!canEdit}
+                              >
+                                删除
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </article>
+
+
+              <article className={styles.logisticsFormPanel}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>Step 4</p>
+                    <h3>行程时间轴与点名节点</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Roll Call</span>
+                </div>
+
+                <div className={styles.logisticsFormGrid}>
+                  <label className={styles.logisticsField}>
+                    <span>日期</span>
+                    <input
+                      type="date"
+                      value={logisticsTimelineForm.date}
+                      onChange={(event) => handleLogisticsTimelineFormChange('date', event.target.value)}
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>时间</span>
+                    <input
+                      type="time"
+                      value={logisticsTimelineForm.time}
+                      onChange={(event) => handleLogisticsTimelineFormChange('time', event.target.value)}
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>事项</span>
+                    <input
+                      value={logisticsTimelineForm.title}
+                      onChange={(event) => handleLogisticsTimelineFormChange('title', event.target.value)}
+                      placeholder="机场集合 / 登机口点名 / 大巴上车"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>位置</span>
+                    <input
+                      value={logisticsTimelineForm.location}
+                      onChange={(event) => handleLogisticsTimelineFormChange('location', event.target.value)}
+                      placeholder="首都机场 T2 / 到达出口 / 酒店大堂"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>节点负责人</span>
+                    <select
+                      value={logisticsTimelineForm.owner}
+                      onChange={(event) => handleLogisticsTimelineFormChange('owner', event.target.value)}
+                      disabled={!canEdit}
+                    >
+                      <option value="">
+                        {logisticsMentors.length === 0 ? '请先录入教练/领队' : '请选择负责人'}
+                      </option>
+                      {logisticsMentors.map((mentor) => (
+                        <option key={mentor.id} value={mentor.name}>
+                          {mentor.name}{mentor.englishName ? ` / ${mentor.englishName}` : ''} · {mentor.role}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.logisticsField}>
+                    <span>备注</span>
+                    <input
+                      value={logisticsTimelineForm.notes}
+                      onChange={(event) => handleLogisticsTimelineFormChange('notes', event.target.value)}
+                      placeholder="如：带证件、检查随身物品"
+                      disabled={!canEdit}
+                    />
+                  </label>
+                </div>
+                <label className={styles.logisticsToggleLine}>
+                  <input
+                    type="checkbox"
+                    checked={logisticsTimelineForm.rollCallEnabled}
+                    onChange={(event) => handleLogisticsTimelineFormChange('rollCallEnabled', event.target.checked)}
+                    disabled={!canEdit}
+                  />
+                  <span>这个时间节点需要点名</span>
+                </label>
+                <button className={styles.portalButton} onClick={handleAddLogisticsTimelineItem} disabled={!canEdit}>
+                  添加时间节点
+                </button>
+
+                <div className={styles.timelineList}>
+                  {activeLogisticsEvent.timeline.length === 0 ? (
+                    <div className={styles.logisticsEmpty}>暂无行程节点。先添加机场集合、登机口、大巴、酒店等关键节点。</div>
+                  ) : (
+                    activeLogisticsEvent.timeline.map((item) => {
+                      const isEditingTimelineItem = editingLogisticsTimelineId === item.id;
+
+                      return (
+                        <div key={item.id} className={styles.timelineItem}>
+                          {isEditingTimelineItem ? (
+                            <div className={styles.timelineEditGrid}>
+                              <label>
+                                <span>日期</span>
+                                <input
+                                  type="date"
+                                  value={editingLogisticsTimelineForm.date}
+                                  onChange={(event) => handleEditingLogisticsTimelineFormChange('date', event.target.value)}
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label>
+                                <span>时间</span>
+                                <input
+                                  type="time"
+                                  value={editingLogisticsTimelineForm.time}
+                                  onChange={(event) => handleEditingLogisticsTimelineFormChange('time', event.target.value)}
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label>
+                                <span>事项</span>
+                                <input
+                                  value={editingLogisticsTimelineForm.title}
+                                  onChange={(event) => handleEditingLogisticsTimelineFormChange('title', event.target.value)}
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label>
+                                <span>位置</span>
+                                <input
+                                  value={editingLogisticsTimelineForm.location}
+                                  onChange={(event) => handleEditingLogisticsTimelineFormChange('location', event.target.value)}
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label>
+                                <span>负责人</span>
+                                <select
+                                  value={editingLogisticsTimelineForm.owner}
+                                  onChange={(event) => handleEditingLogisticsTimelineFormChange('owner', event.target.value)}
+                                  disabled={!canEdit}
+                                >
+                                  <option value="">
+                                    {logisticsMentors.length === 0 ? '请先录入教练/领队' : '请选择负责人'}
+                                  </option>
+                                  {logisticsMentors.map((mentor) => (
+                                    <option key={mentor.id} value={mentor.name}>
+                                      {mentor.name}{mentor.englishName ? ` / ${mentor.englishName}` : ''} · {mentor.role}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label>
+                                <span>备注</span>
+                                <input
+                                  value={editingLogisticsTimelineForm.notes}
+                                  onChange={(event) => handleEditingLogisticsTimelineFormChange('notes', event.target.value)}
+                                  disabled={!canEdit}
+                                />
+                              </label>
+                              <label className={styles.timelineEditToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={editingLogisticsTimelineForm.rollCallEnabled}
+                                  onChange={(event) =>
+                                    handleEditingLogisticsTimelineFormChange('rollCallEnabled', event.target.checked)}
+                                  disabled={!canEdit}
+                                />
+                                <span>需要点名</span>
+                              </label>
+                            </div>
+                          ) : (
+                            <div>
+                              <strong>{item.date || '未定日期'} {item.time || ''}</strong>
+                              <span>{item.title}</span>
+                              <small>{[item.location, item.owner, item.notes].filter(Boolean).join(' · ')}</small>
+                            </div>
+                          )}
+                          <div className={styles.timelineActions}>
+                            {isEditingTimelineItem ? (
+                              <>
+                                <button
+                                  className={styles.secondaryButton}
+                                  onClick={handleSaveLogisticsTimelineItem}
+                                  disabled={!canEdit}
+                                >
+                                  保存
+                                </button>
+                                <button
+                                  className={styles.smallDangerButton}
+                                  onClick={handleCancelEditLogisticsTimelineItem}
+                                >
+                                  取消
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className={item.rollCallEnabled ? styles.secondaryButton : styles.ghostButton}
+                                  onClick={() => handleToggleLogisticsRollCall(item.id)}
+                                  disabled={!canEdit}
+                                >
+                                  {item.rollCallEnabled ? '已开启点名' : '开启点名'}
+                                </button>
+                                <button
+                                  className={styles.ghostButton}
+                                  onClick={() => handleStartEditLogisticsTimelineItem(item)}
+                                  disabled={!canEdit}
+                                >
+                                  编辑
+                                </button>
+                                <button
+                                  className={styles.smallDangerButton}
+                                  onClick={() => handleDeleteLogisticsTimelineItem(item.id)}
+                                  disabled={!canEdit}
+                                >
+                                  删除
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </article>
+
+              <article className={styles.logisticsFormPanel}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>Step 5</p>
+                    <h3>教练/领队点名工作台</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Attendance</span>
+                </div>
+
+                {logisticsRollCallNodes.length === 0 || logisticsStudents.length === 0 ? (
+                  <div className={styles.logisticsEmpty}>
+                    需要至少 1 个队员和 1 个开启点名的时间节点，才会生成点名表。
+                  </div>
+                ) : (
+                  <div className={styles.rollCallGrid}>
+                    {logisticsRollCallNodes.map((node) => {
+                      const nodeArrivedCount = logisticsStudents.filter((student) =>
+                        normalizeLogisticsAttendanceStatus(activeLogisticsEvent.attendance[node.id]?.[student.id]) === '已到达').length;
+                      const isNodeComplete = logisticsStudents.length > 0 && nodeArrivedCount === logisticsStudents.length;
+                      const timeAlertStatus = isNodeComplete
+                        ? 'normal'
+                        : getLogisticsTimeAlertStatus(node.date, node.time, logisticsAlertNow);
+                      const timeAlertLabel = getLogisticsTimeAlertLabel(timeAlertStatus);
+
+                      return (
+                        <section
+                          key={node.id}
+                          className={`${styles.rollCallNode} ${
+                            timeAlertStatus === 'soon' ? styles.rollCallNodeSoon : ''
+                          } ${timeAlertStatus === 'due' ? styles.rollCallNodeDue : ''}`}
+                        >
+                          <div className={styles.portalCardTop}>
+                            <div>
+                              <p className={`${styles.portalCardLabel} ${styles.rollCallTimeLabel}`}>
+                                <span>点名时间</span>
+                                <strong>{node.date || '未定日期'} {node.time || '未定时间'}</strong>
+                              </p>
+                              <h3>{node.title}</h3>
+                            </div>
+                            <div className={styles.rollCallStatusStack}>
+                              {timeAlertLabel && (
+                                <span className={`${styles.rollCallTimeAlert} ${
+                                  timeAlertStatus === 'soon' ? styles.rollCallTimeAlertSoon : styles.rollCallTimeAlertDue
+                                }`}>
+                                  {timeAlertLabel}
+                                </span>
+                              )}
+                              <span className={`${styles.portalBadge} ${styles.rollCallProgressBadge} ${
+                                isNodeComplete ? styles.rollCallProgressComplete : styles.rollCallProgressWarning
+                              }`}>
+                                {nodeArrivedCount}
+                                /{logisticsStudents.length}
+                              </span>
+                            </div>
+                          </div>
+                          {node.location && <p className={styles.portalCardText}>地点：{node.location}</p>}
+
+                          {[...logisticsMentors, {
+                            id: '',
+                            name: '未分配负责人',
+                            englishName: '',
+                            role: '领队',
+                            eventItem: '',
+                            teamNo: '',
+                            teamName: '',
+                            phone: '',
+                            guardian: '',
+                            guardianPhone: '',
+                            allergy: '',
+                            notes: '',
+                            idDocumentImage: '',
+                            mentorId: '',
+                          }].map((mentor) => {
+                            const students = logisticsStudents.filter((student) => student.mentorId === mentor.id);
+                            if (students.length === 0) {
+                              return null;
+                            }
+                            const mentorArrivedCount = students.filter((student) =>
+                              normalizeLogisticsAttendanceStatus(activeLogisticsEvent.attendance[node.id]?.[student.id]) === '已到达').length;
+                            const isMentorComplete = mentorArrivedCount === students.length;
+
+                            return (
+                              <div key={`${node.id}-${mentor.id || 'unassigned'}`} className={styles.mentorRollCallBlock}>
+                                <div className={styles.mentorRollCallTitle}>
+                                  <strong>{mentor.name}</strong>
+                                  <span className={isMentorComplete ? styles.rollCallProgressComplete : styles.rollCallProgressWarning}>
+                                    {mentorArrivedCount}
+                                    /{students.length}
+                                  </span>
+                                </div>
+                                {students.map((student) => {
+                                  const attendanceStatus = normalizeLogisticsAttendanceStatus(
+                                    activeLogisticsEvent.attendance[node.id]?.[student.id],
+                                  );
+                                  const nextAttendanceStatus: LogisticsAttendanceStatus =
+                                    attendanceStatus === '已到达' ? '未到达' : '已到达';
+
+                                  return (
+                                    <div key={student.id} className={styles.attendanceRow}>
+                                      <div>
+                                        <strong>{student.name}</strong>
+                                        <small>{[student.eventItem, student.teamNo, student.teamName].filter(Boolean).join(' / ')}</small>
+                                      </div>
+                                      <button
+                                        className={`${styles.attendanceToggleButton} ${
+                                          attendanceStatus === '已到达' ? styles.attendanceToggleButtonArrived : ''
+                                        }`}
+                                        type="button"
+                                        onClick={() => handleLogisticsAttendanceChange(node.id, student.id, nextAttendanceStatus)}
+                                        disabled={!canEdit}
+                                      >
+                                        {attendanceStatus}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </section>
+                      );
+                    })}
+                  </div>
+                )}
+              </article>
+                </>
+              ))}
             </section>
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />

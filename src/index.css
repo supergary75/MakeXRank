@@ -7,40 +7,40 @@
 }
 
 :root {
-  --primary: #f23845;
-  --primary-dark: #8f111b;
-  --primary-light: #ff6a72;
-  --primary-bg: rgba(242, 56, 69, 0.12);
-  --secondary: #00c8ff;
-  --accent: #d9e2ec;
+  --primary: #d6a94a;
+  --primary-dark: #8f6421;
+  --primary-light: #f4d68a;
+  --primary-bg: rgba(214, 169, 74, 0.14);
+  --secondary: #5dd6ff;
+  --accent: #f3d58a;
   --success: #32d27d;
   --success-dark: #15965a;
   --danger: #ff3f4d;
   --danger-dark: #9f1722;
-  --warning: #ffb84d;
-  --info: #00c8ff;
+  --warning: #f4c96a;
+  --info: #5dd6ff;
 
-  --gray-50: #05070b;
-  --gray-100: #10151c;
-  --gray-200: #1b242f;
-  --gray-300: #334251;
-  --gray-400: #7f91a3;
-  --gray-500: #aab8c5;
-  --gray-600: #c9d4de;
-  --gray-700: #e5edf4;
-  --gray-800: #f7fbff;
+  --gray-50: #06101c;
+  --gray-100: #0b1b2e;
+  --gray-200: #102a43;
+  --gray-300: #1f3f5f;
+  --gray-400: #8ca6bd;
+  --gray-500: #b5c7d8;
+  --gray-600: #d5e2ec;
+  --gray-700: #ecf4fb;
+  --gray-800: #f8fbff;
   --gray-900: #ffffff;
 
-  --bg-dark: #05070b;
-  --bg-mid: #10151c;
-  --bg-panel: rgba(13, 18, 25, 0.94);
-  --bg-panel-soft: rgba(22, 30, 40, 0.88);
-  --bg-steel: linear-gradient(145deg, #202a35 0%, #10151c 52%, #07090d 100%);
-  --bg-steel-soft: linear-gradient(145deg, rgba(31, 41, 52, 0.96) 0%, rgba(9, 13, 19, 0.96) 100%);
-  --line-strong: rgba(242, 56, 69, 0.28);
-  --line-soft: rgba(217, 226, 236, 0.1);
-  --glow-cyan: 0 0 24px rgba(0, 200, 255, 0.22);
-  --glow-amber: 0 0 28px rgba(242, 56, 69, 0.22);
+  --bg-dark: #07111f;
+  --bg-mid: #0d1f36;
+  --bg-panel: rgba(8, 23, 39, 0.94);
+  --bg-panel-soft: rgba(16, 42, 67, 0.9);
+  --bg-steel: linear-gradient(145deg, #17324e 0%, #0d1f36 52%, #07111f 100%);
+  --bg-steel-soft: linear-gradient(145deg, rgba(16, 42, 67, 0.96) 0%, rgba(6, 16, 28, 0.96) 100%);
+  --line-strong: rgba(214, 169, 74, 0.3);
+  --line-soft: rgba(93, 214, 255, 0.12);
+  --glow-cyan: 0 0 24px rgba(93, 214, 255, 0.22);
+  --glow-amber: 0 0 28px rgba(214, 169, 74, 0.26);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -63,9 +63,9 @@ body {
     'Hiragino Sans GB', 'Microsoft YaHei', serif;
   color: var(--gray-700);
   background:
-    radial-gradient(circle at 16% 10%, rgba(242, 56, 69, 0.18), transparent 26%),
-    radial-gradient(circle at 82% 18%, rgba(0, 200, 255, 0.14), transparent 24%),
-    linear-gradient(180deg, #111821 0%, #05070b 100%);
+    radial-gradient(circle at 16% 10%, rgba(214, 169, 74, 0.16), transparent 26%),
+    radial-gradient(circle at 82% 18%, rgba(93, 214, 255, 0.14), transparent 24%),
+    linear-gradient(180deg, #0d1f36 0%, #07111f 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
@@ -77,7 +77,7 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at center, rgba(0, 200, 255, 0.035), transparent 60%),
+    radial-gradient(circle at center, rgba(93, 214, 255, 0.035), transparent 60%),
     repeating-linear-gradient(
       90deg,
       transparent 0,
@@ -89,8 +89,8 @@ body::before {
       0deg,
       transparent 0,
       transparent 48px,
-      rgba(242, 56, 69, 0.026) 48px,
-      rgba(242, 56, 69, 0.026) 49px
+      rgba(214, 169, 74, 0.026) 48px,
+      rgba(214, 169, 74, 0.026) 49px
     );
   opacity: 0.6;
 }

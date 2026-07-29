@@ -1,13 +1,13 @@
 .header {
   background:
-    radial-gradient(circle at top, rgba(242, 56, 69, 0.18), transparent 32%),
-    radial-gradient(circle at 82% 14%, rgba(0, 200, 255, 0.12), transparent 28%),
-    linear-gradient(145deg, #1c2732 0%, #111821 54%, #080b10 100%);
+    radial-gradient(circle at top, rgba(214, 169, 74, 0.16), transparent 32%),
+    radial-gradient(circle at 82% 14%, rgba(93, 214, 255, 0.12), transparent 28%),
+    linear-gradient(145deg, #17324e 0%, #0d1f36 54%, #07111f 100%);
   color: var(--gray-800);
   padding: 40px;
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid rgba(242, 56, 69, 0.2);
+  border-bottom: 1px solid rgba(214, 169, 74, 0.22);
 }
 
 .header::before {
@@ -18,13 +18,13 @@
   width: 200%;
   height: 200%;
   background:
-    radial-gradient(circle, rgba(0, 200, 255, 0.1) 0%, transparent 22%),
+    radial-gradient(circle, rgba(93, 214, 255, 0.1) 0%, transparent 22%),
     repeating-linear-gradient(
       90deg,
       transparent 0,
       transparent 58px,
-      rgba(242, 56, 69, 0.04) 58px,
-      rgba(242, 56, 69, 0.04) 60px
+      rgba(214, 169, 74, 0.04) 58px,
+      rgba(214, 169, 74, 0.04) 60px
     );
   animation: shimmer 10s ease-in-out infinite;
 }
@@ -67,7 +67,7 @@
   box-shadow:
     0 18px 44px rgba(0, 0, 0, 0.34),
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 0 28px rgba(0, 200, 255, 0.12);
+    0 0 28px rgba(93, 214, 255, 0.12);
   opacity: 0.28;
   filter: saturate(1.08) contrast(1.04);
   transform: rotate(-8deg);
@@ -103,14 +103,14 @@
   gap: 12px;
   padding: 10px 18px 10px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(242, 56, 69, 0.36);
+  border: 1px solid rgba(214, 169, 74, 0.36);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 44%),
-    linear-gradient(145deg, rgba(36, 47, 59, 0.96), rgba(7, 10, 15, 0.96));
+    linear-gradient(145deg, rgba(16, 42, 67, 0.96), rgba(7, 17, 31, 0.96));
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 0 18px rgba(242, 56, 69, 0.12);
+    0 0 18px rgba(214, 169, 74, 0.16);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -120,13 +120,13 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(115deg, transparent 0, transparent 16px, rgba(242, 56, 69, 0.12) 16px, rgba(242, 56, 69, 0.12) 18px, transparent 18px),
+    linear-gradient(115deg, transparent 0, transparent 16px, rgba(214, 169, 74, 0.12) 16px, rgba(214, 169, 74, 0.12) 18px, transparent 18px),
     repeating-linear-gradient(
       135deg,
       transparent 0,
       transparent 18px,
-      rgba(0, 200, 255, 0.035) 18px,
-      rgba(0, 200, 255, 0.035) 20px
+      rgba(93, 214, 255, 0.035) 18px,
+      rgba(93, 214, 255, 0.035) 20px
     );
   pointer-events: none;
 }
@@ -139,8 +139,8 @@
   justify-content: center;
   clip-path: polygon(18% 0, 100% 0, 100% 72%, 82% 100%, 0 100%, 0 28%);
   background:
-    linear-gradient(160deg, #ff5f67 0%, #c81929 48%, #6d0d17 100%);
-  color: #fff5f5;
+    linear-gradient(160deg, #f4d68a 0%, #d6a94a 48%, #8f6421 100%);
+  color: #07111f;
   font-size: 0.96rem;
   font-weight: 900;
   font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
@@ -148,12 +148,12 @@
   letter-spacing: 0.16em;
   text-indent: 0.16em;
   box-shadow:
-    inset 0 1px 0 rgba(255, 228, 228, 0.32),
-    inset -6px -8px 14px rgba(88, 9, 18, 0.36),
-    0 8px 18px rgba(47, 14, 11, 0.34);
+    inset 0 1px 0 rgba(255, 244, 214, 0.42),
+    inset -6px -8px 14px rgba(86, 59, 12, 0.28),
+    0 8px 18px rgba(4, 16, 28, 0.34);
   text-shadow:
     0 0 6px rgba(255, 255, 255, 0.28),
-    0 0 18px rgba(255, 85, 85, 0.18);
+    0 0 18px rgba(244, 214, 138, 0.2);
   transform: skewX(-10deg);
 }
 
@@ -167,7 +167,7 @@
 }
 
 .logoTitle {
-  color: #ffd7d9;
+  color: #f4d68a;
   font-size: 1.04rem;
   font-weight: 900;
   font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
@@ -177,7 +177,7 @@
   transform: skewX(-12deg);
   transform-origin: left center;
   text-shadow:
-    0 0 8px rgba(242, 56, 69, 0.28),
+    0 0 8px rgba(214, 169, 74, 0.28),
     0 3px 12px rgba(0, 0, 0, 0.5);
 }
 
@@ -213,7 +213,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-shadow:
-    0 0 16px rgba(0, 200, 255, 0.12),
+    0 0 16px rgba(93, 214, 255, 0.12),
     0 8px 24px rgba(0, 0, 0, 0.38);
 }
 

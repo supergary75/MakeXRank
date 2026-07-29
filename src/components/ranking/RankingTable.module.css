@@ -24,8 +24,8 @@
 
 .table thead {
   background:
-    linear-gradient(90deg, rgba(0, 200, 255, 0.08), transparent 24%),
-    linear-gradient(145deg, #d92634 0%, #89111b 100%);
+    linear-gradient(90deg, rgba(93, 214, 255, 0.1), transparent 24%),
+    linear-gradient(145deg, #17324e 0%, #0d1f36 62%, #8f6421 100%);
   color: #fff8eb;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .teamClickable:hover {
-  background: rgba(0, 200, 255, 0.1);
+  background: rgba(93, 214, 255, 0.1);
   color: #e9fbff;
   transform: translateX(2px);
 }
@@ -106,8 +106,8 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(0, 200, 255, 0.18), rgba(242, 56, 69, 0.16));
-  border: 1px solid rgba(0, 200, 255, 0.24);
+  background: linear-gradient(135deg, rgba(93, 214, 255, 0.18), rgba(214, 169, 74, 0.16));
+  border: 1px solid rgba(93, 214, 255, 0.24);
   color: #f7fbff;
   font-size: 0.78em;
   font-weight: 900;
@@ -119,9 +119,9 @@
   min-width: 260px;
   margin-top: 10px;
   padding: 12px;
-  border: 1px solid rgba(0, 200, 255, 0.24);
+  border: 1px solid rgba(93, 214, 255, 0.24);
   border-radius: var(--radius-md);
-  background: rgba(34, 8, 8, 0.96);
+  background: rgba(7, 17, 31, 0.96);
   box-shadow: var(--shadow-lg);
   color: #fff4dc;
 }
@@ -166,8 +166,8 @@
 .customTagRow button {
   min-height: 32px;
   border-radius: 999px;
-  border: 1px solid rgba(0, 200, 255, 0.22);
-  background: rgba(0, 200, 255, 0.08);
+  border: 1px solid rgba(93, 214, 255, 0.22);
+  background: rgba(93, 214, 255, 0.08);
   color: #fff4dc;
   cursor: pointer;
   font: inherit;
@@ -179,8 +179,8 @@
 .tagOptions button:hover,
 .customTagRow button:hover,
 .activeTagOption {
-  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%) !important;
-  color: #fff7f8 !important;
+  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%) !important;
+  color: #07111f !important;
 }
 
 .clearTagOption {
@@ -193,8 +193,8 @@
   min-height: 32px;
   min-width: 0;
   border-radius: 999px;
-  border: 1px solid rgba(0, 200, 255, 0.22);
-  background: rgba(10, 3, 3, 0.6);
+  border: 1px solid rgba(93, 214, 255, 0.22);
+  background: rgba(7, 17, 31, 0.72);
   color: #fff4dc;
   font: inherit;
   padding: 0 10px;
@@ -251,15 +251,15 @@
 }
 
 .rank1 {
-  background: linear-gradient(90deg, rgba(0, 200, 255, 0.14), rgba(242, 56, 69, 0.08));
+  background: linear-gradient(90deg, rgba(93, 214, 255, 0.14), rgba(214, 169, 74, 0.08));
 }
 
 .rank2 {
-  background: linear-gradient(90deg, rgba(217, 226, 236, 0.08), rgba(0, 200, 255, 0.04));
+  background: linear-gradient(90deg, rgba(217, 226, 236, 0.08), rgba(93, 214, 255, 0.04));
 }
 
 .rank3 {
-  background: linear-gradient(90deg, rgba(242, 56, 69, 0.08), rgba(0, 200, 255, 0.04));
+  background: linear-gradient(90deg, rgba(214, 169, 74, 0.08), rgba(93, 214, 255, 0.04));
 }
 
 .rank1 .rankCol {

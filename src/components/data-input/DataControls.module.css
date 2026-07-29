@@ -99,7 +99,7 @@
 }
 
 .urlBtn {
-  background: linear-gradient(145deg, #00c8ff 0%, #166f96 100%);
+  background: linear-gradient(145deg, #5dd6ff 0%, #1f7fa8 100%);
   color: #031019;
 }
 .urlBtn:hover {
@@ -109,8 +109,8 @@
 }
 
 .clipboardBtn {
-  background: linear-gradient(145deg, #ff5b65 0%, #b81725 100%);
-  color: #fff7f8;
+  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
+  color: #07111f;
 }
 .clipboardBtn:hover {
   filter: brightness(1.04);
@@ -139,7 +139,7 @@
 }
 
 .fetchBtn {
-  background: linear-gradient(145deg, #00c8ff 0%, #166f96 100%);
+  background: linear-gradient(145deg, #5dd6ff 0%, #1f7fa8 100%);
   color: #031019;
   padding: 10px 24px;
   font-size: 0.95em;
