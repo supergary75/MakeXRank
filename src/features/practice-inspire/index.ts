@@ -1,0 +1,1 @@
+export { PracticeInspireWorkspace } from './PracticeInspireWorkspace';
