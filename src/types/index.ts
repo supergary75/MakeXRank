@@ -150,6 +150,8 @@ export type ViewMode =
   | 'logistics-event-rooms'
   | 'training-plan'
   | 'training-event'
+  | 'simulation-system'
+  | 'score-calculator'
   | 'practice-analysis'
   | 'practice-explorer'
   | 'lobby'

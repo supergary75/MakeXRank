@@ -360,6 +360,143 @@
   box-shadow: var(--glow-cyan);
 }
 
+/* Light glass technology theme: portal and shared shell */
+.app {
+  background:
+    radial-gradient(circle at 78% 8%, rgba(75, 158, 255, 0.2), transparent 28%),
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.94), transparent 34%),
+    linear-gradient(145deg, #f8fbff 0%, #edf6ff 54%, #e7f2ff 100%);
+}
+
+.app::before {
+  background:
+    radial-gradient(ellipse at 16% 18%, rgba(213, 173, 56, 0.07) 0%, transparent 42%),
+    radial-gradient(ellipse at 86% 24%, rgba(22, 104, 232, 0.11) 0%, transparent 36%),
+    repeating-linear-gradient(90deg, rgba(22, 104, 232, 0.045) 0, rgba(22, 104, 232, 0.045) 1px, transparent 1px, transparent 72px);
+}
+
+.app::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 24%),
+    repeating-linear-gradient(45deg, transparent 0, transparent 38px, rgba(213, 173, 56, 0.035) 38px, rgba(213, 173, 56, 0.035) 39px);
+  mix-blend-mode: normal;
+  opacity: 0.65;
+}
+
+.container {
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 28px 70px rgba(47, 93, 143, 0.14), inset 0 1px 0 #fff, 0 0 0 1px rgba(22, 104, 232, 0.08);
+  backdrop-filter: blur(24px) saturate(1.12);
+}
+
+.container::before {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 26%),
+    linear-gradient(180deg, rgba(22, 104, 232, 0.035), transparent 14%),
+    repeating-linear-gradient(135deg, transparent 0, transparent 36px, rgba(213, 173, 56, 0.025) 36px, rgba(213, 173, 56, 0.025) 37px);
+}
+
+.backButton,
+.accountChip {
+  border-color: rgba(22, 104, 232, 0.16);
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--gray-800);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+}
+
+.accountButton,
+.portalButton {
+  border-color: rgba(11, 79, 189, 0.2);
+  background: linear-gradient(145deg, #2d83f3 0%, #1668e8 56%, #0b4fbd 100%);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(22, 104, 232, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.accountButton:hover,
+.portalButton:hover {
+  box-shadow: 0 14px 30px rgba(22, 104, 232, 0.26), 0 0 0 1px rgba(213, 173, 56, 0.34);
+}
+
+.portalIntro,
+.installShortcutCard,
+.portalCard {
+  border-color: rgba(22, 104, 232, 0.14);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(236, 246, 255, 0.64)),
+    rgba(255, 255, 255, 0.58);
+  box-shadow: 0 16px 38px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px) saturate(1.1);
+}
+
+.portalPriorityCard {
+  border-color: rgba(22, 104, 232, 0.18);
+  border-left: 2px solid #d5ad38;
+}
+
+.portalPriorityCard .portalButton {
+  width: 100%;
+}
+
+.portalIntro {
+  border-left: 2px solid #d5ad38;
+}
+
+.installShortcutCard {
+  border-color: rgba(22, 104, 232, 0.2);
+}
+
+.portalCard {
+  border-top-color: rgba(255, 255, 255, 0.96);
+}
+
+.portalCard::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, #d5ad38 26%, #f1ce61 72%, transparent);
+  opacity: 0.88;
+}
+
+.portalIntro::after,
+.portalCard::after {
+  opacity: 0.12;
+  filter: saturate(0.8) brightness(1.12);
+  box-shadow: 0 18px 38px rgba(40, 92, 150, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+}
+
+.portalIntro h2,
+.portalCardTop h3,
+.installShortcutCard h3 {
+  color: var(--gray-900);
+}
+
+.portalEyebrow,
+.portalCardLabel {
+  color: #b58a12;
+}
+
+.portalHint,
+.portalCardText,
+.installShortcutCard p {
+  color: var(--gray-500);
+}
+
+.portalBadge {
+  background: rgba(232, 243, 255, 0.72);
+  border-color: rgba(22, 104, 232, 0.18);
+  color: #0e5ccf;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.secondaryButton {
+  border-color: rgba(22, 104, 232, 0.2);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(228, 241, 255, 0.9));
+  color: var(--gray-800);
+}
+
 .installGuideOverlay {
   position: fixed;
   inset: 0;
@@ -2360,12 +2497,96 @@
   background: rgba(8, 12, 18, 0.28);
 }
 
+.simulationHero,
+.simulationStep,
+.simulationEmptyState {
+  border: 1px solid rgba(22, 104, 232, 0.16);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(232, 244, 255, 0.7));
+  box-shadow: 0 16px 38px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+}
+
+.simulationHero {
+  min-height: 190px;
+  padding: 30px;
+  border-radius: 24px;
+  border-left: 2px solid #d5ad38;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.simulationHero h2,
+.simulationStep h3,
+.simulationEmptyState h3 {
+  margin: 6px 0 8px;
+  color: var(--gray-900);
+}
+
+.simulationHero p,
+.simulationStep p,
+.simulationEmptyState p {
+  margin: 0;
+  color: var(--gray-500);
+  line-height: 1.75;
+}
+
+.simulationStatus {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border: 1px solid rgba(213, 173, 56, 0.38);
+  border-radius: 999px;
+  background: rgba(255, 250, 229, 0.78);
+  color: #9b7410;
+  font-weight: 800;
+}
+
+.simulationFlow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.simulationStep {
+  min-height: 150px;
+  padding: 22px;
+  border-radius: 22px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.simulationStep > span {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #2d83f3, #0b4fbd);
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgba(22, 104, 232, 0.22);
+}
+
+.simulationEmptyState {
+  padding: 28px;
+  border-radius: 22px;
+  border-top-color: rgba(213, 173, 56, 0.44);
+  text-align: center;
+}
+
 @media (max-width: 1080px) {
   .workspaceSummary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .portalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .simulationFlow {
     grid-template-columns: 1fr;
   }
 
@@ -2400,6 +2621,163 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Unified light blue / white / gold workspace theme */
+.logisticsFormPanel,
+.logisticsEventCard,
+.logisticsEmpty,
+.parameterCard,
+.cardEditPanel {
+  border-color: rgba(22, 104, 232, 0.16);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 255, 0.76)),
+    radial-gradient(circle at 12% 0%, rgba(213, 173, 56, 0.1), transparent 34%);
+  box-shadow: 0 18px 42px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.logisticsEventCard,
+.logisticsFormPanel {
+  border-left: 2px solid rgba(213, 173, 56, 0.78);
+}
+
+.logisticsField input,
+.logisticsField select,
+.logisticsField textarea,
+.logisticsTable select,
+.logisticsTable input {
+  border-color: rgba(22, 104, 232, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--gray-800);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.logisticsField input:focus,
+.logisticsField select:focus,
+.logisticsField textarea:focus {
+  border-color: rgba(22, 104, 232, 0.48);
+  box-shadow: 0 0 0 3px rgba(22, 104, 232, 0.1);
+}
+
+.logisticsMeta span,
+.portalBadgeButton,
+.statusPill {
+  border-color: rgba(22, 104, 232, 0.16);
+  background: rgba(234, 243, 255, 0.86);
+  color: #315b91;
+}
+
+.logisticsItemCard {
+  border-color: rgba(22, 104, 232, 0.16);
+  border-left: 2px solid rgba(213, 173, 56, 0.76);
+  background:
+    radial-gradient(circle at 88% 8%, rgba(22, 104, 232, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 255, 0.76));
+  box-shadow: 0 18px 40px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.logisticsItemCard:hover,
+.clickableCard:hover {
+  border-color: rgba(22, 104, 232, 0.34);
+  box-shadow: 0 22px 48px rgba(45, 92, 143, 0.15), 0 0 0 1px rgba(213, 173, 56, 0.12);
+}
+
+.logisticsTableWrap,
+.practiceTableWrap {
+  border-color: rgba(22, 104, 232, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.logisticsTable,
+.practiceRankTable {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.logisticsTable th,
+.practiceRankTable th {
+  color: #9b7410;
+  background: rgba(234, 243, 255, 0.92);
+}
+
+.logisticsTable th,
+.logisticsTable td,
+.practiceRankTable th,
+.practiceRankTable td {
+  border-bottom-color: rgba(22, 104, 232, 0.1);
+}
+
+.smallDangerButton,
+.ghostButton {
+  border-color: rgba(22, 104, 232, 0.18);
+  background: rgba(255, 255, 255, 0.84);
+  color: #315b91;
+}
+
+.smallDangerButton {
+  border-color: rgba(190, 45, 45, 0.2);
+  color: #b32626;
+}
+
+.workspaceSummary {
+  background: rgba(234, 243, 255, 0.58);
+}
+
+.practiceToolbar,
+.parameterPanel,
+.diagnosticPanel,
+.practiceRankPanel,
+.practicePlanCard,
+.diagnosticCard,
+.metricLeaderCard,
+.metricRankingCard {
+  border-color: rgba(22, 104, 232, 0.15);
+  background:
+    radial-gradient(circle at 88% 8%, rgba(22, 104, 232, 0.09), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 255, 0.76));
+  box-shadow: 0 18px 42px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.practiceToolbar,
+.parameterPanel,
+.diagnosticPanel,
+.practiceRankPanel {
+  border-left: 2px solid rgba(213, 173, 56, 0.76);
+}
+
+.practicePlanBlock,
+.metricRankingRow,
+.diagnosticStats span {
+  border-color: rgba(22, 104, 232, 0.11);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.trainingScheduleTable {
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.trainingScheduleTable th {
+  background: rgba(234, 243, 255, 0.94);
+  color: #9b7410;
+}
+
+.trainingScheduleTable th,
+.trainingScheduleTable td {
+  border-bottom-color: rgba(22, 104, 232, 0.1);
+}
+
+.trainingScheduleTable input {
+  border-color: rgba(22, 104, 232, 0.17);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--gray-800);
+}
+
+.trainingScheduleTimeText {
+  color: #315b91;
+}
+
+.scoreCalculatorShell { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.scoreSide { min-height:360px; padding:30px; border:1px solid rgba(22,104,232,.15); border-radius:24px; background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(232,244,255,.76)); box-shadow:0 18px 42px rgba(45,92,143,.1); display:grid; align-content:center; justify-items:center; gap:12px; text-align:center; }
+.scoreSide span { font-weight:900; letter-spacing:.12em; }.scoreSide h2 { margin:0; color:var(--gray-900); }.scoreSide strong { font-size:clamp(5rem,12vw,9rem); line-height:1; }.scoreSide p { margin:0; color:var(--gray-500); }.scoreRed { border-top:5px solid #ef3d4c; }.scoreRed span,.scoreRed strong { color:#d62f40; }.scoreBlue { border-top:5px solid #139ce8; }.scoreBlue span,.scoreBlue strong { color:#087fc2; }
+@media (max-width:760px) { .scoreCalculatorShell { grid-template-columns:1fr; }.scoreSide { min-height:250px; } }
 
 .summaryCard {
   padding: 16px 18px;

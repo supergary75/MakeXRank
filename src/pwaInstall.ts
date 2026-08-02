@@ -78,6 +78,26 @@ export function registerPwaFeatures(): void {
     return;
   }
 
+  if (import.meta.env.DEV) {
+    window.addEventListener('load', () => {
+      void Promise.all([
+        window.navigator.serviceWorker.getRegistrations().then((registrations) =>
+          Promise.all(registrations.map((registration) => registration.unregister())),
+        ),
+        'caches' in window
+          ? window.caches.keys().then((keys) =>
+              Promise.all(keys.filter((key) => key.startsWith('makexrank-')).map((key) => window.caches.delete(key))),
+            )
+          : Promise.resolve([]),
+      ]).then(() => {
+        if (window.navigator.serviceWorker.controller && window.sessionStorage.getItem('makexrank-dev-cache-cleared') !== '1') {
+          window.sessionStorage.setItem('makexrank-dev-cache-cleared', '1');
+          window.location.reload();
+        }
+      });
+    });
+  }
+
   if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
       window.navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {

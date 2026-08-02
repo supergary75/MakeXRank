@@ -76,6 +76,9 @@ import { PlayoffView } from './components/playoff/PlayoffView';
 import { FocusScheduleView } from './components/schedule/FocusScheduleView';
 import { AuthPanel } from './components/auth/AuthPanel';
 import { NotificationContainer } from './components/ui/Notification';
+import { SimulationSystem } from './components/simulation/SimulationSystem';
+import { PracticeEventHub } from './components/practice/PracticeEventHub';
+import { ScoreCalculator } from './components/scoring/ScoreCalculator';
 import {
   INSTALL_READY_EVENT,
   canPromptPwaInstall,
@@ -3341,6 +3344,28 @@ export default function App() {
     setPracticeExplorerAwaitingPaste(false);
   }, [trainingEvents]);
 
+  const handleOpenSimulationSystem = useCallback(() => {
+    setViewMode('simulation-system');
+    setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
+    setActiveTrainingEventId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
+  const handleOpenScoreCalculator = useCallback(() => {
+    setViewMode('score-calculator');
+    setActiveCompetitionId(null);
+    setActiveLogisticsEventId(null);
+    setActiveLogisticsEventItem(null);
+    setActiveTrainingEventId(null);
+    setSearchKeyword('');
+    setAwaitingPaste(false);
+    setPracticeExplorerAwaitingPaste(false);
+  }, []);
+
   const handleLogisticsFormChange = useCallback(
     (field: keyof LogisticsEventForm, value: string) => {
       setLogisticsEventForm((previous) => ({
@@ -5835,13 +5860,21 @@ export default function App() {
             />
 
             <section className={styles.portalSection}>
-              <div className={styles.portalIntro}>
-                <p className={styles.portalEyebrow}>Home</p>
-                <h2>选择工作入口</h2>
-                <p className={styles.portalHint}>
-                  主页负责统一登录和功能分流。进入赛事数据分析后，才会继续选择赛项、创建比赛卡片并做排名与淘汰赛分析。
+              <article className={`${styles.portalCard} ${styles.portalPriorityCard}`}>
+                <div className={styles.portalCardTop}>
+                  <div>
+                    <p className={styles.portalCardLabel}>个人入口</p>
+                    <h3>我的任务</h3>
+                  </div>
+                  <span className={styles.portalBadge}>Tasks</span>
+                </div>
+                <p className={styles.portalCardText}>
+                  登录后自动读取分配给自己的后勤点名节点，只显示自己需要负责确认的队员，适合教练和领队在手机端现场使用。
                 </p>
-              </div>
+                <button className={styles.portalButton} onClick={authUser ? handleOpenMyTasks : () => setViewMode('login')}>
+                  查看我的任务
+                </button>
+              </article>
 
               <article className={styles.installShortcutCard}>
                 <div>
@@ -5870,22 +5903,6 @@ export default function App() {
                   </p>
                   <button className={styles.portalButton} onClick={handleOpenLogistics}>
                     进入赛事后勤管理
-                  </button>
-                </article>
-
-                <article className={styles.portalCard}>
-                  <div className={styles.portalCardTop}>
-                    <div>
-                      <p className={styles.portalCardLabel}>个人入口</p>
-                      <h3>我的任务</h3>
-                    </div>
-                    <span className={styles.portalBadge}>Tasks</span>
-                  </div>
-                  <p className={styles.portalCardText}>
-                    登录后自动读取分配给自己的后勤点名节点，只显示自己需要负责确认的队员，适合教练和领队在手机端现场使用。
-                  </p>
-                  <button className={styles.portalButton} onClick={authUser ? handleOpenMyTasks : () => setViewMode('login')}>
-                    查看我的任务
                   </button>
                 </article>
 
@@ -5936,6 +5953,7 @@ export default function App() {
                     进入集训安排
                   </button>
                 </article>
+
               </div>
             </section>
 
@@ -8545,6 +8563,41 @@ export default function App() {
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />
           </>
+        ) : viewMode === 'simulation-system' ? (
+          <>
+            <Header
+              eyebrow="Competition Simulation"
+              title="模拟赛事系统"
+              subtitle="在正式比赛前完成队伍配置、赛程演练、现场计分和结果复盘。"
+              action={
+                <div className={styles.headerActions}>
+                  <button className={styles.backButton} onClick={handleBackToPracticeAnalysis}>
+                    返回练习赛数据分析
+                  </button>
+                  {accountAction}
+                </div>
+              }
+            />
+
+            <section className={styles.portalSection}>
+              <SimulationSystem sourceEvents={logisticsEvents.map((event) => ({
+                id: event.id,
+                name: event.name,
+                participants: event.participants.map((participant) => ({
+                  id: participant.id,
+                  name: participant.name,
+                  role: participant.role,
+                  eventItem: participant.eventItem,
+                  teamNo: participant.teamNo,
+                  teamName: participant.teamName,
+                })),
+              }))} />
+            </section>
+
+            <Footer lastUpdate="" isLobby storageMode={storageMode} />
+          </>
+        ) : viewMode === 'score-calculator' ? (
+          <ScoreCalculator onBack={handleBackToPracticeAnalysis} />
         ) : viewMode === 'training-plan' ? (
           <>
             <Header
@@ -9100,53 +9153,19 @@ export default function App() {
             />
 
             <section className={styles.portalSection}>
-              <div className={styles.portalIntro}>
-                <p className={styles.portalEyebrow}>Practice Lab</p>
-                <h2>练习赛分析工作台</h2>
-                <p className={styles.portalHint}>
-                  这个入口已经独立出来，和正式赛事数据分析分开管理。下一步可以在这里添加练习赛表格导入、训练场次卡片、队伍表现趋势和重点复盘记录。
-                </p>
-              </div>
-
-              <div className={styles.portalGrid}>
-                <article className={styles.portalCard}>
-                  <div className={styles.portalCardTop}>
-                    <div>
-                      <p className={styles.portalCardLabel}>练习赛项</p>
-                      <h3>MakeX Inspire</h3>
-                    </div>
-                    <span className={styles.portalBadge}>Inspire</span>
-                  </div>
-                  <p className={styles.portalCardText}>
-                    用于 Inspire 练习赛数据整理。后续可以接入常规任务、随机任务、最好成绩、最快时间和训练复盘记录。
-                  </p>
-                  <button
-                    className={styles.portalButton}
-                    onClick={() => showNotification('MakeX Inspire 练习赛分析入口已预留。', 'info')}
-                  >
-                    进入 MakeX Inspire
-                  </button>
-                </article>
-
-                <article className={styles.portalCard}>
-                  <div className={styles.portalCardTop}>
-                    <div>
-                      <p className={styles.portalCardLabel}>练习赛项</p>
-                      <h3>MakeX Explorer</h3>
-                    </div>
-                    <span className={styles.portalBadge}>Explorer</span>
-                  </div>
-                  <p className={styles.portalCardText}>
-                    用于 Explorer 练习赛数据整理。后续可以接入对阵表、单场得分、EPA 变化、重点赛队标签和训练赛程复盘。
-                  </p>
-                  <button
-                    className={styles.portalButton}
-                    onClick={handleOpenPracticeExplorer}
-                  >
-                    进入 MakeX Explorer
-                  </button>
-                </article>
-              </div>
+              <PracticeEventHub
+                logisticsEvents={logisticsEvents.map((event) => ({
+                  id: event.id,
+                  name: event.name,
+                  date: event.date,
+                  venue: event.venue,
+                  participants: event.participants.map((participant) => ({ id: participant.id, name: participant.name, role: participant.role, eventItem: participant.eventItem, teamNo: participant.teamNo, teamName: participant.teamName })),
+                }))}
+                onOpenInspire={() => showNotification('MakeX Inspire 练习赛分析入口已预留。', 'info')}
+                onOpenExplorer={handleOpenPracticeExplorer}
+                onOpenSimulation={handleOpenSimulationSystem}
+                onOpenScoreCalculator={handleOpenScoreCalculator}
+              />
             </section>
 
             <Footer lastUpdate="" isLobby storageMode={storageMode} />

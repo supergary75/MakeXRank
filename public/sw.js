@@ -1,4 +1,4 @@
-const CACHE_NAME = 'makexrank-pwa-v1';
+const CACHE_NAME = 'makexrank-pwa-v2';
 const APP_SCOPE = self.registration.scope;
 
 self.addEventListener('install', (event) => {

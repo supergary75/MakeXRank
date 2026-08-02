@@ -79,6 +79,23 @@
   color: var(--gray-700);
 }
 
+.overlay {
+  background: rgba(37, 73, 112, 0.24);
+  backdrop-filter: blur(12px);
+}
+
+.content {
+  border-color: rgba(22, 104, 232, 0.16);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(235, 246, 255, 0.95));
+  box-shadow: 0 30px 80px rgba(36, 78, 125, 0.2), inset 0 1px 0 #fff;
+}
+
+.header {
+  border-bottom-color: rgba(213, 173, 56, 0.32);
+  background: linear-gradient(135deg, #1f75e9, #0b4fbd);
+  color: #fff;
+}
+
 @media (max-width: 768px) {
   .content {
     width: 95%;
