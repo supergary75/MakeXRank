@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import styles from './PracticeEventHub.module.css';
+import { ScoreCalculator, type ScoreCalculatorResult } from '../scoring/ScoreCalculator';
 
 interface PracticeEventRecord {
   id: string;
@@ -37,8 +38,19 @@ interface PracticeTeam {
   members: Array<{ id: string; name: string }>;
 }
 
+interface PracticeMatch {
+  id: string;
+  slot: number;
+  field: number;
+  red1: PracticeTeam;
+  red2: PracticeTeam;
+  blue1: PracticeTeam;
+  blue2: PracticeTeam;
+}
+
 interface PracticeEventHubProps {
   logisticsEvents: PracticeLogisticsEvent[];
+  accessToken?: string;
   onOpenInspire: () => void;
   onOpenExplorer: () => void;
   onOpenSimulation: () => void;
@@ -46,6 +58,31 @@ interface PracticeEventHubProps {
 }
 
 const STORAGE_KEY = 'makexrank::practice-events';
+const ACTIVE_EXPLORER_TEAMS_KEY = 'makexrank::active-practice-explorer-teams';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
+const PRACTICE_SYNC_TABLE = import.meta.env.VITE_SUPABASE_PRACTICE_SYNC_TABLE?.trim() || 'practice_sync';
+const PRACTICE_SYNC_ID = 'shared-practice-state';
+
+async function syncPracticeEvents(events: PracticeEventRecord[], accessToken: string): Promise<PracticeEventRecord[]> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return events;
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  const query = new URLSearchParams({ select: 'events', id: `eq.${PRACTICE_SYNC_ID}`, limit: '1' });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?${query.toString()}`, { headers });
+  if (!response.ok) throw new Error(`读取练习赛云数据失败（${response.status}）`);
+  const rows = await response.json() as Array<{ events?: PracticeEventRecord[] }>;
+  const remoteEvents = Array.isArray(rows[0]?.events) ? rows[0].events : [];
+  const merged = new Map(remoteEvents.map((event) => [event.id, event]));
+  events.forEach((event) => merged.set(event.id, event));
+  const next = Array.from(merged.values());
+  const saveResponse = await fetch(`${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?on_conflict=id`, {
+    method: 'POST',
+    headers: { ...headers, Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: PRACTICE_SYNC_ID, events: next, updated_at: new Date().toISOString() }),
+  });
+  if (!saveResponse.ok) throw new Error(`保存练习赛云数据失败（${saveResponse.status}）`);
+  return next;
+}
 
 function loadEvents(): PracticeEventRecord[] {
   try {
@@ -61,24 +98,182 @@ function loadEvents(): PracticeEventRecord[] {
   }
 }
 
+function normalizeEventItem(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function matchesEventItem(value: string, selectedItem: string): boolean {
+  const normalizedValue = normalizeEventItem(value);
+  const normalizedSelected = normalizeEventItem(selectedItem);
+  if (!normalizedValue) return false;
+  return normalizedValue.includes(normalizedSelected)
+    || normalizedSelected.includes(normalizedValue)
+    || (normalizedSelected === 'makexinspire' && normalizedValue.includes('ins'))
+    || (normalizedSelected === 'makexexplorer' && normalizedValue.includes('exp'))
+    || (normalizedSelected === 'makexchallenge' && normalizedValue.includes('cha'));
+}
+
 function buildPracticeTeams(source: PracticeLogisticsEvent, selectedEventItem: string): PracticeTeam[] {
   const groups = new Map<string, PracticeTeam>();
-  const selectedSeries = selectedEventItem.replace('MakeX ', '').trim().toLowerCase();
   source.participants.filter((participant) => participant.role === '队员'
-    && (!selectedSeries || participant.eventItem.toLowerCase().includes(selectedSeries))).forEach((participant) => {
-    const eventItem = participant.eventItem.trim() || '未分赛项';
+    && matchesEventItem(participant.eventItem, selectedEventItem)).forEach((participant) => {
     const teamNo = participant.teamNo.trim() || '未填写编号';
     const teamName = participant.teamName.trim() || teamNo;
-    const key = `${eventItem}::${teamNo}::${teamName}`;
-    const team = groups.get(key) ?? { id: key, eventItem, teamNo, teamName, members: [] };
-    team.members.push({ id: participant.id, name: participant.name });
+    const normalizedTeamNo = teamNo.replace(/\s+/g, '').toLowerCase();
+    const normalizedTeamName = teamName.replace(/\s+/g, '').toLowerCase();
+    const teamIdentity = normalizedTeamNo && !teamNo.includes('未填写') ? normalizedTeamNo : normalizedTeamName;
+    const key = `${normalizeEventItem(selectedEventItem)}::${teamIdentity}`;
+    const team = groups.get(key) ?? { id: key, eventItem: selectedEventItem, teamNo, teamName, members: [] };
+    if (!team.members.some((member) => member.id === participant.id)) {
+      team.members.push({ id: participant.id, name: participant.name });
+    }
     groups.set(key, team);
   });
   return Array.from(groups.values());
 }
 
-export function PracticeEventHub({ logisticsEvents, onOpenInspire, onOpenExplorer, onOpenSimulation, onOpenScoreCalculator }: PracticeEventHubProps) {
+function shuffled<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[target]] = [copy[target], copy[index]];
+  }
+  return copy;
+}
+
+function generateExplorerSchedule(teams: PracticeTeam[], roundsPerTeam: number, fieldCount: number): PracticeMatch[] | null {
+  if (teams.length < 4 || (teams.length * roundsPerTeam) % 4 !== 0) return null;
+  const matchCount = (teams.length * roundsPerTeam) / 4;
+  let best: { matches: PracticeMatch[]; score: number } | null = null;
+
+  for (let attempt = 0; attempt < 700; attempt += 1) {
+    const remaining = new Map(teams.map((team) => [team.id, roundsPerTeam]));
+    const lastPlayed = new Map<string, number>();
+    const partners = new Map<string, number>();
+    const opponents = new Map<string, number>();
+    const matches: PracticeMatch[] = [];
+    let score = 0;
+    let currentSlotTeams = new Set<string>();
+
+    for (let matchIndex = 0; matchIndex < matchCount; matchIndex += 1) {
+      const slot = Math.floor(matchIndex / fieldCount);
+      const field = (matchIndex % fieldCount) + 1;
+      if (field === 1) currentSlotTeams = new Set<string>();
+      const available = shuffled(teams).filter((team) => (remaining.get(team.id) ?? 0) > 0 && !currentSlotTeams.has(team.id));
+      const chosen: PracticeTeam[] = [];
+      while (chosen.length < 4) {
+        const candidates = available.filter((team) => !chosen.some((item) => item.id === team.id));
+        if (!candidates.length) break;
+        candidates.sort((a, b) => {
+          const restA = lastPlayed.get(a.id) === slot - 1 ? 100 : 0;
+          const restB = lastPlayed.get(b.id) === slot - 1 ? 100 : 0;
+          return restA - restB || (remaining.get(b.id) ?? 0) - (remaining.get(a.id) ?? 0) || Math.random() - 0.5;
+        });
+        chosen.push(candidates[0]);
+      }
+      if (chosen.length < 4) break;
+
+      let bestOrder = chosen;
+      let bestOrderScore = Number.POSITIVE_INFINITY;
+      for (let orderAttempt = 0; orderAttempt < 24; orderAttempt += 1) {
+        const order = shuffled(chosen);
+        const partnerPairs = [[order[0], order[1]], [order[2], order[3]]];
+        const opponentPairs = [[order[0], order[2]], [order[0], order[3]], [order[1], order[2]], [order[1], order[3]]];
+        const orderScore = partnerPairs.reduce((total, pair) => total + (partners.get(pair.map((team) => team.id).sort().join('|')) ?? 0) * 12, 0)
+          + opponentPairs.reduce((total, pair) => total + (opponents.get(pair.map((team) => team.id).sort().join('|')) ?? 0) * 3, 0);
+        if (orderScore < bestOrderScore) { bestOrder = order; bestOrderScore = orderScore; }
+      }
+
+      const [red1, red2, blue1, blue2] = bestOrder;
+      [[red1, red2], [blue1, blue2]].forEach((pair) => {
+        const key = pair.map((team) => team.id).sort().join('|');
+        partners.set(key, (partners.get(key) ?? 0) + 1);
+      });
+      [[red1, blue1], [red1, blue2], [red2, blue1], [red2, blue2]].forEach((pair) => {
+        const key = pair.map((team) => team.id).sort().join('|');
+        opponents.set(key, (opponents.get(key) ?? 0) + 1);
+      });
+      bestOrder.forEach((team) => {
+        if (lastPlayed.get(team.id) === slot - 1) score += 100;
+        remaining.set(team.id, (remaining.get(team.id) ?? 0) - 1);
+        lastPlayed.set(team.id, slot);
+        currentSlotTeams.add(team.id);
+      });
+      score += bestOrderScore;
+      matches.push({ id: `match-${matchIndex + 1}`, slot: slot + 1, field, red1, red2, blue1, blue2 });
+    }
+
+    if (matches.length === matchCount && Array.from(remaining.values()).every((count) => count === 0)) {
+      if (!best || score < best.score) best = { matches, score };
+      if (score === 0) break;
+    }
+  }
+  return best?.matches ?? null;
+}
+
+export function ExplorerScheduleGenerator() {
+  const roundsPerTeam = 4;
+  const [fieldCount, setFieldCount] = useState(1);
+  const [schedule, setSchedule] = useState<PracticeMatch[]>([]);
+  const [message, setMessage] = useState('');
+  const [results, setResults] = useState<Record<string, ScoreCalculatorResult>>({});
+  const [activeScoreMatch, setActiveScoreMatch] = useState<PracticeMatch | null>(null);
+  let teams: PracticeTeam[] = [];
+  try { teams = JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { teams = []; }
+  const createSchedule = () => {
+    const minimumTeamCount = fieldCount * 4;
+    const virtualTeamCount = Math.max(0, minimumTeamCount - teams.length);
+    const virtualTeams: PracticeTeam[] = Array.from({ length: virtualTeamCount }, (_, index) => ({
+      id: `virtual-explorer-${index + 1}`,
+      eventItem: 'MakeX Explorer',
+      teamNo: `V${String(index + 1).padStart(3, '0')}`,
+      teamName: `虚拟赛队${index + 1}`,
+      members: [{ id: `virtual-member-${index + 1}`, name: '虚拟队员' }],
+    }));
+    const scheduledTeams = [...teams, ...virtualTeams];
+    const next = generateExplorerSchedule(scheduledTeams, roundsPerTeam, fieldCount);
+    setSchedule(next ?? []);
+    setResults({});
+    setMessage(next
+      ? `已使用 ${teams.length} 支真实赛队${virtualTeamCount ? `，并补入 ${virtualTeamCount} 支虚拟赛队` : ''}，生成 ${next.length} 场随机赛程；每队参加固定4场资格赛。`
+      : '当前条件未找到合适赛程，请重新生成。');
+  };
+  const ranking = Array.from(new Map(schedule.flatMap((match) => [match.red1, match.red2, match.blue1, match.blue2]).map((team) => [team.id, team])).values()).map((team) => {
+    let played = 0; let wins = 0; let draws = 0; let losses = 0; let rankingPoints = 0; let totalScore = 0; let netScore = 0;
+    schedule.forEach((match) => {
+      const result = results[match.id];
+      if (!result) return;
+      const isRed = match.red1.id === team.id || match.red2.id === team.id;
+      const isBlue = match.blue1.id === team.id || match.blue2.id === team.id;
+      if (!isRed && !isBlue) return;
+      played += 1;
+      const own = isRed ? result.redScore : result.blueScore;
+      const other = isRed ? result.blueScore : result.redScore;
+      totalScore += own; netScore += own - other;
+      if (own > other) { wins += 1; rankingPoints += 3; } else if (own === other) { draws += 1; rankingPoints += 1; } else losses += 1;
+    });
+    return { team, played, wins, draws, losses, rankingPoints, totalScore, netScore };
+  }).sort((a, b) => b.rankingPoints - a.rankingPoints || b.totalScore - a.totalScore || b.netScore - a.netScore || a.team.teamNo.localeCompare(b.team.teamNo));
+  return <section className={styles.secondarySchedule}>
+    <div><small>Schedule Generator</small><h2>Explorer 赛程生成器</h2></div>
+    <p>每支赛队固定参加4场资格赛；多个场地可同时比赛，同一时间轮次不会重复安排同一支赛队。赛队不足场地满负荷时，自动创建虚拟赛队补足。</p>
+    <div className={styles.scheduleControls}><label><span>比赛场地数量</span><select value={fieldCount} onChange={(event) => { setFieldCount(Number(event.target.value)); setSchedule([]); setMessage(''); }}><option value={1}>1 个场地</option><option value={2}>2 个场地</option><option value={3}>3 个场地</option><option value={4}>4 个场地</option></select></label><button type="button" onClick={createSchedule}>生成随机赛程</button></div>
+    {message && <p className={styles.scheduleMessage}>{message}</p>}
+    {schedule.length > 0 && <div className={styles.scheduleTableWrap}>
+      <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
+      <table className={styles.scheduleTable}>
+        <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
+        <tbody>{schedule.map((match) => { const result = results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch(match)} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{team.teamName}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
+      </table>
+    </div>}
+    {schedule.length > 0 && <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>}
+    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => setResults((current) => ({ ...current, [activeScoreMatch.id]: result }))} matchInfo={{ field: `场地${activeScoreMatch.field}`, matchNo: String(activeScoreMatch.slot), red1: `${activeScoreMatch.red1.teamNo} ${activeScoreMatch.red1.teamName}`, red2: `${activeScoreMatch.red2.teamNo} ${activeScoreMatch.red2.teamName}`, blue1: `${activeScoreMatch.blue1.teamNo} ${activeScoreMatch.blue1.teamName}`, blue2: `${activeScoreMatch.blue2.teamNo} ${activeScoreMatch.blue2.teamName}` }} />}
+  </section>;
+}
+
+export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, onOpenExplorer, onOpenSimulation, onOpenScoreCalculator }: PracticeEventHubProps) {
   const [events, setEvents] = useState<PracticeEventRecord[]>(loadEvents);
+  const [cloudReady, setCloudReady] = useState(false);
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [form, setForm] = useState({
     sourceLogisticsEventId: '',
@@ -93,12 +288,71 @@ export function PracticeEventHub({ logisticsEvents, onOpenInspire, onOpenExplore
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
   }, [events]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!accessToken) { setCloudReady(false); return; }
+    void syncPracticeEvents(loadEvents(), accessToken).then((next) => {
+      if (cancelled) return;
+      setEvents(next);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setCloudReady(true);
+    }).catch(() => { if (!cancelled) setCloudReady(false); });
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken || !cloudReady) return;
+    const timer = window.setTimeout(() => { void syncPracticeEvents(events, accessToken); }, 600);
+    return () => window.clearTimeout(timer);
+  }, [accessToken, cloudReady, events]);
+
+  useEffect(() => {
+    setEvents((current) => {
+      let changed = false;
+      const next = current.map((event) => {
+        const source = logisticsEvents.find((item) => item.id === event.sourceLogisticsEventId)
+          ?? logisticsEvents.find((item) => item.name.trim() === event.name.trim())
+          ?? logisticsEvents.find((item) => Boolean(event.date && event.venue)
+            && item.date === event.date
+            && item.venue.trim() === event.venue.trim());
+        if (!source) return event;
+
+        const teams = buildPracticeTeams(source, event.eventItem || 'MakeX Explorer');
+        const sourceChanged = event.sourceLogisticsEventId !== source.id;
+        const teamsChanged = JSON.stringify(event.teams) !== JSON.stringify(teams);
+        if (!sourceChanged && !teamsChanged) return event;
+
+        changed = true;
+        return { ...event, sourceLogisticsEventId: source.id, teams };
+      });
+      return changed ? next : current;
+    });
+  }, [logisticsEvents]);
+
   const activeEvent = events.find((event) => event.id === activeEventId) ?? null;
   const activeEventItem = activeEvent?.eventItem || 'MakeX Explorer';
-  const activeSeries = activeEventItem.replace('MakeX ', '').trim().toLowerCase();
-  const activeTeams = activeEvent && Array.isArray(activeEvent.teams)
-    ? activeEvent.teams.filter((team) => !activeSeries || team.eventItem.toLowerCase().includes(activeSeries))
+  const activeLogisticsSource = activeEvent
+    ? logisticsEvents.find((event) => event.id === activeEvent.sourceLogisticsEventId)
+      ?? logisticsEvents.find((event) => event.name.trim() === activeEvent.name.trim())
+      ?? logisticsEvents.find((event) => Boolean(activeEvent.date && activeEvent.venue)
+        && event.date === activeEvent.date
+        && event.venue.trim() === activeEvent.venue.trim())
+    : null;
+  const activeTeams = activeEvent
+    ? (activeLogisticsSource
+      ? buildPracticeTeams(activeLogisticsSource, activeEventItem)
+      : activeEvent.teams.filter((team) => matchesEventItem(team.eventItem, activeEventItem)))
     : [];
+  const rosterGroups = ['MakeX Explorer', 'MakeX Inspire'].map((eventItem) => {
+    const teams = activeLogisticsSource
+      ? buildPracticeTeams(activeLogisticsSource, eventItem)
+      : (activeEventItem === eventItem ? activeTeams : []);
+    return {
+      eventItem,
+      teams,
+      memberCount: teams.reduce((total, team) => total + team.members.length, 0),
+    };
+  });
 
   const createEvent = () => {
     const name = form.name.trim();
@@ -123,10 +377,10 @@ export function PracticeEventHub({ logisticsEvents, onOpenInspire, onOpenExplore
   };
 
   const syncActiveEvent = () => {
-    if (!activeEvent?.sourceLogisticsEventId) return;
-    const source = logisticsEvents.find((event) => event.id === activeEvent.sourceLogisticsEventId);
+    if (!activeEvent) return;
+    const source = activeLogisticsSource;
     if (!source) return;
-    setEvents((current) => current.map((event) => event.id === activeEvent.id ? { ...event, name: source.name, date: source.date, venue: source.venue, teams: buildPracticeTeams(source, event.eventItem || 'MakeX Explorer') } : event));
+    setEvents((current) => current.map((event) => event.id === activeEvent.id ? { ...event, sourceLogisticsEventId: source.id, name: source.name, date: source.date, venue: source.venue, teams: buildPracticeTeams(source, event.eventItem || 'MakeX Explorer') } : event));
   };
 
   const deleteEvent = (eventId: string) => {
@@ -140,7 +394,7 @@ export function PracticeEventHub({ logisticsEvents, onOpenInspire, onOpenExplore
         <div className={styles.workspaceBar}>
           <button type="button" onClick={() => setActiveEventId(null)}>← 返回练习赛列表</button>
           <div><strong>{activeEvent.name}</strong><span>{activeEvent.date || '日期待定'} · {activeEvent.venue || '场地待定'} · {activeEventItem}</span></div>
-          <em>练习赛工作台</em>
+          <em>{cloudReady ? 'Supabase 已同步' : '练习赛工作台'}</em>
         </div>
 
         {activeEvent.notes && <p className={styles.eventNotes}>{activeEvent.notes}</p>}
@@ -148,16 +402,28 @@ export function PracticeEventHub({ logisticsEvents, onOpenInspire, onOpenExplore
         <section className={styles.rosterSection}>
           <div className={styles.heading}>
             <div><small>Club Teams</small><h2>俱乐部内部赛队</h2></div>
-            {activeEvent.sourceLogisticsEventId && <button className={styles.syncButton} type="button" onClick={syncActiveEvent}>同步后勤最新人员</button>}
-          </div>
-          {activeTeams.length === 0 ? <div className={styles.empty}><strong>暂无内部赛队</strong><span>来源赛事中尚未录入角色为“队员”的人员。</span></div> : (
-            <div className={styles.teamTableWrap}>
-              <table className={styles.teamTable}>
-                <thead><tr><th>赛项</th><th>队号</th><th>队名</th><th>人数</th><th>队员</th></tr></thead>
-                <tbody>{activeTeams.map((team) => <tr key={team.id}><td><span>{team.eventItem}</span></td><td><strong>{team.teamNo}</strong></td><td>{team.teamName}</td><td>{team.members.length}</td><td>{team.members.map((member) => member.name).join('、')}</td></tr>)}</tbody>
-              </table>
+            <div className={styles.rosterActions}>
+              {activeEvent.sourceLogisticsEventId && <button className={styles.syncButton} type="button" onClick={syncActiveEvent}>同步后勤最新人员</button>}
             </div>
-          )}
+          </div>
+          <div className={styles.rosterGroups}>
+            {rosterGroups.map((group) => (
+              <details className={styles.rosterGroup} key={group.eventItem} open>
+                <summary>
+                  <div><strong>{group.eventItem}</strong><span>{group.memberCount} 名队员 · {group.teams.length} 支赛队</span></div>
+                  <em>展开 / 收起</em>
+                </summary>
+                {group.teams.length === 0 ? <div className={styles.rosterEmpty}><strong>暂无 {group.eventItem} 内部赛队</strong><span>后勤赛事中尚未录入该赛项的参赛队员、队号或队名。</span></div> : (
+                  <div className={styles.teamTableWrap}>
+                    <table className={styles.teamTable}>
+                      <thead><tr><th>队号</th><th>赛队名称</th><th>队员人数</th><th>参赛队员</th></tr></thead>
+                      <tbody>{group.teams.map((team) => <tr key={team.id}><td><strong>{team.teamNo}</strong></td><td>{team.teamName}</td><td>{team.members.length} 人</td><td>{team.members.map((member) => member.name).join('、')}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                )}
+              </details>
+            ))}
+          </div>
         </section>
 
         <div className={styles.moduleGrid}>
@@ -169,7 +435,7 @@ export function PracticeEventHub({ logisticsEvents, onOpenInspire, onOpenExplore
           <article className={styles.moduleCard}>
             <div className={styles.cardTop}><div><small>练习赛项</small><h3>MakeX Explorer</h3></div><span>Explorer</span></div>
             <p>用于 Explorer 练习赛数据整理，包含表格读取、参数分析、单场得分、EPA 变化和训练复盘。</p>
-            <button type="button" onClick={onOpenExplorer}>进入 MakeX Explorer</button>
+            <button type="button" onClick={() => { window.localStorage.setItem(ACTIVE_EXPLORER_TEAMS_KEY, JSON.stringify(rosterGroups.find((group) => group.eventItem === 'MakeX Explorer')?.teams ?? [])); onOpenExplorer(); }}>进入 MakeX Explorer</button>
           </article>
         </div>
       </div>
@@ -220,9 +486,9 @@ export function PracticeEventHub({ logisticsEvents, onOpenInspire, onOpenExplore
       </section>
 
       <section className={styles.simulatorSection}>
-        <div className={styles.heading}><div><small>Score Calculator</small><h2>比赛计分器</h2></div><span>独立工具</span></div>
+        <div className={styles.heading}><div><small>Simulation Scoring System</small><h2>模拟赛积分系统</h2></div><span>独立工具</span></div>
         <p className={styles.hint}>快速记录红蓝双方得分、加减分项目和最终比分，点击进入独立计分界面。</p>
-        <button className={styles.primaryButton} type="button" onClick={onOpenScoreCalculator}>进入比赛计分器</button>
+        <button className={styles.primaryButton} type="button" onClick={onOpenScoreCalculator}>进入模拟赛积分系统</button>
       </section>
     </div>
   );

@@ -77,7 +77,7 @@ import { FocusScheduleView } from './components/schedule/FocusScheduleView';
 import { AuthPanel } from './components/auth/AuthPanel';
 import { NotificationContainer } from './components/ui/Notification';
 import { SimulationSystem } from './components/simulation/SimulationSystem';
-import { PracticeEventHub } from './components/practice/PracticeEventHub';
+import { ExplorerScheduleGenerator, PracticeEventHub } from './components/practice/PracticeEventHub';
 import { ScoreCalculator } from './components/scoring/ScoreCalculator';
 import {
   INSTALL_READY_EVENT,
@@ -2104,6 +2104,7 @@ export default function App() {
   const [activeLogisticsRosterSourceId, setActiveLogisticsRosterSourceId] = useState<string | null>(null);
   const [logisticsAlertNow, setLogisticsAlertNow] = useState(() => new Date());
   const [trainingEvents, setTrainingEvents] = useState<TrainingEventRecord[]>(() => loadTrainingEvents());
+  const [selectedTrainingLogisticsEventId, setSelectedTrainingLogisticsEventId] = useState('');
   const [trainingEventForm, setTrainingEventForm] = useState<TrainingEventForm>({
     name: '',
     date: '',
@@ -4542,6 +4543,20 @@ export default function App() {
     [],
   );
 
+  const handleSelectTrainingLogisticsEvent = useCallback((eventId: string) => {
+    setSelectedTrainingLogisticsEventId(eventId);
+    const source = logisticsEvents.find((event) => event.id === eventId);
+    if (!source) return;
+    setTrainingEventForm((previous) => ({
+      ...previous,
+      name: source.name,
+      date: source.date,
+      venue: source.venue,
+      group: source.group,
+      notes: source.notes || previous.notes,
+    }));
+  }, [logisticsEvents]);
+
   const handleCreateTrainingEvent = useCallback(() => {
     if (!canEdit) {
       showNotification('当前账号没有编辑权限。', 'error');
@@ -4587,6 +4602,7 @@ export default function App() {
       coach: '',
       notes: '',
     });
+    setSelectedTrainingLogisticsEventId('');
     showNotification(`已生成集训比赛卡片：${trimmedName}`, 'success');
   }, [canEdit, showNotification, trainingEventForm]);
 
@@ -7889,9 +7905,9 @@ export default function App() {
 
               <div className={styles.logisticsSummaryGrid}>
                 <article className={styles.parameterCard}>
-                  <span>基础人员</span>
-                  <strong>{logisticsParticipantsForSelectedItem.length}</strong>
-                  <small>{activeLogisticsEventItem} 范围内人员</small>
+                  <span>参赛队员</span>
+                  <strong>{logisticsStudents.length}</strong>
+                  <small>{activeLogisticsEventItem} 赛项队员，不含教练和领队</small>
                 </article>
                 <article className={styles.parameterCard}>
                   <span>已分配队员</span>
@@ -8152,21 +8168,27 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {logisticsParticipantsForSelectedItem.map((participant) => (
+                        {logisticsParticipantsForSelectedItem.map((participant) => {
+                          const isEditing = editingLogisticsParticipantId === participant.id;
+                          const isEditingTeamMember = editingLogisticsParticipantForm.role === '队员';
+                          return (
                           <tr key={participant.id}>
-                            <td><strong>{participant.name}</strong></td>
-                            <td>{participant.englishName || '未填'}</td>
-                            <td>{participant.role}</td>
+                            <td>{isEditing ? <input className={styles.tableInlineInput} value={editingLogisticsParticipantForm.name} onChange={(event) => handleEditingLogisticsParticipantFormChange('name', event.target.value)} /> : <strong>{participant.name}</strong>}</td>
+                            <td>{isEditing ? <input className={styles.tableInlineInput} value={editingLogisticsParticipantForm.englishName} onChange={(event) => handleEditingLogisticsParticipantFormChange('englishName', event.target.value)} /> : participant.englishName || '未填'}</td>
+                            <td>{isEditing ? <select value={editingLogisticsParticipantForm.role} onChange={(event) => handleEditingLogisticsParticipantFormChange('role', event.target.value)}>{LOGISTICS_PARTICIPANT_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select> : participant.role}</td>
                             <td>
-                              {renderLogisticsEventItemBadges(participant.eventItem)}
-                              {(participant.teamNo || participant.teamName) && (
-                                <small>{[participant.teamNo, participant.teamName].filter(Boolean).join(' / ')}</small>
-                              )}
+                              {isEditing ? <div className={styles.tableEditorStack}>
+                                <select value={editingLogisticsParticipantForm.eventItem} onChange={(event) => handleEditingLogisticsParticipantFormChange('eventItem', event.target.value)} disabled={!isEditingTeamMember}><option value="">请选择赛项</option>{LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+                                <input className={styles.tableInlineInput} value={editingLogisticsParticipantForm.teamNo} onChange={(event) => handleEditingLogisticsParticipantFormChange('teamNo', event.target.value)} placeholder="队号" disabled={!isEditingTeamMember} />
+                                <input className={styles.tableInlineInput} value={editingLogisticsParticipantForm.teamName} onChange={(event) => handleEditingLogisticsParticipantFormChange('teamName', event.target.value)} placeholder="队名" disabled={!isEditingTeamMember} />
+                              </div> : <>{renderLogisticsEventItemBadges(participant.eventItem)}{(participant.teamNo || participant.teamName) && <small>{[participant.teamNo, participant.teamName].filter(Boolean).join(' / ')}</small>}</>}
                             </td>
                             <td>
-                              {participant.phone || '未填'}
-                              {participant.guardianPhone && <small>监护人：{participant.guardianPhone}</small>}
-                              {participant.idDocumentImage && (
+                              {isEditing ? <div className={styles.tableEditorStack}>
+                                <input className={styles.tableInlineInput} value={editingLogisticsParticipantForm.phone} onChange={(event) => handleEditingLogisticsParticipantFormChange('phone', event.target.value)} placeholder="本人电话" />
+                                <input className={styles.tableInlineInput} value={editingLogisticsParticipantForm.guardianPhone} onChange={(event) => handleEditingLogisticsParticipantFormChange('guardianPhone', event.target.value)} placeholder="监护人电话" disabled={!isEditingTeamMember} />
+                              </div> : <>{participant.phone || '未填'}{participant.guardianPhone && <small>监护人：{participant.guardianPhone}</small>}</>}
+                              {!isEditing && participant.idDocumentImage && (
                                 <img
                                   className={styles.documentThumb}
                                   src={participant.idDocumentImage}
@@ -8175,10 +8197,12 @@ export default function App() {
                               )}
                             </td>
                             <td>
-                              {participant.role === '队员' ? (
+                              {(isEditing ? editingLogisticsParticipantForm.role : participant.role) === '队员' ? (
                                 <select
-                                  value={participant.mentorId}
-                                  onChange={(event) => handleAssignLogisticsMentor(participant.id, event.target.value)}
+                                  value={isEditing ? editingLogisticsParticipantForm.mentorId : participant.mentorId}
+                                  onChange={(event) => isEditing
+                                    ? handleEditingLogisticsParticipantFormChange('mentorId', event.target.value)
+                                    : handleAssignLogisticsMentor(participant.id, event.target.value)}
                                   disabled={!canEdit}
                                 >
                                   <option value="">未分配</option>
@@ -8191,16 +8215,18 @@ export default function App() {
                               )}
                             </td>
                             <td>
-                              <button
-                                className={styles.smallDangerButton}
-                                onClick={() => handleDeleteLogisticsParticipant(participant.id)}
-                                disabled={!canEdit}
-                              >
-                                删除
-                              </button>
+                              <div className={styles.tableEditorStack}>
+                                {isEditing ? <>
+                                  <button className={styles.ghostButton} onClick={handleSaveLogisticsParticipant} disabled={!canEdit}>保存</button>
+                                  <button className={styles.smallDangerButton} onClick={handleCancelEditLogisticsParticipant}>取消</button>
+                                </> : <>
+                                  <button className={styles.ghostButton} onClick={() => handleStartEditLogisticsParticipant(participant)} disabled={!canEdit}>修改</button>
+                                  <button className={styles.smallDangerButton} onClick={() => handleDeleteLogisticsParticipant(participant.id)} disabled={!canEdit}>删除</button>
+                                </>}
+                              </div>
                             </td>
                           </tr>
-                        ))}
+                        );})}
                       </tbody>
                     </table>
                   </div>
@@ -8633,6 +8659,21 @@ export default function App() {
                 </div>
 
                 <div className={styles.logisticsFormGrid}>
+                  <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
+                    <span>从后勤比赛卡片选择</span>
+                    <select
+                      value={selectedTrainingLogisticsEventId}
+                      onChange={(event) => handleSelectTrainingLogisticsEvent(event.target.value)}
+                      disabled={!canEdit}
+                    >
+                      <option value="">不调用后勤比赛，手动输入</option>
+                      {logisticsEvents.map((event) => (
+                        <option key={event.id} value={event.id}>
+                          {event.name} · {event.date || '日期待定'} · {event.group || '赛项待定'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <label className={styles.logisticsField}>
                     <span>比赛名称</span>
                     <input
@@ -9154,6 +9195,7 @@ export default function App() {
 
             <section className={styles.portalSection}>
               <PracticeEventHub
+                accessToken={getStoredAccessToken() ?? undefined}
                 logisticsEvents={logisticsEvents.map((event) => ({
                   id: event.id,
                   name: event.name,
@@ -9187,6 +9229,7 @@ export default function App() {
             />
 
             <section className={styles.practiceWorkspace}>
+              <ExplorerScheduleGenerator />
               <div className={styles.practiceToolbar}>
                 <div>
                   <p className={styles.portalEyebrow}>Table Import</p>
