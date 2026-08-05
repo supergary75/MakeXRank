@@ -40,8 +40,8 @@ export function sortTeams(
   }
 
   return [...teams].sort((a, b) => {
-    let aValue: number = getFieldValue(a, sortField);
-    let bValue: number = getFieldValue(b, sortField);
+    const aValue: number = getFieldValue(a, sortField);
+    const bValue: number = getFieldValue(b, sortField);
 
     if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;

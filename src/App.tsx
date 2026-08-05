@@ -228,7 +228,7 @@ function getLogisticsEventItemLabel(eventItem: string): string {
 
 function renderLogisticsEventItemBadges(eventItem: string) {
   const tokens = eventItem
-    .split(/[\/,，、;；]+/)
+    .split(/[,，、;；/]+/)
     .map((item) => item.trim())
     .filter(Boolean);
 
@@ -5064,7 +5064,7 @@ export default function App() {
       saveTrainingSchedules(next);
       return next;
     });
-  }, [activeTrainingDateKey, activeTrainingEndTime, activeTrainingEvent, activeTrainingStartTime, canEdit]);
+  }, [activeTrainingDateKey, activeTrainingDateMode, activeTrainingEndTime, activeTrainingEvent, activeTrainingStartTime, canEdit]);
 
   const handleClearActiveTrainingDate = useCallback(() => {
     if (!canEdit || !activeTrainingEvent || !activeTrainingDateKey) {
