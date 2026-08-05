@@ -11,6 +11,7 @@ interface PracticeEventRecord {
   eventItem: string;
   sourceLogisticsEventId: string;
   teams: PracticeTeam[];
+  manualTeams: PracticeTeam[];
 }
 
 export interface PracticeLogisticsParticipant {
@@ -73,7 +74,14 @@ async function syncPracticeEvents(events: PracticeEventRecord[], accessToken: st
   const rows = await response.json() as Array<{ events?: PracticeEventRecord[] }>;
   const remoteEvents = Array.isArray(rows[0]?.events) ? rows[0].events : [];
   const merged = new Map(remoteEvents.map((event) => [event.id, event]));
-  events.forEach((event) => merged.set(event.id, event));
+  events.forEach((event) => {
+    const remoteEvent = merged.get(event.id);
+    merged.set(event.id, remoteEvent ? {
+      ...remoteEvent,
+      ...event,
+      manualTeams: mergePracticeTeams(remoteEvent.manualTeams ?? [], event.manualTeams ?? []),
+    } : event);
+  });
   const next = Array.from(merged.values());
   const saveResponse = await fetch(`${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?on_conflict=id`, {
     method: 'POST',
@@ -92,6 +100,7 @@ function loadEvents(): PracticeEventRecord[] {
       eventItem: typeof event.eventItem === 'string' && event.eventItem ? event.eventItem : 'MakeX Explorer',
       sourceLogisticsEventId: typeof event.sourceLogisticsEventId === 'string' ? event.sourceLogisticsEventId : '',
       teams: Array.isArray(event.teams) ? event.teams : [],
+      manualTeams: Array.isArray(event.manualTeams) ? event.manualTeams : [],
     })) : [];
   } catch {
     return [];
@@ -130,6 +139,20 @@ function buildPracticeTeams(source: PracticeLogisticsEvent, selectedEventItem: s
     groups.set(key, team);
   });
   return Array.from(groups.values());
+}
+
+function mergePracticeTeams(...teamSets: PracticeTeam[][]): PracticeTeam[] {
+  const merged = new Map<string, PracticeTeam>();
+  teamSets.flat().forEach((team) => {
+    const key = `${normalizeEventItem(team.eventItem)}::${team.teamNo.replace(/\s+/g, '').toLowerCase()}`;
+    const current = merged.get(key);
+    if (!current) { merged.set(key, { ...team, id: key, members: [...team.members] }); return; }
+    team.members.forEach((member) => {
+      if (!current.members.some((item) => item.name.trim().toLowerCase() === member.name.trim().toLowerCase())) current.members.push(member);
+    });
+    if ((!current.teamName || current.teamName === current.teamNo) && team.teamName) current.teamName = team.teamName;
+  });
+  return Array.from(merged.values());
 }
 
 function shuffled<T>(items: T[]): T[] {
@@ -283,6 +306,7 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
     venue: '',
     notes: '',
   });
+  const [manualTeamForm, setManualTeamForm] = useState({ eventItem: 'MakeX Explorer', teamNo: '', teamName: '', members: '' });
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
@@ -305,6 +329,21 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
     const timer = window.setTimeout(() => { void syncPracticeEvents(events, accessToken); }, 600);
     return () => window.clearTimeout(timer);
   }, [accessToken, cloudReady, events]);
+
+  useEffect(() => {
+    if (!accessToken || !cloudReady) return;
+    let cancelled = false;
+    const pullLatest = () => {
+      void syncPracticeEvents(loadEvents(), accessToken).then((next) => {
+        if (cancelled) return;
+        setEvents((current) => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }).catch(() => undefined);
+    };
+    const interval = window.setInterval(pullLatest, 12000);
+    window.addEventListener('focus', pullLatest);
+    return () => { cancelled = true; window.clearInterval(interval); window.removeEventListener('focus', pullLatest); };
+  }, [accessToken, cloudReady]);
 
   useEffect(() => {
     setEvents((current) => {
@@ -344,9 +383,11 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
       : activeEvent.teams.filter((team) => matchesEventItem(team.eventItem, activeEventItem)))
     : [];
   const rosterGroups = ['MakeX Explorer', 'MakeX Inspire'].map((eventItem) => {
-    const teams = activeLogisticsSource
+    const syncedTeams = activeLogisticsSource
       ? buildPracticeTeams(activeLogisticsSource, eventItem)
       : (activeEventItem === eventItem ? activeTeams : []);
+    const manualTeams = (activeEvent?.manualTeams ?? []).filter((team) => matchesEventItem(team.eventItem, eventItem));
+    const teams = mergePracticeTeams(syncedTeams, manualTeams);
     return {
       eventItem,
       teams,
@@ -367,6 +408,7 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
       eventItem: form.eventItem,
       sourceLogisticsEventId: source?.id ?? '',
       teams: source ? buildPracticeTeams(source, form.eventItem) : [],
+      manualTeams: [],
     }, ...current]);
     setForm((current) => ({ ...current, sourceLogisticsEventId: '', name: '', venue: '', notes: '' }));
   };
@@ -388,6 +430,24 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
     if (activeEventId === eventId) setActiveEventId(null);
   };
 
+  const addManualTeam = () => {
+    if (!activeEvent) return;
+    const teamNo = manualTeamForm.teamNo.trim();
+    const teamName = manualTeamForm.teamName.trim();
+    const memberNames = manualTeamForm.members.split(/[、,，;；\n]+/).map((name) => name.trim()).filter(Boolean);
+    if (!teamNo || !teamName || memberNames.length === 0) return;
+    const eventItem = manualTeamForm.eventItem;
+    const id = `${normalizeEventItem(eventItem)}::${teamNo.replace(/\s+/g, '').toLowerCase()}`;
+    const nextTeam: PracticeTeam = { id, eventItem, teamNo, teamName, members: memberNames.map((name, index) => ({ id: `manual-${Date.now()}-${index}`, name })) };
+    setEvents((current) => current.map((event) => {
+      if (event.id !== activeEvent.id) return event;
+      const existing = event.manualTeams ?? [];
+      const withoutSame = existing.filter((team) => team.id !== id);
+      return { ...event, manualTeams: [...withoutSame, nextTeam] };
+    }));
+    setManualTeamForm((current) => ({ ...current, teamNo: '', teamName: '', members: '' }));
+  };
+
   if (activeEvent) {
     return (
       <div className={styles.hub}>
@@ -404,6 +464,16 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
             <div><small>Club Teams</small><h2>俱乐部内部赛队</h2></div>
             <div className={styles.rosterActions}>
               {activeEvent.sourceLogisticsEventId && <button className={styles.syncButton} type="button" onClick={syncActiveEvent}>同步后勤最新人员</button>}
+            </div>
+          </div>
+          <div className={styles.manualTeamPanel}>
+            <div><small>Manual Team</small><strong>手动添加赛队</strong></div>
+            <div className={styles.manualTeamGrid}>
+              <label><span>赛项</span><select value={manualTeamForm.eventItem} onChange={(event) => setManualTeamForm((current) => ({ ...current, eventItem: event.target.value }))}><option>MakeX Explorer</option><option>MakeX Inspire</option></select></label>
+              <label><span>赛队编号</span><input value={manualTeamForm.teamNo} onChange={(event) => setManualTeamForm((current) => ({ ...current, teamNo: event.target.value }))} placeholder="例如：98404" /></label>
+              <label><span>赛队名称</span><input value={manualTeamForm.teamName} onChange={(event) => setManualTeamForm((current) => ({ ...current, teamName: event.target.value }))} placeholder="例如：星辰主宰" /></label>
+              <label><span>赛队队员</span><input value={manualTeamForm.members} onChange={(event) => setManualTeamForm((current) => ({ ...current, members: event.target.value }))} placeholder="多人请用顿号或逗号分隔" /></label>
+              <button type="button" onClick={addManualTeam} disabled={!manualTeamForm.teamNo.trim() || !manualTeamForm.teamName.trim() || !manualTeamForm.members.trim()}>添加赛队</button>
             </div>
           </div>
           <div className={styles.rosterGroups}>

@@ -54,7 +54,6 @@ import {
 import {
   buildPracticeExplorerInsights,
   getPracticeExplorerMetricRankings,
-  parsePracticeExplorerData,
   type PracticeExplorerMatchRow,
 } from './utils/practiceExplorerAnalysis';
 import { useNotification } from './hooks/useNotification';
@@ -533,14 +532,6 @@ function loadPracticeExplorerState(): PracticeExplorerState {
   } catch {
     return { sourceText: '', teamsData: [], rows: [], lastUpdate: '' };
   }
-}
-
-function savePracticeExplorerState(state: PracticeExplorerState): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(PRACTICE_EXPLORER_STORAGE_KEY, JSON.stringify(state));
 }
 
 function normalizeLogisticsAttendanceStatus(value: unknown): LogisticsAttendanceStatus {
@@ -2064,8 +2055,8 @@ export default function App() {
   const [teamTags, setTeamTags] = useState<TeamTagMap>(() => loadTeamTags());
   const [teamTagOptions, setTeamTagOptions] = useState<string[]>(() => loadTeamTagOptions());
   const [teamTagCloudReady, setTeamTagCloudReady] = useState(false);
-  const [practiceExplorer, setPracticeExplorer] = useState<PracticeExplorerState>(() => loadPracticeExplorerState());
-  const [practiceExplorerAwaitingPaste, setPracticeExplorerAwaitingPaste] = useState(false);
+  const [practiceExplorer] = useState<PracticeExplorerState>(() => loadPracticeExplorerState());
+  const [, setPracticeExplorerAwaitingPaste] = useState(false);
   const [logisticsEvents, setLogisticsEvents] = useState<LogisticsEventRecord[]>(() => loadLogisticsEvents());
   const [logisticsEventForm, setLogisticsEventForm] = useState<LogisticsEventForm>({
     name: '',
@@ -2140,7 +2131,6 @@ export default function App() {
   const [logisticsCloudReady, setLogisticsCloudReady] = useState(false);
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
-  const practiceExplorerPasteAreaRef = useRef<HTMLTextAreaElement>(null);
   const trainingCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const teamTagCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logisticsCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -5568,171 +5558,6 @@ export default function App() {
         : `已解析输入框中的内容并更新 ${activeCompetition.name}。`,
     );
   }, [activeCompetition, ensureEditorAccess, parseAndApplyTable, showNotification, updateActiveCompetition]);
-
-  const parseAndApplyPracticeExplorerTable = useCallback(
-    (text: string, successMessage?: string) => {
-      if (!canEdit) {
-        showNotification('当前账号没有编辑权限。', 'error');
-        return;
-      }
-
-      const normalizedText = text.trim();
-      if (!normalizedText) {
-        showNotification('请先复制或粘贴练习赛表格，再点击读取解析。', 'error');
-        return;
-      }
-
-      try {
-        const parsed = parsePracticeExplorerData(normalizedText);
-        if (parsed.rows.length === 0 || parsed.teamsData.length === 0) {
-          showNotification('没有识别到有效的 Explorer 练习赛数据，请检查表格是否完整。', 'error');
-          return;
-        }
-
-        const nextState: PracticeExplorerState = {
-          sourceText: normalizedText,
-          teamsData: parsed.teamsData,
-          rows: parsed.rows,
-          lastUpdate: formatTime(),
-        };
-
-        setPracticeExplorer(nextState);
-        savePracticeExplorerState(nextState);
-        setPracticeExplorerAwaitingPaste(false);
-        setSortField('totalWinLossScore');
-        setSortOrder('desc');
-        showNotification(
-          successMessage ?? `成功解析 ${parsed.teamsData.length} 支队伍、${parsed.rows.length} 场练习数据。`,
-          'success',
-        );
-      } catch (error) {
-        console.error('Practice Explorer parse failed:', error);
-        showNotification('解析失败，请确认复制的是 Explorer 比赛表格。', 'error');
-      }
-    },
-    [canEdit, showNotification],
-  );
-
-  const handlePracticeExplorerTextChange = useCallback(
-    (text: string) => {
-      if (!canEdit) {
-        return;
-      }
-
-      setPracticeExplorer((previous) => {
-        const nextState = { ...previous, sourceText: text };
-        savePracticeExplorerState(nextState);
-        return nextState;
-      });
-    },
-    [canEdit],
-  );
-
-  const handleClearPracticeExplorerData = useCallback(() => {
-    if (!canEdit) {
-      showNotification('当前账号没有编辑权限。', 'error');
-      return;
-    }
-
-    const hasData = practiceExplorer.sourceText.trim() || practiceExplorer.teamsData.length > 0;
-    if (!hasData) {
-      showNotification('当前练习赛数据已经是空的。', 'info');
-      return;
-    }
-
-    const shouldClear = window.confirm('确认清空 MakeX Explorer 练习赛导入内容和排名数据吗？');
-    if (!shouldClear) {
-      return;
-    }
-
-    const nextState: PracticeExplorerState = { sourceText: '', teamsData: [], rows: [], lastUpdate: '' };
-    setPracticeExplorer(nextState);
-    savePracticeExplorerState(nextState);
-    setPracticeExplorerAwaitingPaste(false);
-    setSearchKeyword('');
-    showNotification('已清空 MakeX Explorer 练习赛数据。', 'success');
-  }, [canEdit, practiceExplorer, showNotification]);
-
-  const handlePracticeExplorerRefresh = useCallback(() => {
-    if (!canEdit) {
-      showNotification('当前账号没有编辑权限。', 'error');
-      return;
-    }
-
-    if (practiceExplorer.teamsData.length === 0) {
-      showNotification('当前还没有可刷新的练习赛排名数据。', 'error');
-      return;
-    }
-
-    setPracticeExplorer((previous) => {
-      const nextState = { ...previous, lastUpdate: formatTime() };
-      savePracticeExplorerState(nextState);
-      return nextState;
-    });
-    showNotification('练习赛排名已刷新。', 'success');
-  }, [canEdit, practiceExplorer.teamsData.length, showNotification]);
-
-  const handleParsePracticeExplorerClipboard = useCallback(async () => {
-    if (!canEdit) {
-      showNotification('当前账号没有编辑权限。', 'error');
-      return;
-    }
-
-    let clipboardText = '';
-    let clipboardError = '';
-
-    if (navigator.clipboard?.readText) {
-      try {
-        clipboardText = (await navigator.clipboard.readText()).trim();
-      } catch (error) {
-        clipboardError = error instanceof Error ? error.message : '浏览器阻止读取剪贴板';
-      }
-    }
-
-    const inputText = (practiceExplorerPasteAreaRef.current?.value ?? practiceExplorer.sourceText ?? '').trim();
-    const finalText = clipboardText || inputText;
-
-    if (!finalText) {
-      practiceExplorerPasteAreaRef.current?.focus();
-      setPracticeExplorerAwaitingPaste(true);
-      showNotification(
-        clipboardError
-          ? `当前环境未能直接读取系统剪贴板，请现在按 Ctrl+V，系统会自动导入。原因：${clipboardError}`
-          : '剪贴板为空，请先复制 Explorer 练习赛表格；如果浏览器拦截读取，请现在按 Ctrl+V，系统会自动导入。',
-        'error',
-      );
-      return;
-    }
-
-    parseAndApplyPracticeExplorerTable(
-      finalText,
-      clipboardText ? '已从系统剪贴板读取并解析 Explorer 练习赛数据。' : '已解析输入框中的 Explorer 练习赛数据。',
-    );
-  }, [canEdit, parseAndApplyPracticeExplorerTable, practiceExplorer.sourceText, showNotification]);
-
-  useEffect(() => {
-    if (!practiceExplorerAwaitingPaste || viewMode !== 'practice-explorer') {
-      return;
-    }
-
-    const handlePracticeExplorerPaste = (event: ClipboardEvent) => {
-      const pastedText = event.clipboardData?.getData('text')?.trim() ?? '';
-      if (!pastedText) {
-        return;
-      }
-
-      if (practiceExplorerPasteAreaRef.current) {
-        practiceExplorerPasteAreaRef.current.value = pastedText;
-      }
-
-      parseAndApplyPracticeExplorerTable(pastedText, '已捕获剪贴板内容并更新 Explorer 练习赛数据。');
-    };
-
-    window.addEventListener('paste', handlePracticeExplorerPaste);
-    return () => {
-      window.removeEventListener('paste', handlePracticeExplorerPaste);
-    };
-  }, [parseAndApplyPracticeExplorerTable, practiceExplorerAwaitingPaste, viewMode]);
 
   const handleRefresh = useCallback(() => {
     if (!ensureEditorAccess()) {
@@ -9230,40 +9055,6 @@ export default function App() {
 
             <section className={styles.practiceWorkspace}>
               <ExplorerScheduleGenerator />
-              <div className={styles.practiceToolbar}>
-                <div>
-                  <p className={styles.portalEyebrow}>Table Import</p>
-                  <h2>表格数据读取</h2>
-                  <p>
-                    复制 Explorer 练习赛完整表格后，点击读取并解析；如果浏览器限制剪切板读取，也可以直接在输入框按 Ctrl+V。
-                  </p>
-                </div>
-                <div className={styles.practiceActions}>
-                  <button
-                    className={styles.portalButton}
-                    onClick={handleParsePracticeExplorerClipboard}
-                    disabled={!canEdit}
-                  >
-                    读取并解析剪贴板
-                  </button>
-                  <button
-                    className={styles.secondaryButton}
-                    onClick={handlePracticeExplorerRefresh}
-                    disabled={!canEdit}
-                  >
-                    刷新排名
-                  </button>
-                </div>
-              </div>
-
-              <DataInputPanel
-                textValue={practiceExplorer.sourceText}
-                onTextChange={handlePracticeExplorerTextChange}
-                onClearData={handleClearPracticeExplorerData}
-                awaitingPaste={practiceExplorerAwaitingPaste}
-                pasteAreaRef={practiceExplorerPasteAreaRef}
-                readOnly={!canEdit}
-              />
 
               <section className={styles.parameterPanel}>
                 <div>
