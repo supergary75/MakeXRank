@@ -92,7 +92,15 @@ type TrainingDateMode = 'training' | 'self';
 
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
 const EVENT_TYPES: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
-const TRAINING_GROUP_OPTIONS = ['FRC', 'MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
+const EXPLORER_PRIMARY_GROUP = 'MakeX Explorer小学组';
+const EXPLORER_JUNIOR_GROUP = 'MakeX Explorer初中组';
+const TRAINING_GROUP_OPTIONS = [
+  'FRC',
+  'MakeX Inspire',
+  EXPLORER_PRIMARY_GROUP,
+  EXPLORER_JUNIOR_GROUP,
+  'MakeX Challenge',
+];
 const DEFAULT_TRAINING_DATE_MODE: TrainingDateMode = 'training';
 const TRAINING_TIME_OPTIONS = [
   '08:00',
@@ -126,7 +134,13 @@ const LOGISTICS_EVENTS_STORAGE_KEY = 'competitive-ranking-board::logistics-event
 const LOGISTICS_ROSTER_STORAGE_KEY = 'competitive-ranking-board::logistics-master-roster';
 const TRAINING_EVENTS_STORAGE_KEY = 'competitive-ranking-board::training-events';
 const TRAINING_SCHEDULES_STORAGE_KEY = 'competitive-ranking-board::training-schedules';
-const LOGISTICS_EVENT_ITEM_OPTIONS = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge', 'FRC'];
+const LOGISTICS_EVENT_ITEM_OPTIONS = [
+  'MakeX Inspire',
+  EXPLORER_PRIMARY_GROUP,
+  EXPLORER_JUNIOR_GROUP,
+  'MakeX Challenge',
+  'FRC',
+];
 const LOGISTICS_PARTICIPANT_ROLES = ['教练', '队员', '家长', '领队'];
 const LOGISTICS_ID_DOCUMENT_OPTIONS = ['身份证', '回乡证', '外籍护照', '中国护照'];
 const LOGISTICS_ROOM_NOTE_OPTIONS = ['男生房', '女生房', '教练开会房间'];
@@ -143,6 +157,8 @@ const LOGISTICS_ROSTER_ACCESS_PASSWORD =
   import.meta.env.VITE_LOGISTICS_ROSTER_PASSWORD?.trim() || 'FV7509';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
+const INSPIRE_SYNC_TABLE = import.meta.env.VITE_SUPABASE_INSPIRE_SYNC_TABLE?.trim() || 'inspire_sync';
+const INSPIRE_CONFIG_STORAGE_KEY = 'competitive-ranking-board::inspire-supabase-config';
 const TRAINING_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TRAINING_SYNC_TABLE?.trim() || 'training_sync';
 const TRAINING_SYNC_ID = 'global';
 const TEAM_TAG_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TEAM_TAG_SYNC_TABLE?.trim() || 'team_tag_sync';
@@ -215,6 +231,12 @@ function getLogisticsEventItemLabel(eventItem: string): string {
     return 'INSPIRE';
   }
   if (normalized.includes('explorer') || normalized === 'exp') {
+    if (normalized.includes('小学') || normalized.includes('primary')) {
+      return 'EXPLORER 小学组';
+    }
+    if (normalized.includes('初中') || normalized.includes('junior') || normalized.includes('middle')) {
+      return 'EXPLORER 初中组';
+    }
     return 'EXPLORER';
   }
   if (normalized.includes('challenge') || normalized === 'cha') {
@@ -264,6 +286,7 @@ interface LogisticsParticipant {
   guardian: string;
   guardianPhone: string;
   allergy: string;
+  birthday?: string;
   idNumber: string;
   notes: string;
   idDocumentImage: string;
@@ -710,7 +733,29 @@ function getPersonalLogisticsTasks(
 }
 
 function normalizeLogisticsEventItem(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+type ExplorerSchoolGroup = 'primary' | 'junior';
+
+function isExplorerEventItem(value: string): boolean {
+  const normalized = normalizeLogisticsEventItem(value);
+  return normalized.includes('explorer') || normalized.includes('exp');
+}
+
+function getExplorerSchoolGroup(value: string): ExplorerSchoolGroup | null {
+  const normalized = normalizeLogisticsEventItem(value);
+  if (normalized.includes('小学') || normalized.includes('primary')) {
+    return 'primary';
+  }
+  if (normalized.includes('初中') || normalized.includes('junior') || normalized.includes('middle')) {
+    return 'junior';
+  }
+  if (isExplorerEventItem(value)) {
+    // 历史数据只有“MakeX Explorer”时，按当前既有项目归入初中组，避免同时出现在两个组。
+    return 'junior';
+  }
+  return null;
 }
 
 function matchesLogisticsEventItem(value: string, selectedItem: string): boolean {
@@ -721,10 +766,14 @@ function matchesLogisticsEventItem(value: string, selectedItem: string): boolean
     return false;
   }
 
+  if (isExplorerEventItem(selectedItem)) {
+    return isExplorerEventItem(value)
+      && getExplorerSchoolGroup(value) === getExplorerSchoolGroup(selectedItem);
+  }
+
   return normalizedValue.includes(normalizedSelected)
     || normalizedSelected.includes(normalizedValue)
     || (normalizedSelected === 'makexinspire' && normalizedValue.includes('ins'))
-    || (normalizedSelected === 'makexexplorer' && normalizedValue.includes('exp'))
     || (normalizedSelected === 'makexchallenge' && normalizedValue.includes('cha'))
     || (normalizedSelected === 'frc' && normalizedValue.includes('frc'));
 }
@@ -804,6 +853,66 @@ function parseLogisticsRosterText(text: string): string[][] {
     .filter((row) => row.some(Boolean));
 }
 
+interface LogisticsRosterTable {
+  headers: string[];
+  dataRows: string[][];
+  headerRowIndex: number;
+  isStandardTemplate: boolean;
+}
+
+function extractLogisticsRosterTable(rows: string[][]): LogisticsRosterTable | null {
+  const normalizedRows = rows.map((row) => row.map((cell) => String(cell ?? '').trim()));
+  const headerRowIndex = normalizedRows.findIndex((row) => {
+    const normalized = row.map((cell) => cell.replace(/\s+/g, ''));
+    return normalized.some((cell) => cell === '中文名' || cell === '姓名')
+      && normalized.some((cell) => cell === '赛项' || cell === '组别')
+      && normalized.some((cell) => cell === '队号' || cell === '战队编号');
+  });
+
+  if (headerRowIndex < 0) {
+    return null;
+  }
+
+  const headers = normalizedRows[headerRowIndex];
+  const compactHeaders = headers.map((header) => header.replace(/\s+/g, ''));
+  const requiredStandardHeaders = ['序号', '中文名', '英文名', '性别', '角色', '证件类型', '证件号码', '生日', '赛项', '队号', '队名'];
+
+  return {
+    headers,
+    dataRows: normalizedRows.slice(headerRowIndex + 1).filter((row) => row.some(Boolean)),
+    headerRowIndex,
+    isStandardTemplate: requiredStandardHeaders.every((required) => compactHeaders.includes(required)),
+  };
+}
+
+function normalizeImportedLogisticsEventItem(value: string, fallback = ''): string {
+  const normalized = value.trim().toLowerCase().replace(/[\s_\-/]+/g, '');
+  if (!normalized) {
+    return fallback;
+  }
+  if (normalized === 'ins' || normalized.includes('inspire')) {
+    return 'MakeX Inspire';
+  }
+  if ((normalized.includes('exp') || normalized.includes('explorer'))
+    && (normalized.includes('小') || normalized.includes('primary'))) {
+    return EXPLORER_PRIMARY_GROUP;
+  }
+  if ((normalized.includes('exp') || normalized.includes('explorer'))
+    && (normalized.includes('初') || normalized.includes('junior') || normalized.includes('middle'))) {
+    return EXPLORER_JUNIOR_GROUP;
+  }
+  if (normalized === 'exp' || normalized.includes('explorer')) {
+    return isExplorerEventItem(fallback) ? fallback : EXPLORER_JUNIOR_GROUP;
+  }
+  if (normalized === 'cha' || normalized.includes('challenge')) {
+    return 'MakeX Challenge';
+  }
+  if (normalized.includes('frc')) {
+    return 'FRC';
+  }
+  return value.trim();
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -866,6 +975,7 @@ function normalizeLogisticsParticipant(item: unknown): LogisticsParticipant | nu
     guardian: isTeamMember && typeof source.guardian === 'string' ? source.guardian : '',
     guardianPhone: isTeamMember && typeof source.guardianPhone === 'string' ? source.guardianPhone : '',
     allergy: typeof source.allergy === 'string' ? source.allergy : '',
+    birthday: typeof source.birthday === 'string' ? source.birthday : '',
     idNumber: typeof source.idNumber === 'string' ? source.idNumber : '',
     notes: typeof source.notes === 'string' ? source.notes : '',
     idDocumentImage: typeof source.idDocumentImage === 'string' ? source.idDocumentImage : '',
@@ -1147,6 +1257,7 @@ function mergeLogisticsParticipantRecord(
     guardian: existing.guardian || incoming.guardian,
     guardianPhone: existing.guardianPhone || incoming.guardianPhone,
     allergy: mergeRosterText(existing.allergy, incoming.allergy),
+    birthday: existing.birthday || incoming.birthday || '',
     idNumber: existing.idNumber || incoming.idNumber,
     notes: existing.notes || incoming.notes,
     idDocumentImage: existing.idDocumentImage || incoming.idDocumentImage,
@@ -1175,6 +1286,7 @@ function mergeLogisticsEventParticipantRecord(
     guardian: isTeamMember ? existing.guardian || incoming.guardian : '',
     guardianPhone: isTeamMember ? existing.guardianPhone || incoming.guardianPhone : '',
     allergy: mergeRosterText(existing.allergy, incoming.allergy),
+    birthday: existing.birthday || incoming.birthday || '',
     idNumber: existing.idNumber || incoming.idNumber,
     notes: existing.notes || incoming.notes,
     idDocumentImage: existing.idDocumentImage || incoming.idDocumentImage,
@@ -4298,12 +4410,13 @@ export default function App() {
       return false;
     }
 
-    if (rows.length < 2) {
-      showNotification(`请提供带表头的队员信息表。${sourceLabel} 没有识别到有效数据。`, 'error');
+    const rosterTable = extractLogisticsRosterTable(rows);
+    if (!rosterTable) {
+      showNotification(`请使用标准后勤人员模板。${sourceLabel} 没有找到“中文名、赛项、队号”表头。`, 'error');
       return false;
     }
 
-    const headers = rows[0].map((header) => header.trim());
+    const headers = rosterTable.headers;
     const findColumn = (...names: string[]) =>
       headers.findIndex((header) => names.some((name) => header.includes(name)));
     const column = {
@@ -4319,11 +4432,13 @@ export default function App() {
       guardian: findColumn('监护人'),
       guardianPhone: findColumn('监护人联系电话', '联系电话'),
       allergy: findColumn('过敏史'),
+      birthday: findColumn('生日', '出生日期'),
       idNumber: findColumn('证件号码', '证件号'),
       notes: findColumn('证件类型', '证件信息', '备注'),
     };
 
-    const imported = rows.slice(1).map((row) => {
+    const reviewIssues: string[] = [];
+    const imported = rosterTable.dataRows.map((row, rowIndex) => {
       const value = (index: number) => (index >= 0 ? (row[index] ?? '').trim() : '');
       const name = value(column.name);
       if (!name) {
@@ -4331,9 +4446,24 @@ export default function App() {
       }
 
       const rawRole = value(column.role);
+      const rawDocumentType = value(column.notes);
+      const documentNumber = value(column.idNumber);
+      const guardianPhone = value(column.guardianPhone);
+      const excelRowNumber = rosterTable.headerRowIndex + rowIndex + 2;
       const resolvedRole = getFixedLogisticsStaffRole(name)
         ?? (LOGISTICS_PARTICIPANT_ROLES.includes(rawRole) ? rawRole : '队员');
       const isTeamMember = resolvedRole === '队员';
+
+      if (rawRole && !LOGISTICS_PARTICIPANT_ROLES.includes(rawRole) && !getFixedLogisticsStaffRole(name)) {
+        reviewIssues.push(`第 ${excelRowNumber} 行角色“${rawRole}”已按队员导入`);
+      }
+      const guardianDigits = guardianPhone.replace(/\D/g, '');
+      if (guardianDigits && guardianDigits.length !== 11) {
+        reviewIssues.push(`第 ${excelRowNumber} 行监护人电话需复核`);
+      }
+      if (rawDocumentType && documentNumber && normalizeRosterDocument(rawDocumentType) === normalizeRosterDocument(documentNumber)) {
+        reviewIssues.push(`第 ${excelRowNumber} 行证件类型需复核`);
+      }
 
       return {
         id: `participant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -4341,20 +4471,23 @@ export default function App() {
         englishName: value(column.englishName),
         gender: value(column.gender),
         role: resolvedRole,
-        eventItem: isTeamMember ? value(column.eventItem) || activeLogisticsEventItem || '' : '',
+        eventItem: isTeamMember
+          ? normalizeImportedLogisticsEventItem(value(column.eventItem), activeLogisticsEventItem || '')
+          : '',
         teamNo: isTeamMember ? value(column.teamNo) : '',
         teamName: isTeamMember ? value(column.teamName) : '',
         fieldPosition: isTeamMember ? value(column.fieldPosition) : '',
         phone: value(column.phone),
         guardian: isTeamMember ? value(column.guardian) : '',
-        guardianPhone: isTeamMember ? value(column.guardianPhone) : '',
+        guardianPhone: isTeamMember ? guardianPhone : '',
         allergy: value(column.allergy),
-        idNumber: value(column.idNumber),
-        notes: value(column.notes),
+        birthday: value(column.birthday),
+        idNumber: documentNumber,
+        notes: rawDocumentType,
         idDocumentImage: '',
         mentorId: isTeamMember ? '' : '',
       } satisfies LogisticsParticipant;
-    }).filter((participant): participant is LogisticsParticipant => Boolean(participant));
+    }).filter((participant): participant is NonNullable<typeof participant> => Boolean(participant));
 
     if (imported.length === 0) {
       showNotification('没有识别到可导入的队员姓名。', 'error');
@@ -4372,7 +4505,12 @@ export default function App() {
         participants: result.participants,
       };
     });
-    showNotification(`已从${sourceLabel}导入 ${imported.length} 条人员信息：新增 ${added} 人，合并 ${merged} 人。`, 'success');
+    const templateLabel = rosterTable.isStandardTemplate ? '标准后勤模板' : sourceLabel;
+    const issueLabel = reviewIssues.length > 0 ? `；另有 ${reviewIssues.length} 项需复核` : '';
+    showNotification(`已从${templateLabel}导入 ${imported.length} 条人员信息：新增 ${added} 人，合并 ${merged} 人${issueLabel}。`, 'success');
+    if (reviewIssues.length > 0) {
+      console.warn('后勤模板导入复核项：', reviewIssues);
+    }
     return true;
   }, [activeLogisticsEventItem, canEdit, showNotification, updateActiveLogisticsEvent]);
 
@@ -4411,8 +4549,9 @@ export default function App() {
         if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[firstSheetName];
+          const rosterSheetName = workbook.SheetNames.find((name) => name.replace(/\s+/g, '') === '队员信息表')
+            ?? workbook.SheetNames[0];
+          const sheet = workbook.Sheets[rosterSheetName];
           rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
             header: 1,
             raw: false,
@@ -4440,12 +4579,13 @@ export default function App() {
       return false;
     }
 
-    if (rows.length < 2) {
-      showNotification(`请提供带表头的队员信息表。${sourceLabel} 没有识别到有效数据。`, 'error');
+    const rosterTable = extractLogisticsRosterTable(rows);
+    if (!rosterTable) {
+      showNotification(`请使用标准后勤人员模板。${sourceLabel} 没有找到“中文名、赛项、队号”表头。`, 'error');
       return false;
     }
 
-    const headers = rows[0].map((header) => header.trim());
+    const headers = rosterTable.headers;
     const findColumn = (...names: string[]) =>
       headers.findIndex((header) => names.some((name) => header.includes(name)));
     const column = {
@@ -4460,11 +4600,12 @@ export default function App() {
       guardian: findColumn('监护人'),
       guardianPhone: findColumn('监护人联系电话', '联系电话'),
       allergy: findColumn('过敏史'),
+      birthday: findColumn('生日', '出生日期'),
       idNumber: findColumn('证件号码', '证件号'),
       notes: findColumn('证件类型', '证件信息', '备注'),
     };
 
-    const imported = rows.slice(1).map((row) => {
+    const imported = rosterTable.dataRows.map((row) => {
       const value = (index: number) => (index >= 0 ? (row[index] ?? '').trim() : '');
       const name = value(column.name);
       if (!name) {
@@ -4483,7 +4624,7 @@ export default function App() {
         englishName: value(column.englishName),
         gender: value(column.gender),
         role,
-        eventItem: isTeamMember ? value(column.eventItem) : '',
+        eventItem: isTeamMember ? normalizeImportedLogisticsEventItem(value(column.eventItem)) : '',
         teamNo: isTeamMember ? value(column.teamNo) : '',
         teamName: '',
         fieldPosition: '',
@@ -4491,12 +4632,13 @@ export default function App() {
         guardian: isTeamMember ? value(column.guardian) : '',
         guardianPhone: isTeamMember ? value(column.guardianPhone) : '',
         allergy: value(column.allergy),
+        birthday: value(column.birthday),
         idNumber: value(column.idNumber),
         notes: value(column.notes) || '身份证',
         idDocumentImage: '',
         mentorId: '',
       } satisfies LogisticsParticipant;
-    }).filter((participant): participant is LogisticsParticipant => Boolean(participant));
+    }).filter((participant): participant is NonNullable<typeof participant> => Boolean(participant));
 
     if (imported.length === 0) {
       showNotification('没有识别到可导入的人员姓名。', 'error');
@@ -4504,7 +4646,8 @@ export default function App() {
     }
 
     updateLogisticsMasterRoster((previous) => [...imported, ...previous]);
-    showNotification(`已从${sourceLabel}导入 ${imported.length} 条统一库人员信息。`, 'success');
+    const templateLabel = rosterTable.isStandardTemplate ? '标准后勤模板' : sourceLabel;
+    showNotification(`已从${templateLabel}导入 ${imported.length} 条统一库人员信息。`, 'success');
     return true;
   }, [canEdit, showNotification, updateLogisticsMasterRoster]);
 
@@ -4543,8 +4686,9 @@ export default function App() {
         if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[firstSheetName];
+          const rosterSheetName = workbook.SheetNames.find((name) => name.replace(/\s+/g, '') === '队员信息表')
+            ?? workbook.SheetNames[0];
+          const sheet = workbook.Sheets[rosterSheetName];
           rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
             header: 1,
             raw: false,
@@ -5352,6 +5496,16 @@ export default function App() {
   }, []);
 
   const handleOpenPracticeInspire = useCallback(() => {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      window.localStorage.setItem(
+        INSPIRE_CONFIG_STORAGE_KEY,
+        JSON.stringify({
+          url: SUPABASE_URL,
+          anonKey: SUPABASE_ANON_KEY,
+          table: INSPIRE_SYNC_TABLE,
+        }),
+      );
+    }
     const basePath = import.meta.env.BASE_URL.endsWith('/')
       ? import.meta.env.BASE_URL
       : `${import.meta.env.BASE_URL}/`;
@@ -6626,7 +6780,7 @@ export default function App() {
                             onClick={() => logisticsFileInputRef.current?.click()}
                             disabled={!canEdit}
                           >
-                            Excel 表格导入
+                            导入标准后勤 Excel
                           </button>
                           <button
                             className={styles.secondaryButton}
@@ -6652,7 +6806,7 @@ export default function App() {
 
                         <div className={styles.logisticsTableWrap}>
                           {activeLogisticsRosterSourceEvent.participants.length === 0 ? (
-                            <div className={styles.logisticsEmpty}>这场赛事暂无人员。可以手动新增，也可以从剪切板或 Excel 表格导入。</div>
+                            <div className={styles.logisticsEmpty}>这场赛事暂无人员。可以手动新增，也可以导入统一的“队员信息表”后勤 Excel 模板。</div>
                           ) : (
                             <table className={styles.logisticsTable}>
                               <thead>
@@ -6702,7 +6856,7 @@ export default function App() {
                     ) : (
                       <>
                         <p className={styles.portalCardText}>
-                          下方卡片来自“后勤管理工作台”中创建的每一场比赛。点击卡片进入后，可以手动输入人员，也可以从剪切板或 Excel 表格导入，再同步到统一人员总表。
+                          下方卡片来自“后勤管理工作台”中创建的每一场比赛。点击卡片进入后，可以手动输入人员，也可以导入统一的“队员信息表”后勤 Excel 模板，再同步到统一人员总表。
                         </p>
 
                         <div className={styles.logisticsCards}>
@@ -6960,7 +7114,7 @@ export default function App() {
                         onClick={() => logisticsMasterFileInputRef.current?.click()}
                         disabled={!canEdit}
                       >
-                        Excel 表格导入
+                        导入标准后勤 Excel
                       </button>
                       <button
                         className={styles.secondaryButton}
@@ -7355,7 +7509,7 @@ export default function App() {
                           onClick={() => logisticsFileInputRef.current?.click()}
                           disabled={!canEdit}
                         >
-                          Excel 表格导入
+                          导入标准后勤 Excel
                         </button>
                         <button
                           className={styles.secondaryButton}
@@ -7383,7 +7537,7 @@ export default function App() {
 
                   <div className={styles.logisticsTableWrap}>
                     {activeLogisticsEvent.participants.length === 0 ? (
-                      <div className={styles.logisticsEmpty}>本场暂无人员。可以手动新增，也可以从剪切板或 Excel 表格导入。</div>
+                      <div className={styles.logisticsEmpty}>本场暂无人员。可以手动新增，也可以导入统一的“队员信息表”后勤 Excel 模板。</div>
                     ) : (
                       <table className={styles.logisticsTable}>
                         <thead>
@@ -8030,7 +8184,7 @@ export default function App() {
                     onClick={() => logisticsFileInputRef.current?.click()}
                     disabled={!canEdit}
                   >
-                    Excel 表格导入
+                    导入标准后勤 Excel
                   </button>
                   <button
                     className={styles.secondaryButton}
