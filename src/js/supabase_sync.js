@@ -11,7 +11,7 @@
     const AUTH_KEY = 'competitive-ranking-board::auth-session';
     const DIRTY_KEY = 'makex-inspire::cloud-dirty';
     const LAST_SYNC_KEY = 'makex-inspire::last-cloud-sync';
-    const SHARED_ROW_ID = 'shared';
+    const SHARED_ROW_ID = 'inspire-shared-state';
     const PULL_INTERVAL_MS = 12000;
     const PUSH_DELAY_MS = 700;
     const REQUEST_TIMEOUT_MS = 8000;
@@ -44,10 +44,12 @@
         const stored = readJson(CONFIG_KEY);
         const value = runtime && runtime.url ? runtime : stored;
         if (!value || !value.url || !value.anonKey) return null;
+        const table = String(value.table || 'practice_sync');
         return {
             url: String(value.url).replace(/\/$/, ''),
             anonKey: String(value.anonKey),
-            table: String(value.table || 'inspire_sync'),
+            table,
+            dataColumn: String(value.dataColumn || (table === 'practice_sync' ? 'events' : 'payload')),
         };
     }
 
@@ -155,7 +157,7 @@
     async function fetchRemote(context) {
         const query = new URLSearchParams({
             id: `eq.${SHARED_ROW_ID}`,
-            select: 'id,payload,updated_at',
+            select: `id,${context.config.dataColumn},updated_at`,
             limit: '1',
         });
         const rows = await request(
@@ -179,7 +181,7 @@
                 ...context.headers,
                 Prefer: 'resolution=merge-duplicates,return=representation',
             },
-            body: JSON.stringify({ id: SHARED_ROW_ID, payload }),
+            body: JSON.stringify({ id: SHARED_ROW_ID, [context.config.dataColumn]: payload }),
         });
         remoteUpdatedAt = rows?.[0]?.updated_at || new Date().toISOString();
         localStorage.setItem(LAST_SYNC_KEY, remoteUpdatedAt);
@@ -204,7 +206,7 @@
         if (!remote || !remote.updated_at || remote.updated_at === remoteUpdatedAt) return;
         remoteUpdatedAt = remote.updated_at;
         localStorage.setItem(LAST_SYNC_KEY, remoteUpdatedAt);
-        applyPayload(remote.payload, notify);
+        applyPayload(remote[context.config.dataColumn], notify);
         emitStatus('supabase', notify ? 'Updates received; refresh the page to display them' : 'Synced with Supabase');
     }
 
@@ -236,13 +238,13 @@
             } else if (dirty && lastSync) {
                 await pushNow(local);
             } else if (!lastSync && hasMeaningfulData(local)) {
-                const merged = mergeForFirstSync(remote.payload || {}, local);
+                const merged = mergeForFirstSync(remote[context.config.dataColumn] || {}, local);
                 applyPayload(merged, false);
                 await pushNow(merged);
             } else {
                 remoteUpdatedAt = remote.updated_at || '';
                 localStorage.setItem(LAST_SYNC_KEY, remoteUpdatedAt);
-                applyPayload(remote.payload || {}, false);
+                applyPayload(remote[context.config.dataColumn] || {}, false);
                 emitStatus('supabase', 'Synced with Supabase');
             }
 
@@ -254,7 +256,7 @@
             });
         } catch (error) {
             const missingTable = error.message === 'PGRST205' || error.message === '42P01';
-            emitStatus('error', missingTable ? 'Supabase table inspire_sync has not been created' : `Supabase connection failed: ${error.message}`);
+            emitStatus('error', missingTable ? 'The configured Supabase sync table is unavailable' : `Supabase connection failed: ${error.message}`);
         } finally {
             initialized = true;
         }
