@@ -170,4 +170,7 @@ const StatsApp = {
     },
 };
 
-document.addEventListener('DOMContentLoaded', () => StatsApp.init());
+document.addEventListener('DOMContentLoaded', async () => {
+    if (Shared.ready) await Shared.ready;
+    StatsApp.init();
+});

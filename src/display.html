@@ -428,7 +428,9 @@
     </style>
 </head>
 <body>
+    <script src="js/makexrank-config.js"></script>
     <script src="js/shared.js"></script>
+    <script src="js/supabase_sync.js"></script>
     <script src="js/shared_indexdb.js"></script>
     <script src="js/analysis.js"></script>
     <script src="js/schedule.js"></script>
@@ -758,7 +760,11 @@
         },
     };
 
-    document.addEventListener('DOMContentLoaded', () => { DisplayApp.init(); DisplayApp.bindEvents(); });
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (Shared.ready) await Shared.ready;
+        DisplayApp.init();
+        DisplayApp.bindEvents();
+    });
     document.addEventListener('fullscreenchange', () => {
         const btn = document.getElementById('btnFullscreen');
         btn.textContent = document.fullscreenElement ? '⛶ 退出全屏' : '⛶ 全屏';

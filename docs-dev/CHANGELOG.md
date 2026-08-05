@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-08-05
+
+- Added the MakeXRank Supabase bridge (`inspire_sync`) with authenticated shared cloud storage.
+- Retained localStorage as the offline and standalone fallback.
+- Added cloud initialization before page rendering and a visible sync-status indicator.
+- Repaired malformed strings that prevented `training.js` from parsing.
+
 ## 2026-07-31
 
 ### 新增

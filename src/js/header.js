@@ -54,6 +54,7 @@
         </div>
         <div class="header-spacer"></div>
         <div class="header-stats">
+            <span id="hdrCloudStatus" title="数据存储状态">☁ 本地</span>
             <span>👥 学员 <strong id="hdrStudents">0</strong></span>
             <span>📋 集训 <strong id="hdrTrainings">0</strong></span>
             <span>📝 记录 <strong id="hdrMocks">0</strong></span>
@@ -72,7 +73,8 @@
     currentScript.remove();
 
     // ---- Build layout after DOM is ready ----
-    function buildLayout() {
+    async function buildLayout() {
+        if (window.Shared && Shared.ready) await Shared.ready;
         const container = document.querySelector('.container');
         if (!container) return;
         if (document.querySelector('.layout')) return;
@@ -365,6 +367,21 @@
             setTimeout(updateStats, 50);
             window.updateHeaderStats = updateStats;
         }
+
+        const cloudStatus = document.getElementById('hdrCloudStatus');
+        const updateCloudStatus = (detail) => {
+            if (!cloudStatus || !detail) return;
+            const labels = {
+                local: '☁ 本地',
+                syncing: '↻ 同步中',
+                supabase: '☁ 已同步',
+                error: '⚠ 同步异常',
+            };
+            cloudStatus.textContent = labels[detail.mode] || labels.local;
+            cloudStatus.title = detail.message || '数据存储状态';
+        };
+        if (Shared.cloudSync) updateCloudStatus(Shared.cloudSync.getStatus());
+        window.addEventListener('inspire-cloud-status', (event) => updateCloudStatus(event.detail));
     }
 
     if (document.readyState === 'loading') {

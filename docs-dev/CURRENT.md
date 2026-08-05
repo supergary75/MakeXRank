@@ -4,6 +4,10 @@
 
 ---
 
+## MakeXRank integration (2026-08-05)
+
+The independent module now supports shared Supabase synchronization when hosted by MakeXRank. Standalone use still defaults to local storage. The planned Cloudflare Workers work remains a separate future deployment path.
+
 ## 阶段：Phase 1 — 结构调整 + 内联脚本拆分 ✅ 已完成
 
 - [x] `docs/` 目录创建，前端文件移入

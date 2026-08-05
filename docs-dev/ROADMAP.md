@@ -4,6 +4,13 @@
 
 ---
 
+## MakeXRank integration
+
+- [x] Supabase whole-document synchronization bridge
+- [x] Shared MakeXRank authentication session
+- [x] Local/offline fallback
+- [ ] Optional structured-table migration and realtime subscriptions
+
 ## 总进度
 
 ```

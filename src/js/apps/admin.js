@@ -404,4 +404,7 @@ const AdminApp = {
     },
 };
 
-document.addEventListener('DOMContentLoaded', () => AdminApp.init());
+document.addEventListener('DOMContentLoaded', async () => {
+    if (Shared.ready) await Shared.ready;
+    AdminApp.init();
+});

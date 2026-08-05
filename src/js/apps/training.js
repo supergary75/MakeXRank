@@ -78,7 +78,7 @@
         removeTraining(id) {
             const t = this.data.trainings.find((t) => t.id === id);
             if (!t) return;
-            if (!confirm(`纭畾瑕佸垹闄ら泦璁?${t.name}"鍚楋紵\n锛堝叾涓殑鎵€鏈夋ā鎷熻禌鏁版嵁灏嗚鍒犻櫎锛塦)) return;
+            if (!confirm(`确定要删除集训“${t.name}”吗？\n其中的所有模拟赛数据也将被删除。`)) return;
             this.data.trainings = this.data.trainings.filter((t) => t.id !== id);
             if (this.selectedTrainingId === id) {
                 this.selectedTrainingId = null;
@@ -107,7 +107,7 @@
         addMockCompetition(trainingId, name, date, competitionType, roundType, scores, tasks, group, participantCount) {
             const training = this.data.trainings.find((t) => t.id === trainingId);
             if (!training) return null;
-            const typeLabel = competitionType === 'official' ? '姝ｈ禌' : '妯℃嫙璧?;
+            const typeLabel = competitionType === 'official' ? '正赛' : '模拟赛';
             const mock = {
                 id: this.generateId(),
                 name: name.trim() || `${typeLabel} ${training.mockCompetitions.length + 1}`,
@@ -227,7 +227,7 @@
                 delete mock.comments[studentId];
             }
             this.saveData();
-            this.toast('璇勮宸蹭繚瀛?);
+            this.toast('评语已保存');
         },
 
         removeMockCompetition(trainingId, mockId) {
@@ -247,8 +247,8 @@
             const training = this.data.trainings.find((t) => t.id === trainingId);
             if (!training) return;
             const students = this.data.students.filter((s) => training.studentIds.includes(s.id));
-            if (students.length === 0) { this.toast('璇ラ泦璁殏鏃犲鍛?, 'warning'); return; }
-            if (training.mockCompetitions.length === 0) { this.toast('璇ラ泦璁殏鏃犺褰?, 'warning'); return; }
+            if (students.length === 0) { this.toast('该集训暂无学员', 'warning'); return; }
+            if (training.mockCompetitions.length === 0) { this.toast('该集训暂无记录', 'warning'); return; }
 
             const BOM = '\uFEFF';
             const escape = (v) => {
@@ -268,11 +268,11 @@
             });
 
             const rows = [];
-            const header = ['瀛﹀憳', '璁板綍', '鏃ユ湡', '绫诲瀷', '浠诲姟', '杞', '鐢ㄦ椂(绉?', '寰楀垎', '鎺掑悕'];
+            const header = ['学员', '记录', '日期', '类型', '任务', '轮次', '用时(秒)', '得分', '排名'];
             rows.push(header.map(escape).join(','));
 
             training.mockCompetitions.forEach((mock) => {
-                const typeLabel = (mock.competitionType || 'mock') === 'official' ? '姝ｈ禌' : '妯℃嫙璧?;
+                const typeLabel = (mock.competitionType || 'mock') === 'official' ? '正赛' : '模拟赛';
                 students.forEach((s) => {
                     const rank = mock.rankings && mock.rankings[s.id] ? mock.rankings[s.id] : '';
                     taskIds.forEach((tid) => {
@@ -283,7 +283,7 @@
                             rows.push(row.map(escape).join(','));
                         } else {
                             rounds.forEach((r, ri) => {
-                                const roundLabel = rounds.length > 1 ? `绗?{ri + 1}杞甡 : '鍗曡疆';
+                                const roundLabel = rounds.length > 1 ? `第${ri + 1}轮` : '单轮';
                                 const sc = r.score !== undefined && r.score !== null ? r.score : '';
                                 const tm = r.time !== undefined && r.time !== null ? r.time.toFixed(3) : '';
                                 const row = [s.name, mock.name, mock.date, typeLabel, taskNames[tid], roundLabel, tm, sc, rank];
@@ -320,7 +320,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            this.toast('鉁?鍏ㄩ儴鏁版嵁宸插浠?);
+            this.toast('全部数据已备份');
         },
 
         importBackup() {
@@ -335,15 +335,15 @@
                     try {
                         const data = JSON.parse(ev.target.result);
                         if (!data.students || !data.tasks || !data.trainings) {
-                            this.toast('鉂?鏃犳晥鐨勫浠芥枃浠?, 'error');
+                            this.toast('无效的备份文件', 'error');
                             return;
                         }
-                        if (!confirm(`纭畾瑕佹仮澶嶅浠藉悧锛熷綋鍓嶆暟鎹皢琚鐩栥€俓n澶囦唤鏂囦欢鍖呭惈锛?{data.students.length} 鍚嶅鍛樸€?{data.trainings.length} 涓禌浜媊)) return;
+                        if (!confirm(`确定恢复备份吗？当前数据将被覆盖。\n备份包含 ${data.students.length} 名学员、${data.trainings.length} 个赛事。`)) return;
                         Shared.data = data;
                         Shared.saveData();
                         this.data = Shared.data;
                         this.render();
-                        this.toast('鉁?鏁版嵁宸叉仮澶?);
+                        this.toast('数据已恢复');
                     } catch (err) {
                         this.toast('鉂?鏂囦欢瑙ｆ瀽澶辫触', 'error');
                     }
@@ -389,7 +389,7 @@
 
         // ============ Import Practice ============
         openImportPractice() {
-            if (!this.selectedTrainingId) { this.toast('璇峰厛閫夋嫨涓€涓泦璁?, 'warning'); return; }
+            if (!this.selectedTrainingId) { this.toast('请先选择一个集训', 'warning'); return; }
             document.getElementById('importPracticeCsv').value = '';
             document.getElementById('importPracticeResult').textContent = '';
             document.getElementById('importPracticeModal').classList.add('open');
@@ -401,7 +401,7 @@
 
         confirmImportPractice() {
             const text = document.getElementById('importPracticeCsv').value.trim();
-            if (!text) { this.toast('璇风矘璐存暟鎹?, 'warning'); return; }
+            if (!text) { this.toast('请粘贴数据', 'warning'); return; }
             const lines = text.split('\n').filter(l => l.trim());
             const training = this.data.trainings.find(t => t.id === this.selectedTrainingId);
             if (!training) return;
@@ -449,7 +449,7 @@
                 this.toast(`瀵煎叆瀹屾垚锛?{success} 鎴愬姛锛?{errors.length} 澶辫触`, errors.length > 0 ? 'warning' : 'success');
             } else {
                 resultEl.innerHTML = `<span style="color:var(--success);">鉁?鎴愬姛瀵煎叆 ${success} 鏉?/span>`;
-                this.toast(`鎴愬姛瀵煎叆 ${success} 鏉＄粌涔犺褰昤);
+                this.toast(`成功导入 ${success} 条练习记录`);
                 setTimeout(() => this.closeImportPractice(), 1200);
             }
         },
@@ -492,7 +492,7 @@
             let html = '';
 
             // Stage banner
-            const bgColor = (stats.stage.stage || '').includes('蹇€?) || (stats.stage.stage || '').includes('绋虫') ? '#f0fdf4' : (stats.stage.stage || '').includes('鍑忛€?) ? '#fefce8' : '#f1f5f9';
+            const bgColor = (stats.stage.stage || '').includes('进步') || (stats.stage.stage || '').includes('稳定') ? '#f0fdf4' : (stats.stage.stage || '').includes('减退') ? '#fefce8' : '#f1f5f9';
             html += `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.75rem;margin-bottom:0.5rem;background:${bgColor};border-radius:var(--radius-sm);font-size:0.85rem;">`;
             html += `<span style="font-weight:700;">${stats.stage.stage}</span>`;
             html += `<span style="color:var(--gray-500);">${stats.stage.desc}</span>`;
@@ -509,16 +509,16 @@
                 </span>`;
 
             if (s) html += tag('瀛﹀憳', this.escapeHtml(s.name), 'var(--primary)');
-            html += tag('鏈€鏂?0娆″钩鍧?, stats.avgScore.toFixed(1), 'var(--primary)');
+            html += tag('最近10次平均', stats.avgScore.toFixed(1), 'var(--primary)');
             if (stats.avgTime !== null) html += tag('骞冲潎鐢ㄦ椂', stats.avgTime.toFixed(2) + 's', 'var(--accent)');
-            html += tag('绋冲畾鎬?, stats.stabilityLabel, stats.stabilityColor);
-            html += tag('鏈€楂?, stats.maxScore, '#10b981');
-            html += tag('鏈€浣?, stats.minScore, '#ef4444');
-            html += tag('鏈€浣宠繛缁?, stats.bestStreak + '娆?, 'var(--primary)');
-            if (stats.fullRate !== null) html += tag('婊″垎鐜?, stats.fullRate.toFixed(1) + '%', stats.fullRate >= 80 ? '#10b981' : '#f59e0b');
+            html += tag('稳定性', stats.stabilityLabel, stats.stabilityColor);
+            html += tag('最高', stats.maxScore, '#10b981');
+            html += tag('最低', stats.minScore, '#ef4444');
+            html += tag('最佳连续', stats.bestStreak + '次', 'var(--primary)');
+            if (stats.fullRate !== null) html += tag('满分率', stats.fullRate.toFixed(1) + '%', stats.fullRate >= 80 ? '#10b981' : '#f59e0b');
             html += tag('棰勬湡鍖洪棿', `${stats.expectedLow.toFixed(0)}-${stats.expectedHigh.toFixed(0)}`, 'var(--primary)');
-            html += tag('鏍囧噯宸?, `蟽=${stats.overallStd.toFixed(1)}`, 'var(--gray-600)');
-            html += tag('璁板綍', stats.total + '鏉?);
+            html += tag('标准差', `σ=${stats.overallStd.toFixed(1)}`, 'var(--gray-600)');
+            html += tag('记录', stats.total + '条');
 
             // Global comparison
             if (global && global.total > 0 && (!studentId || global.total !== stats.total)) {
@@ -575,7 +575,7 @@
             const time = timeStr ? parseFloat(timeStr) : null;
 
             if (!date) { this.toast('璇烽€夋嫨鏃ユ湡', 'warning'); return; }
-            if (isNaN(score)) { this.toast('璇疯緭鍏ユ湁鏁堝緱鍒?, 'warning'); return; }
+            if (isNaN(score)) { this.toast('请输入有效得分', 'warning'); return; }
 
             record.date = date;
             record.taskId = taskId;
@@ -586,19 +586,19 @@
             this.closeEditPractice();
             // Re-open student detail to refresh
             if (this._detailStudentId) this.openStudentDetail(this._detailStudentId);
-            this.toast('宸叉洿鏂扮粌涔犺褰?);
+            this.toast('已更新练习记录');
         },
 
         deleteEditPractice() {
             const id = document.getElementById('editPracticeRecordId').value;
             const training = this.data.trainings.find(t => t.id === this.selectedTrainingId);
             if (!training || !training.practiceRecords) return;
-            if (!confirm('纭畾瑕佸垹闄よ繖鏉＄粌涔犺褰曞悧锛?)) return;
+            if (!confirm('确定要删除这条练习记录吗？')) return;
             training.practiceRecords = training.practiceRecords.filter(r => r.id !== id);
             Shared.saveData();
             this.closeEditPractice();
             if (this._detailStudentId) this.openStudentDetail(this._detailStudentId);
-            this.toast('宸插垹闄ょ粌涔犺褰?);
+            this.toast('已删除练习记录');
         },
 
         // ============ Training Modal ============
@@ -662,7 +662,7 @@
                     });
                 });
             }
-            document.getElementById('selectedCount').textContent = selectedStudents.length + ' 浜?;
+            document.getElementById('selectedCount').textContent = selectedStudents.length + ' 人';
 
             // Right: all students (filtered), selected ones highlighted
             const allList = document.getElementById('allStudentList');
@@ -688,7 +688,7 @@
                     return `<div class="student-picker-item${isSelected ? ' is-selected' : ''}" data-id="${s.id}">
                         <span class="picker-item-name">${this.escapeHtml(s.name)}</span>
                         ${gn ? `<span class="picker-item-group">${this.escapeHtml(gn)}</span>` : ''}
-                        <span class="picker-item-action" title="${isSelected ? '绉婚櫎' : '娣诲姞'}">${isSelected ? '锛? : '锛?}</span>
+                        <span class="picker-item-action" title="${isSelected ? '移除' : '添加'}">${isSelected ? '−' : '+'}</span>
                     </div>`;
                 }).join('');
                 allList.querySelectorAll('.student-picker-item').forEach(el => {
@@ -723,7 +723,7 @@
                 return `<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;padding:0.3rem 0.6rem;background:var(--gray-50);border-radius:6px;flex-wrap:wrap;">
                     <input type="checkbox" class="training-task-cb" value="${t.id}" style="flex-shrink:0;" ${checked}>
                     <span style="flex:1;font-size:0.9rem;">
-                        <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:8px;font-weight:600;margin-right:0.3rem;${(t.type || 'basic') === 'basic' ? 'background:#dbeafe;color:#1d4ed8;' : 'background:#fef3c7;color:#92400e;'}">${(t.type || 'basic') === 'basic' ? '鍩烘湰鍔? : '鎸戞垬绫?}</span>
+                        <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:8px;font-weight:600;margin-right:0.3rem;${(t.type || 'basic') === 'basic' ? 'background:#dbeafe;color:#1d4ed8;' : 'background:#fef3c7;color:#92400e;'}">${(t.type || 'basic') === 'basic' ? '基本功' : '挑战类'}</span>
                         ${this.escapeHtml(t.name)}
                     </span>
                     <select class="training-round-select" ${checked ? '' : 'disabled'} style="padding:0.2rem 0.4rem;border:1px solid var(--gray-300);border-radius:4px;font-size:0.8rem;">
@@ -763,7 +763,7 @@
             const name = document.getElementById('trainingNameInput').value.trim() || `闆嗚 ${this.data.trainings.length + 1}`;
             const date = document.getElementById('trainingDateInput').value || new Date().toISOString().slice(0, 10);
             const studentIds = this._trainingModalData || [];
-            if (studentIds.length === 0) { this.toast('璇疯嚦灏戦€夋嫨涓€鍚嶅鍛?, 'warning'); return; }
+            if (studentIds.length === 0) { this.toast('请至少选择一名学员', 'warning'); return; }
 
             // Read selected tasks
             const tasks = [];
@@ -836,7 +836,7 @@
                 return `<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;padding:0.3rem 0.6rem;background:var(--gray-50);border-radius:6px;flex-wrap:wrap;">
                     <input type="checkbox" class="task-cb" value="${t.id}" style="flex-shrink:0;" ${checked}>
                     <span style="flex:1;font-size:0.9rem;">
-                        <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:8px;font-weight:600;margin-right:0.3rem;${(t.type || 'basic') === 'basic' ? 'background:#dbeafe;color:#1d4ed8;' : 'background:#fef3c7;color:#92400e;'}">${(t.type || 'basic') === 'basic' ? '鍩烘湰鍔? : '鎸戞垬绫?}</span>
+                        <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:8px;font-weight:600;margin-right:0.3rem;${(t.type || 'basic') === 'basic' ? 'background:#dbeafe;color:#1d4ed8;' : 'background:#fef3c7;color:#92400e;'}">${(t.type || 'basic') === 'basic' ? '基本功' : '挑战类'}</span>
                         ${this.escapeHtml(t.name)}
                     </span>
                     <select class="round-select" ${checked ? '' : 'disabled'} style="padding:0.2rem 0.4rem;border:1px solid var(--gray-300);border-radius:4px;font-size:0.8rem;">
@@ -881,12 +881,12 @@
             const competitionType = document.getElementById('competitionTypeSelect').value;
             const hasOfficial = training.mockCompetitions.some(m => (m.competitionType || 'mock') === 'official');
             if (!this._editingMockId && competitionType === 'mock' && hasOfficial) {
-                this.toast('宸叉湁姝ｈ禌璁板綍锛屼笉鍙啀鏂板妯℃嫙璧?, 'warning');
+                this.toast('已有正赛记录，不能再新增模拟赛', 'warning');
                 return;
             }
             let name = document.getElementById('mockNameInput').value.trim();
             if (!name) {
-                name = competitionType === 'official' ? '姝ｈ禌' : '绗? + (training.mockCompetitions.length + 1) + '杞?;
+                name = competitionType === 'official' ? '正赛' : '第' + (training.mockCompetitions.length + 1) + '轮';
             }
             const date = document.getElementById('mockDateInput').value || new Date().toISOString().slice(0, 10);
             const group = document.getElementById('mockGroupSelect').value;
@@ -957,8 +957,8 @@
                 <div>
                     <h3 style="font-size:1.15rem;margin:0;">${this.escapeHtml(mock.name)}</h3>
                     <div style="font-size:0.85rem;color:var(--gray-500);">${mock.date} 路 ${training.name}
-                        <span style="font-size:0.7rem;background:${(mock.competitionType || 'mock') === 'official' ? '#fef3c7;color:#92400e' : '#dbeafe;color:#1d4ed8'};padding:0.1rem 0.5rem;border-radius:10px;margin-left:0.3rem;">${(mock.competitionType || 'mock') === 'official' ? '馃弳 姝ｈ禌' : '馃弲 妯℃嫙璧?}</span>
-                        <span style="font-size:0.7rem;background:${(mock.group || 'senior') === 'senior' ? '#e0e7ff;color:#4338ca' : '#fce7f3;color:#9d174d'};padding:0.1rem 0.5rem;border-radius:10px;margin-left:0.3rem;">${(mock.group || 'senior') === 'senior' ? '灏忛珮缁? : '灏忎綆缁?}</span>
+                        <span style="font-size:0.7rem;background:${(mock.competitionType || 'mock') === 'official' ? '#fef3c7;color:#92400e' : '#dbeafe;color:#1d4ed8'};padding:0.1rem 0.5rem;border-radius:10px;margin-left:0.3rem;">${(mock.competitionType || 'mock') === 'official' ? '正赛' : '模拟赛'}</span>
+                        <span style="font-size:0.7rem;background:${(mock.group || 'senior') === 'senior' ? '#e0e7ff;color:#4338ca' : '#fce7f3;color:#9d174d'};padding:0.1rem 0.5rem;border-radius:10px;margin-left:0.3rem;">${(mock.group || 'senior') === 'senior' ? '小高组' : '小低组'}</span>
                         ${mock.participantCount ? `<span style="font-size:0.7rem;background:#f3e8ff;color:#6b21a8;padding:0.1rem 0.5rem;border-radius:10px;margin-left:0.3rem;">馃懃 ${mock.participantCount}浜?/span>` : ''}
                         ${this.getTaskLabels(mock)}
                         <span style="font-size:0.75rem;background:${isDouble ? 'var(--accent)' : 'var(--gray-200)'};color:${isDouble ? '#fff' : 'var(--gray-600)'};padding:0.1rem 0.5rem;border-radius:10px;margin-left:0.3rem;">${isDouble ? '鍙岃疆' : '鍗曡疆'}</span>
@@ -1009,7 +1009,7 @@
             const isOfficial = (mock.competitionType || 'mock') === 'official';
 
             th += columns.map((c) => {
-                const label = c.totalRounds > 1 ? `绗?{c.round}杞甡 : '';
+                const label = c.totalRounds > 1 ? `第${c.round}轮` : '';
                 var labelHtml = label ? label + '<br>' : '';
                 return '<th style="text-align:center;font-size:0.75rem;white-space:nowrap;" colspan="2">' + labelHtml + '<span style="font-weight:400;">寰楀垎 / 鐢ㄦ椂</span></th>';
             }).join('');
@@ -1376,7 +1376,7 @@
                         const wdLabel = allWithdrawn ? ' <span style="font-size:0.7rem;color:var(--danger);font-style:italic;">(寮冩潈)</span>' : '';
                         html += `<td rowspan="${maxRounds}" style="font-weight:500;vertical-align:middle;">${this.escapeHtml(mock.name)}${wdLabel}<br><small style="color:var(--gray-400);">${mock.date}</small></td>`;
                     }
-                    const roundLabel = maxRounds > 1 ? `绗?{ri + 1}杞甡 : '鍗曡疆';
+                    const roundLabel = maxRounds > 1 ? `第${ri + 1}轮` : '单轮';
                     html += `<td style="text-align:center;color:var(--gray-500);font-size:0.78rem;">${roundLabel}</td>`;
                     taskIds.forEach((tid) => {
                         const entry = mock.scores[studentId] && mock.scores[studentId][tid] ? mock.scores[studentId][tid] : null;
@@ -1481,7 +1481,7 @@
                         const pt = chartData[tid].find(p => p.label === label);
                         return pt && pt.fullLabel ? pt.fullLabel : acc;
                     }, '');
-                    const shortLabel = posLabel.length > 6 ? posLabel.slice(0, 5) + '鈥? : posLabel;
+                    const shortLabel = posLabel.length > 6 ? posLabel.slice(0, 5) + '…' : posLabel;
                     chartHtml += `<text x="${x}" y="${pad.top + plotH + 16}" text-anchor="middle" fill="var(--gray-500)" font-size="10" font-weight="600">${this.escapeHtml(shortLabel)}<title>${posLabel ? this.escapeHtml(posLabel) : '#' + (i + 1)}</title></text>`;
                 });
 
@@ -1556,7 +1556,7 @@
 
                     // Stats banner (shown in both views)
                     if (stats) {
-                        const bg2 = (stats.stage.stage || '').includes('蹇€?) || (stats.stage.stage || '').includes('绋虫') ? '#f0fdf4' : (stats.stage.stage || '').includes('鍑忛€?) ? '#fefce8' : '#f1f5f9';
+                        const bg2 = (stats.stage.stage || '').includes('进步') || (stats.stage.stage || '').includes('稳定') ? '#f0fdf4' : (stats.stage.stage || '').includes('减退') ? '#fefce8' : '#f1f5f9';
                         html += `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0.65rem;margin-bottom:0.5rem;background:${bg2};border-radius:var(--radius-sm);font-size:0.82rem;">`;
                         html += `<span style="font-weight:700;">${stats.stage.stage}</span>`;
                         html += `<span style="color:var(--gray-500);">${stats.stage.desc}</span>`;
@@ -1569,15 +1569,15 @@
                                 <span style="color:var(--gray-400);">${label}</span>
                                 <strong style="color:${color || 'var(--gray-800)'};">${value}</strong>
                             </span>`;
-                        html += t('鏈€鏂?0娆″钩鍧?, stats.avgScore.toFixed(1), 'var(--primary)');
+                        html += t('最近10次平均', stats.avgScore.toFixed(1), 'var(--primary)');
                         if (stats.avgTime !== null) html += t('骞冲潎鐢ㄦ椂', stats.avgTime.toFixed(2) + 's', 'var(--accent)');
                         html += t('绋冲畾', stats.stabilityLabel, stats.stabilityColor);
-                        html += t('鏈€楂?, stats.maxScore, '#10b981');
-                        html += t('鏈€浣?, stats.minScore, '#ef4444');
-                        html += t('婊″垎鐜?, stats.fullRate !== null ? stats.fullRate.toFixed(1) + '%' : '鈥?, stats.fullRate >= 80 ? '#10b981' : '#f59e0b');
+                        html += t('最高', stats.maxScore, '#10b981');
+                        html += t('最低', stats.minScore, '#ef4444');
+                        html += t('满分率', stats.fullRate !== null ? stats.fullRate.toFixed(1) + '%' : '—', stats.fullRate >= 80 ? '#10b981' : '#f59e0b');
                         html += t('棰勬湡鍖洪棿', `${stats.expectedLow.toFixed(0)}-${stats.expectedHigh.toFixed(0)}`, 'var(--primary)');
                         html += t('鏃堕棿娉㈠姩', `蟽t=${stats.timeBasedVar.toFixed(1)}`, 'var(--gray-600)');
-                        html += t('璁板綍', stats.total + '鏉?);
+                        html += t('记录', stats.total + '条');
                         html += '</div>';
                     }
 
@@ -1714,7 +1714,7 @@
             container.querySelectorAll('.chart-zoom-slider').forEach((slider) => {
                 slider.addEventListener('input', function () {
                     const valSpan = container.querySelector('.chart-zoom-val');
-                    if (valSpan) valSpan.textContent = this.value + '杞?;
+                    if (valSpan) valSpan.textContent = this.value + '轮';
                     // Real-time zoom via viewBox: change SVG width only
                     const svg = container.querySelector('.chart-svg-wrap svg');
                     if (!svg) return;
@@ -1771,7 +1771,7 @@
                 });
                 slider.addEventListener('input', function () {
                     const valSpan = container.querySelector('.pchart-zoom-val');
-                    if (valSpan) valSpan.textContent = this.value + '杞?;
+                    if (valSpan) valSpan.textContent = this.value + '轮';
                 });
             });
             container.querySelectorAll('.chart-task-toggle').forEach((cb) => {
@@ -2024,7 +2024,7 @@
                         }
 
                         sortedMocks.forEach((m) => {
-                            const typeLabel = (m.competitionType || 'mock') === 'official' ? '馃弳 姝ｈ禌' : '馃弲 妯℃嫙璧?;
+                            const typeLabel = (m.competitionType || 'mock') === 'official' ? '正赛' : '模拟赛';
                             const typeBg = (m.competitionType || 'mock') === 'official' ? '#fef3c7;color:#92400e' : '#dbeafe;color:#1d4ed8';
 
                             // Tasks this mock covers
@@ -2034,7 +2034,7 @@
                             mockTasks.forEach((ti) => {
                                 const tid = ti.taskId || '__default__';
                                 const taskDef = ti.taskId ? this.data.tasks.find(d => d.id === ti.taskId) : null;
-                                const taskName = taskDef ? taskDef.name : '鈥?;
+                                const taskName = taskDef ? taskDef.name : '—';
                                 const rounds = ti.rounds || 1;
 
                                 for (let r = 1; r <= rounds; r++) {
@@ -2049,7 +2049,7 @@
                                             </div>
                                             <small style="color:var(--gray-500);">${m.date}</small><br>
                                             <span style="font-size:0.7rem;background:${typeBg};padding:0.1rem 0.4rem;border-radius:8px;">${typeLabel}</span>
-                                            <span style="font-size:0.7rem;background:${(m.group || 'senior') === 'senior' ? '#e0e7ff;color:#4338ca' : '#fce7f3;color:#9d174d'};padding:0.1rem 0.4rem;border-radius:8px;margin-left:0.2rem;">${(m.group || 'senior') === 'senior' ? '灏忛珮缁? : '灏忎綆缁?}</span>
+                                            <span style="font-size:0.7rem;background:${(m.group || 'senior') === 'senior' ? '#e0e7ff;color:#4338ca' : '#fce7f3;color:#9d174d'};padding:0.1rem 0.4rem;border-radius:8px;margin-left:0.2rem;">${(m.group || 'senior') === 'senior' ? '小高组' : '小低组'}</span>
                                             ${m.participantCount ? `<span style="font-size:0.7rem;background:#f3e8ff;color:#6b21a8;padding:0.1rem 0.4rem;border-radius:8px;margin-left:0.2rem;">${m.participantCount}浜?/span>` : ''}
                                         </td>`;
                                         firstRow = false;
@@ -2222,5 +2222,8 @@
     };
 
     window.TrainingApp = TrainingApp;
-    document.addEventListener('DOMContentLoaded', () => TrainingApp.init());
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (Shared.ready) await Shared.ready;
+        TrainingApp.init();
+    });
   

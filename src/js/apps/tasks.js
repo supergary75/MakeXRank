@@ -174,4 +174,7 @@ const TasksApp = {
     },
 };
 
-document.addEventListener('DOMContentLoaded', () => TasksApp.init());
+document.addEventListener('DOMContentLoaded', async () => {
+    if (Shared.ready) await Shared.ready;
+    TasksApp.init();
+});
