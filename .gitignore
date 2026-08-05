@@ -11,6 +11,7 @@ ENV/
 
 # Build output
 dist/
+/public/inspire/
 
 # Credentials (NEVER commit these!)
 .env

@@ -5,7 +5,11 @@
   "type": "module",
   "description": "竞技排行榜 - 实时战队排名与淘汰赛预测系统",
   "scripts": {
+    "sync:inspire": "node scripts/sync-inspire-module.mjs",
+    "update:inspire": "git submodule update --remote --merge modules/ins_training_tool && npm run sync:inspire",
+    "predev": "npm run sync:inspire",
     "dev": "vite",
+    "prebuild": "npm run sync:inspire",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

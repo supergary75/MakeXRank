@@ -395,6 +395,7 @@ const DEFAULT_LOGISTICS_ROOM_FORM: LogisticsRoomForm = {
 
 interface TrainingEventRecord {
   id: string;
+  sourceLogisticsEventId: string;
   name: string;
   date: string;
   calendarDates: string[];
@@ -726,6 +727,35 @@ function matchesLogisticsEventItem(value: string, selectedItem: string): boolean
     || (normalizedSelected === 'makexexplorer' && normalizedValue.includes('exp'))
     || (normalizedSelected === 'makexchallenge' && normalizedValue.includes('cha'))
     || (normalizedSelected === 'frc' && normalizedValue.includes('frc'));
+}
+
+function getLogisticsEventItems(event: LogisticsEventRecord): string[] {
+  return TRAINING_GROUP_OPTIONS.filter((eventItem) =>
+    matchesLogisticsEventItem(event.group, eventItem)
+    || event.participants.some((participant) =>
+      participant.role === '队员' && matchesLogisticsEventItem(participant.eventItem, eventItem)),
+  );
+}
+
+function getTrainingEventRosterSummary(
+  event: TrainingEventRecord,
+  logisticsEvents: LogisticsEventRecord[],
+): { participantCount: number; teamCount: number } {
+  const source = logisticsEvents.find((item) => item.id === event.sourceLogisticsEventId);
+  if (!source || !event.group) {
+    return { participantCount: 0, teamCount: 0 };
+  }
+
+  const participants = source.participants.filter((participant) =>
+    participant.role === '队员' && matchesLogisticsEventItem(participant.eventItem, event.group),
+  );
+  const teamKeys = new Set(participants.map((participant) => {
+    const teamNo = participant.teamNo.trim().toLowerCase();
+    const teamName = participant.teamName.trim().toLowerCase();
+    return teamNo || teamName;
+  }).filter(Boolean));
+
+  return { participantCount: participants.length, teamCount: teamKeys.size };
 }
 
 function parseDelimitedLine(line: string, delimiter: string): string[] {
@@ -1357,6 +1387,7 @@ function loadTrainingEvents(): TrainingEventRecord[] {
 
         return {
           id: typeof item.id === 'string' ? item.id : `training-${Date.now()}`,
+          sourceLogisticsEventId: typeof item.sourceLogisticsEventId === 'string' ? item.sourceLogisticsEventId : '',
           name: typeof item.name === 'string' ? item.name : '',
           date: typeof item.date === 'string' ? item.date : '',
           calendarDates,
@@ -1513,6 +1544,7 @@ function normalizeTrainingEvents(input: unknown): TrainingEventRecord[] {
 
       return {
         id: typeof item.id === 'string' ? item.id : `training-${Date.now()}`,
+        sourceLogisticsEventId: typeof item.sourceLogisticsEventId === 'string' ? item.sourceLogisticsEventId : '',
         name: typeof item.name === 'string' ? item.name : '',
         date: typeof item.date === 'string' ? item.date : '',
         calendarDates,
@@ -2197,6 +2229,17 @@ export default function App() {
     participant.role === '教练' || participant.role === '领队');
   const activeTrainingEvent =
     trainingEvents.find((event) => event.id === activeTrainingEventId) ?? null;
+  const selectedTrainingLogisticsEvent =
+    logisticsEvents.find((event) => event.id === selectedTrainingLogisticsEventId) ?? null;
+  const selectedTrainingEventItems = selectedTrainingLogisticsEvent
+    ? getLogisticsEventItems(selectedTrainingLogisticsEvent)
+    : TRAINING_GROUP_OPTIONS;
+  const activeTrainingSourceEvent = activeTrainingEvent
+    ? logisticsEvents.find((event) => event.id === activeTrainingEvent.sourceLogisticsEventId) ?? null
+    : null;
+  const activeTrainingRosterSummary = activeTrainingEvent
+    ? getTrainingEventRosterSummary(activeTrainingEvent, logisticsEvents)
+    : { participantCount: 0, teamCount: 0 };
   const activeTrainingTableDates = activeTrainingEvent
     ? selectedTrainingDates.filter((dateKey) =>
       getTrainingEventDateMode(activeTrainingEvent, dateKey) === 'training')
@@ -4537,15 +4580,32 @@ export default function App() {
     setSelectedTrainingLogisticsEventId(eventId);
     const source = logisticsEvents.find((event) => event.id === eventId);
     if (!source) return;
+    const availableItems = getLogisticsEventItems(source);
+    const defaultItem = availableItems.length === 1 ? availableItems[0] : '';
     setTrainingEventForm((previous) => ({
       ...previous,
-      name: source.name,
-      date: source.date,
-      venue: source.venue,
-      group: source.group,
+      name: defaultItem ? `${source.name} · ${defaultItem} 集训` : source.name,
+      date: '',
+      group: defaultItem,
       notes: source.notes || previous.notes,
     }));
   }, [logisticsEvents]);
+
+  const handleSelectTrainingGroup = useCallback((group: string) => {
+    setTrainingEventForm((previous) => {
+      const source = logisticsEvents.find((event) => event.id === selectedTrainingLogisticsEventId);
+      const shouldUpdateName = source && (
+        !previous.name.trim()
+        || previous.name.trim() === source.name.trim()
+        || previous.name.startsWith(`${source.name} · `)
+      );
+      return {
+        ...previous,
+        group,
+        name: shouldUpdateName && group ? `${source.name} · ${group} 集训` : previous.name,
+      };
+    });
+  }, [logisticsEvents, selectedTrainingLogisticsEventId]);
 
   const handleCreateTrainingEvent = useCallback(() => {
     if (!canEdit) {
@@ -4558,10 +4618,15 @@ export default function App() {
       showNotification('请先输入比赛名称。', 'error');
       return;
     }
+    if (!trainingEventForm.group.trim()) {
+      showNotification('请先选择本次集训对应的赛项。', 'error');
+      return;
+    }
 
     const now = new Date().toISOString();
     const nextEvent: TrainingEventRecord = {
       id: `training-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      sourceLogisticsEventId: selectedTrainingLogisticsEventId,
       name: trimmedName,
       date: trainingEventForm.date.trim(),
       calendarDates: trainingEventForm.date.trim() ? [trainingEventForm.date.trim()] : [],
@@ -4594,7 +4659,7 @@ export default function App() {
     });
     setSelectedTrainingLogisticsEventId('');
     showNotification(`已生成集训比赛卡片：${trimmedName}`, 'success');
-  }, [canEdit, showNotification, trainingEventForm]);
+  }, [canEdit, selectedTrainingLogisticsEventId, showNotification, trainingEventForm]);
 
   const handleDeleteTrainingEvent = useCallback(
     (id: string) => {
@@ -5286,6 +5351,13 @@ export default function App() {
     setPracticeExplorerAwaitingPaste(false);
   }, []);
 
+  const handleOpenPracticeInspire = useCallback(() => {
+    const basePath = import.meta.env.BASE_URL.endsWith('/')
+      ? import.meta.env.BASE_URL
+      : `${import.meta.env.BASE_URL}/`;
+    window.open(`${basePath}inspire/index.html`, '_blank', 'noopener,noreferrer');
+  }, []);
+
   const handleOpenPracticeExplorer = useCallback(() => {
     setViewMode('practice-explorer');
     setActiveCompetitionId(null);
@@ -5692,7 +5764,7 @@ export default function App() {
             <Header
               eyebrow="Operations Hub"
               title="赛事管理中心"
-              subtitle="先在首页登录，再根据工作内容进入对应入口。当前已提供赛事后勤管理、赛事数据分析、练习赛数据分析与集训安排入口。"
+              subtitle="先在首页登录，再根据工作内容进入对应入口。当前已提供赛事后勤管理、赛事数据分析、Explorer练习赛数据分析与集训安排入口。"
               action={
                 <div className={styles.headerActions}>
                   {accountAction}
@@ -5767,7 +5839,7 @@ export default function App() {
                   <div className={styles.portalCardTop}>
                     <div>
                       <p className={styles.portalCardLabel}>入口三</p>
-                      <h3>练习赛数据分析</h3>
+                      <h3>Explorer练习赛数据分析</h3>
                     </div>
                     <span className={styles.portalBadge}>Practice</span>
                   </div>
@@ -5775,7 +5847,7 @@ export default function App() {
                     面向训练日、队内练习赛和模拟赛的数据整理入口。后续可独立加入练习赛成绩导入、单队成长追踪、训练对阵记录与复盘分析。
                   </p>
                   <button className={styles.portalButton} onClick={handleOpenPracticeAnalysis}>
-                    进入练习赛数据分析
+                    进入Explorer练习赛数据分析
                   </button>
                 </article>
 
@@ -5783,6 +5855,22 @@ export default function App() {
                   <div className={styles.portalCardTop}>
                     <div>
                       <p className={styles.portalCardLabel}>入口四</p>
+                      <h3>Inspire练习赛数据分析</h3>
+                    </div>
+                    <span className={styles.portalBadge}>Inspire</span>
+                  </div>
+                  <p className={styles.portalCardText}>
+                    面向 MakeX Inspire 赛项的队内训练、模拟赛成绩和复盘分析，后续将独立接入 Inspire 专属计分及成长数据。
+                  </p>
+                  <button className={styles.portalButton} onClick={handleOpenPracticeInspire}>
+                    进入Inspire练习赛数据分析
+                  </button>
+                </article>
+
+                <article className={styles.portalCard}>
+                  <div className={styles.portalCardTop}>
+                    <div>
+                      <p className={styles.portalCardLabel}>入口五</p>
                       <h3>集训安排</h3>
                     </div>
                     <span className={styles.portalBadge}>Training</span>
@@ -8423,7 +8511,7 @@ export default function App() {
               action={
                 <div className={styles.headerActions}>
                   <button className={styles.backButton} onClick={handleBackToPracticeAnalysis}>
-                    返回练习赛数据分析
+                    返回Explorer练习赛数据分析
                   </button>
                   {accountAction}
                 </div>
@@ -8485,7 +8573,7 @@ export default function App() {
 
                 <div className={styles.logisticsFormGrid}>
                   <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
-                    <span>从后勤比赛卡片选择</span>
+                    <span>第一步：选择后勤比赛主卡片</span>
                     <select
                       value={selectedTrainingLogisticsEventId}
                       onChange={(event) => handleSelectTrainingLogisticsEvent(event.target.value)}
@@ -8494,13 +8582,19 @@ export default function App() {
                       <option value="">不调用后勤比赛，手动输入</option>
                       {logisticsEvents.map((event) => (
                         <option key={event.id} value={event.id}>
-                          {event.name} · {event.date || '日期待定'} · {event.group || '赛项待定'}
+                          {event.name} · {event.date || '比赛日期待定'} · {getLogisticsEventItems(event).join(' / ') || '赛项待定'}
                         </option>
                       ))}
                     </select>
                   </label>
+                  {selectedTrainingLogisticsEvent && (
+                    <div className={`${styles.logisticsEmpty} ${styles.logisticsWideField}`}>
+                      已关联比赛：{selectedTrainingLogisticsEvent.name}。比赛日期为
+                      {' '}{selectedTrainingLogisticsEvent.date || '待定'}；下方日期和地点只填写本赛项自己的集训安排。
+                    </div>
+                  )}
                   <label className={styles.logisticsField}>
-                    <span>比赛名称</span>
+                    <span>集训卡片名称</span>
                     <input
                       value={trainingEventForm.name}
                       onChange={(event) => handleTrainingFormChange('name', event.target.value)}
@@ -8509,7 +8603,7 @@ export default function App() {
                     />
                   </label>
                   <label className={styles.logisticsField}>
-                    <span>比赛日期</span>
+                    <span>集训日期</span>
                     <input
                       type="date"
                       value={trainingEventForm.date}
@@ -8518,7 +8612,7 @@ export default function App() {
                     />
                   </label>
                   <label className={styles.logisticsField}>
-                    <span>地点 / 场馆</span>
+                    <span>集训地点 / 场馆</span>
                     <input
                       value={trainingEventForm.venue}
                       onChange={(event) => handleTrainingFormChange('venue', event.target.value)}
@@ -8527,14 +8621,14 @@ export default function App() {
                     />
                   </label>
                   <label className={styles.logisticsField}>
-                    <span>组别 / 赛项</span>
+                    <span>第二步：选择本次集训赛项</span>
                     <select
                       value={trainingEventForm.group}
-                      onChange={(event) => handleTrainingFormChange('group', event.target.value)}
+                      onChange={(event) => handleSelectTrainingGroup(event.target.value)}
                       disabled={!canEdit}
                     >
                       <option value="">请选择赛项</option>
-                      {TRAINING_GROUP_OPTIONS.map((option) => (
+                      {selectedTrainingEventItems.map((option) => (
                         <option key={option} value={option}>
                           {option}
                         </option>
@@ -8553,7 +8647,7 @@ export default function App() {
                 </div>
 
                 <button className={styles.portalButton} onClick={handleCreateTrainingEvent} disabled={!canEdit}>
-                  生成比赛卡片
+                  生成独立集训卡片
                 </button>
               </article>
 
@@ -8626,6 +8720,8 @@ export default function App() {
                 ) : (
                   trainingEvents.map((event) => {
                     const isEditingTrainingEvent = editingTrainingEventId === event.id;
+                    const sourceEvent = logisticsEvents.find((item) => item.id === event.sourceLogisticsEventId);
+                    const rosterSummary = getTrainingEventRosterSummary(event, logisticsEvents);
 
                     return (
                     <article
@@ -8645,8 +8741,10 @@ export default function App() {
                         <span className={styles.portalBadge}>{event.date || '未定日期'}</span>
                       </div>
                       <div className={styles.logisticsMeta}>
+                        <span>来源比赛：{sourceEvent?.name || '手动创建'}</span>
                         <span>地点：{event.venue || '未填写'}</span>
-                        <span>组别：{event.group || '未填写'}</span>
+                        <span>赛项：{event.group || '未填写'}</span>
+                        <span>对应人员：{rosterSummary.participantCount} 名队员 · {rosterSummary.teamCount} 支赛队</span>
                         <span>创建：{new Date(event.createdAt).toLocaleDateString('zh-CN')}</span>
                       </div>
                       {event.notes && <p className={styles.portalCardText}>{event.notes}</p>}
@@ -8811,8 +8909,10 @@ export default function App() {
                   <span className={styles.portalBadge}>{activeTrainingEvent.date || '未定日期'}</span>
                 </div>
                 <div className={styles.logisticsMeta}>
+                  <span>来源比赛：{activeTrainingSourceEvent?.name || '手动创建'}</span>
                   <span>地点：{activeTrainingEvent.venue || '未填写'}</span>
-                  <span>组别：{activeTrainingEvent.group || '未填写'}</span>
+                  <span>赛项：{activeTrainingEvent.group || '未填写'}</span>
+                  <span>对应人员：{activeTrainingRosterSummary.participantCount} 名队员 · {activeTrainingRosterSummary.teamCount} 支赛队</span>
                   <span>创建：{new Date(activeTrainingEvent.createdAt).toLocaleDateString('zh-CN')}</span>
                 </div>
                 {activeTrainingEvent.notes && <p className={styles.portalCardText}>{activeTrainingEvent.notes}</p>}
@@ -9006,8 +9106,8 @@ export default function App() {
           <>
             <Header
               eyebrow="Practice Analytics"
-              title="练习赛数据分析"
-              subtitle="这里是练习赛数据分析的独立二级页面。后续可以专门接入训练成绩、练习对阵、单队成长曲线和复盘标签。"
+              title="Explorer练习赛数据分析"
+              subtitle="这里是 Explorer 练习赛数据分析的独立二级页面，可用于训练成绩、练习对阵、单队成长曲线和复盘标签。"
               action={
                 <div className={styles.headerActions}>
                   <button className={styles.backButton} onClick={handleBackToHome}>
@@ -9046,7 +9146,7 @@ export default function App() {
               action={
                 <div className={styles.headerActions}>
                   <button className={styles.backButton} onClick={handleBackToPracticeAnalysis}>
-                    返回练习赛数据分析
+                    返回Explorer练习赛数据分析
                   </button>
                   {accountAction}
                 </div>

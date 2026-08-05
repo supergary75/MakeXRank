@@ -556,9 +556,9 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
       </section>
 
       <section className={styles.simulatorSection}>
-        <div className={styles.heading}><div><small>Simulation Scoring System</small><h2>模拟赛积分系统</h2></div><span>独立工具</span></div>
+        <div className={styles.heading}><div><small>Explorer Simulation Scoring</small><h2>Explorer模拟赛计分系统</h2></div><span>独立工具</span></div>
         <p className={styles.hint}>快速记录红蓝双方得分、加减分项目和最终比分，点击进入独立计分界面。</p>
-        <button className={styles.primaryButton} type="button" onClick={onOpenScoreCalculator}>进入模拟赛积分系统</button>
+        <button className={styles.primaryButton} type="button" onClick={onOpenScoreCalculator}>进入Explorer模拟赛计分系统</button>
       </section>
     </div>
   );

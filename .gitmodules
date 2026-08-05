@@ -1,0 +1,4 @@
+[submodule "modules/ins_training_tool"]
+	path = modules/ins_training_tool
+	url = https://github.com/BK-Y/ins_training_tool.git
+	branch = master
