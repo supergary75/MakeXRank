@@ -40,7 +40,8 @@ try {
 const runtimeConfig = {
   url: process.env.VITE_SUPABASE_URL || productionEnv.VITE_SUPABASE_URL || '',
   anonKey: process.env.VITE_SUPABASE_ANON_KEY || productionEnv.VITE_SUPABASE_ANON_KEY || '',
-  table: process.env.VITE_SUPABASE_INSPIRE_SYNC_TABLE || productionEnv.VITE_SUPABASE_INSPIRE_SYNC_TABLE || 'inspire_sync',
+  table: process.env.VITE_SUPABASE_INSPIRE_SYNC_TABLE || productionEnv.VITE_SUPABASE_INSPIRE_SYNC_TABLE || 'practice_sync',
+  dataColumn: process.env.VITE_SUPABASE_INSPIRE_SYNC_COLUMN || productionEnv.VITE_SUPABASE_INSPIRE_SYNC_COLUMN || 'events',
 };
 
 await writeFile(

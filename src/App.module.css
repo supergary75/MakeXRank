@@ -1426,6 +1426,64 @@
   gap: 10px;
 }
 
+.roomStaffSelector {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(213, 173, 56, 0.3);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 251, 232, 0.78), rgba(234, 243, 255, 0.8));
+}
+
+.roomStaffSelectorHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.roomStaffSelectorHeader h4 {
+  margin: 3px 0 0;
+  color: var(--gray-900);
+  font-size: 1rem;
+}
+
+.roomStaffSelectorHeader > span {
+  color: #8f6b08;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.roomStaffGroups {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+
+.roomStaffGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.roomStaffGroup > strong {
+  color: var(--gray-600);
+  font-size: 0.84rem;
+}
+
+.roomStaffGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.roomStaffGroup:last-child .roomStaffGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.roomStaffChip {
+  min-height: 70px;
+}
+
 .roomRecordHeader {
   display: flex;
   align-items: flex-end;
@@ -1447,30 +1505,30 @@
   align-items: center;
   padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
-  background: rgba(8, 12, 18, 0.52);
+  border: 1px solid rgba(22, 104, 232, 0.16);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(234, 243, 255, 0.78));
+  box-shadow: 0 8px 20px rgba(45, 92, 143, 0.08);
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .roomPersonChipSelected {
-  border-color: rgba(244, 214, 138, 0.82);
+  border-color: rgba(213, 173, 56, 0.72);
   background:
-    radial-gradient(circle at 12% 0%, rgba(244, 214, 138, 0.24), transparent 42%),
-    linear-gradient(145deg, rgba(24, 64, 84, 0.82), rgba(74, 50, 20, 0.46));
+    radial-gradient(circle at 12% 0%, rgba(244, 214, 138, 0.3), transparent 42%),
+    linear-gradient(145deg, rgba(255, 252, 238, 0.98), rgba(232, 243, 255, 0.92));
   box-shadow:
-    inset 0 0 0 1px rgba(244, 214, 138, 0.2),
-    0 0 22px rgba(244, 214, 138, 0.14),
-    0 0 26px rgba(93, 214, 255, 0.1);
+    inset 0 0 0 1px rgba(213, 173, 56, 0.18),
+    0 10px 24px rgba(45, 92, 143, 0.12);
 }
 
 .roomPersonChipAssigned {
-  border-color: rgba(93, 214, 255, 0.5);
+  border-color: rgba(22, 104, 232, 0.2);
   background:
-    radial-gradient(circle at 10% 0%, rgba(93, 214, 255, 0.18), transparent 38%),
-    linear-gradient(145deg, rgba(21, 44, 58, 0.74), rgba(8, 12, 18, 0.62));
-  box-shadow: inset 0 0 0 1px rgba(93, 214, 255, 0.08);
-  opacity: 0.72;
+    radial-gradient(circle at 10% 0%, rgba(93, 214, 255, 0.14), transparent 38%),
+    linear-gradient(145deg, rgba(239, 246, 255, 0.9), rgba(225, 235, 247, 0.84));
+  box-shadow: inset 0 0 0 1px rgba(22, 104, 232, 0.06);
+  opacity: 0.76;
   cursor: not-allowed;
 }
 
@@ -1492,11 +1550,11 @@
 }
 
 .roomPersonChipSelected span {
-  color: #fff7df;
+  color: var(--gray-900);
 }
 
 .roomPersonChipAssigned span {
-  color: #d9f4ff;
+  color: var(--gray-700);
 }
 
 .roomPersonChip small {
@@ -1505,11 +1563,11 @@
 }
 
 .roomPersonChipSelected small {
-  color: #f4d68a;
+  color: #8f6b08;
 }
 
 .roomPersonChipAssigned small {
-  color: #7ddfff;
+  color: var(--gray-500);
 }
 
 .roomGrid {
@@ -2603,7 +2661,8 @@
   }
 
   .logisticsFormGrid,
-  .logisticsCards {
+  .logisticsCards,
+  .roomStaffGroups {
     grid-template-columns: 1fr;
   }
 
@@ -2842,6 +2901,16 @@
   .roomPicker,
   .roomGrid,
   .timelineEditGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .roomStaffSelectorHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .roomStaffGrid,
+  .roomStaffGroup:last-child .roomStaffGrid {
     grid-template-columns: 1fr;
   }
 

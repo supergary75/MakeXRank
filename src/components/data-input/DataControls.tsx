@@ -33,7 +33,7 @@ export function DataControls({
         <div className={styles.sourceBadge}>
           <span className={styles.sourceLabel}>存储位置</span>
           <span className={styles.sourceValue}>
-            {storageMode === 'supabase' ? 'Supabase 云端共享' : '浏览器本地存储'}
+            {storageMode === 'supabase' ? 'Supabase 已配置（登录后同步）' : '浏览器本地存储'}
           </span>
         </div>
 

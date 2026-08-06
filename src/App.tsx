@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import * as XLSX from 'xlsx';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type {
   AuthUserProfile,
   CompetitionRecord,
@@ -28,6 +27,7 @@ import {
   loadCachedCompetitions,
   saveCompetitionRecord,
 } from './services/competitionStorage';
+import { readXlsxRows } from './utils/spreadsheetReader';
 import {
   bootstrapAdminUser,
   createManagedUser,
@@ -157,7 +157,8 @@ const LOGISTICS_ROSTER_ACCESS_PASSWORD =
   import.meta.env.VITE_LOGISTICS_ROSTER_PASSWORD?.trim() || 'FV7509';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
-const INSPIRE_SYNC_TABLE = import.meta.env.VITE_SUPABASE_INSPIRE_SYNC_TABLE?.trim() || 'inspire_sync';
+const INSPIRE_SYNC_TABLE = import.meta.env.VITE_SUPABASE_INSPIRE_SYNC_TABLE?.trim() || 'practice_sync';
+const INSPIRE_SYNC_COLUMN = import.meta.env.VITE_SUPABASE_INSPIRE_SYNC_COLUMN?.trim() || 'events';
 const INSPIRE_CONFIG_STORAGE_KEY = 'competitive-ranking-board::inspire-supabase-config';
 const TRAINING_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TRAINING_SYNC_TABLE?.trim() || 'training_sync';
 const TRAINING_SYNC_ID = 'global';
@@ -1305,7 +1306,7 @@ function createMasterRosterParticipant(participant: LogisticsParticipant): Logis
 
 function createFixedLogisticsStaffParticipants(idPrefix: string): LogisticsParticipant[] {
   return FIXED_LOGISTICS_STAFF.map((staff, index) => ({
-    id: `${idPrefix}-${staff.role}-${index}-${Date.now()}`,
+    id: `${idPrefix}-${staff.role}-${index}`,
     name: staff.name,
     englishName: '',
     gender: '',
@@ -2309,6 +2310,18 @@ export default function App() {
       || participant.role !== '队员'
       || matchesLogisticsEventItem(participant.eventItem, activeLogisticsEventItem))
     : [];
+  const logisticsFixedStaffCandidates = useMemo(() => (
+    activeLogisticsEvent
+      ? createFixedLogisticsStaffParticipants('fixed-room').map((fixedStaff) =>
+        activeLogisticsEvent.participants.find((participant) =>
+          normalizeFixedStaffName(participant.name) === normalizeFixedStaffName(fixedStaff.name))
+        ?? fixedStaff)
+      : []
+  ), [activeLogisticsEvent]);
+  const logisticsRoomParticipantCandidates = logisticsParticipantsForSelectedItem.filter((participant) =>
+    participant.role !== '教练' && participant.role !== '领队');
+  const logisticsMentorAssignmentParticipants = logisticsParticipantsForSelectedItem.filter((participant) =>
+    participant.role === '队员');
   const logisticsMentors = activeLogisticsEvent
     ? activeLogisticsEvent.participants.filter((participant) =>
       ['教练', '领队'].includes(participant.role))
@@ -3916,17 +3929,30 @@ export default function App() {
       mentorId: isTeamMember ? logisticsParticipantForm.mentorId : '',
     };
 
-    updateActiveLogisticsEvent((event) => ({
-      ...event,
-      participants: mergeLogisticsEventParticipantsUnique(event.participants, [nextParticipant]).participants,
-    }));
+    updateActiveLogisticsEvent((event) => {
+      const selectedMentor = logisticsFixedStaffCandidates.find((staff) =>
+        staff.id === nextParticipant.mentorId);
+      return {
+        ...event,
+        participants: mergeLogisticsEventParticipantsUnique(
+          event.participants,
+          selectedMentor ? [selectedMentor, nextParticipant] : [nextParticipant],
+        ).participants,
+      };
+    });
     setLogisticsParticipantForm({
       ...DEFAULT_LOGISTICS_PARTICIPANT_FORM,
       eventItem: logisticsParticipantForm.eventItem,
       mentorId: logisticsParticipantForm.mentorId,
     });
     showNotification(`已加入后勤人员：${name}`, 'success');
-  }, [canEdit, logisticsParticipantForm, showNotification, updateActiveLogisticsEvent]);
+  }, [
+    canEdit,
+    logisticsFixedStaffCandidates,
+    logisticsParticipantForm,
+    showNotification,
+    updateActiveLogisticsEvent,
+  ]);
 
   const handleAddLogisticsMasterParticipant = useCallback(() => {
     if (!canEdit) {
@@ -4049,12 +4075,18 @@ export default function App() {
       mentorId: isTeamMember ? editingLogisticsParticipantForm.mentorId : '',
     };
 
-    updateActiveLogisticsEvent((event) => ({
-      ...event,
-      participants: event.participants.map((participant) =>
-        participant.id === editingLogisticsParticipantId ? nextParticipant : participant,
-      ),
-    }));
+    updateActiveLogisticsEvent((event) => {
+      const selectedMentor = logisticsFixedStaffCandidates.find((staff) =>
+        staff.id === nextParticipant.mentorId);
+      const updatedParticipants = event.participants.map((participant) =>
+        participant.id === editingLogisticsParticipantId ? nextParticipant : participant);
+      return {
+        ...event,
+        participants: selectedMentor
+          ? mergeLogisticsEventParticipantsUnique(updatedParticipants, [selectedMentor]).participants
+          : updatedParticipants,
+      };
+    });
     setEditingLogisticsParticipantId(null);
     setEditingLogisticsParticipantForm(DEFAULT_LOGISTICS_PARTICIPANT_FORM);
     showNotification(`已更新人员信息：${name}`, 'success');
@@ -4062,6 +4094,7 @@ export default function App() {
     canEdit,
     editingLogisticsParticipantForm,
     editingLogisticsParticipantId,
+    logisticsFixedStaffCandidates,
     showNotification,
     updateActiveLogisticsEvent,
   ]);
@@ -4147,14 +4180,19 @@ export default function App() {
         return;
       }
 
-      updateActiveLogisticsEvent((event) => ({
-        ...event,
-        participants: event.participants.map((participant) =>
-          participant.id === participantId ? { ...participant, mentorId } : participant,
-        ),
-      }));
+      updateActiveLogisticsEvent((event) => {
+        const selectedMentor = logisticsFixedStaffCandidates.find((staff) => staff.id === mentorId);
+        const updatedParticipants = event.participants.map((participant) =>
+          participant.id === participantId ? { ...participant, mentorId } : participant);
+        return {
+          ...event,
+          participants: selectedMentor
+            ? mergeLogisticsEventParticipantsUnique(updatedParticipants, [selectedMentor]).participants
+            : updatedParticipants,
+        };
+      });
     },
-    [canEdit, showNotification, updateActiveLogisticsEvent],
+    [canEdit, logisticsFixedStaffCandidates, showNotification, updateActiveLogisticsEvent],
   );
 
   const handleAddLogisticsTimelineItem = useCallback(() => {
@@ -4309,17 +4347,32 @@ export default function App() {
       notes: logisticsRoomForm.notes.trim(),
     };
 
-    updateActiveLogisticsEvent((event) => ({
-      ...event,
-      rooms: [nextRoom, ...event.rooms],
-    }));
+    updateActiveLogisticsEvent((event) => {
+      const selectedFixedStaff = logisticsFixedStaffCandidates.filter((staff) =>
+        logisticsRoomForm.participantIds.includes(staff.id));
+      const participants = selectedFixedStaff.length > 0
+        ? mergeLogisticsParticipantsUnique(event.participants, selectedFixedStaff).participants
+        : event.participants;
+
+      return {
+        ...event,
+        participants,
+        rooms: [nextRoom, ...event.rooms],
+      };
+    });
     setLogisticsRoomForm((previous) => ({
       ...previous,
       roomNo: '',
       participantIds: [],
     }));
     showNotification(`已添加房间：${roomNo}`, 'success');
-  }, [canEdit, logisticsRoomForm, showNotification, updateActiveLogisticsEvent]);
+  }, [
+    canEdit,
+    logisticsRoomForm,
+    logisticsFixedStaffCandidates,
+    showNotification,
+    updateActiveLogisticsEvent,
+  ]);
 
   const handleDeleteLogisticsRoom = useCallback(
     (roomId: string) => {
@@ -4546,17 +4599,10 @@ export default function App() {
         const fileName = file.name.toLowerCase();
         let rows: string[][] = [];
 
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-          const buffer = await file.arrayBuffer();
-          const workbook = XLSX.read(buffer, { type: 'array' });
-          const rosterSheetName = workbook.SheetNames.find((name) => name.replace(/\s+/g, '') === '队员信息表')
-            ?? workbook.SheetNames[0];
-          const sheet = workbook.Sheets[rosterSheetName];
-          rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
-            header: 1,
-            raw: false,
-            defval: '',
-          }).map((row) => row.map((cell) => String(cell).trim()));
+        if (fileName.endsWith('.xlsx')) {
+          rows = await readXlsxRows(file);
+        } else if (fileName.endsWith('.xls')) {
+          throw new Error('旧版 .xls 文件不再支持，请在 Excel 中另存为 .xlsx 后导入');
         } else {
           rows = parseLogisticsRosterText(await file.text());
         }
@@ -4683,17 +4729,10 @@ export default function App() {
         const fileName = file.name.toLowerCase();
         let rows: string[][] = [];
 
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-          const buffer = await file.arrayBuffer();
-          const workbook = XLSX.read(buffer, { type: 'array' });
-          const rosterSheetName = workbook.SheetNames.find((name) => name.replace(/\s+/g, '') === '队员信息表')
-            ?? workbook.SheetNames[0];
-          const sheet = workbook.Sheets[rosterSheetName];
-          rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
-            header: 1,
-            raw: false,
-            defval: '',
-          }).map((row) => row.map((cell) => String(cell).trim()));
+        if (fileName.endsWith('.xlsx')) {
+          rows = await readXlsxRows(file);
+        } else if (fileName.endsWith('.xls')) {
+          throw new Error('旧版 .xls 文件不再支持，请在 Excel 中另存为 .xlsx 后导入');
         } else {
           rows = parseLogisticsRosterText(await file.text());
         }
@@ -5503,6 +5542,7 @@ export default function App() {
           url: SUPABASE_URL,
           anonKey: SUPABASE_ANON_KEY,
           table: INSPIRE_SYNC_TABLE,
+          dataColumn: INSPIRE_SYNC_COLUMN,
         }),
       );
     }
@@ -6771,7 +6811,7 @@ export default function App() {
                             ref={logisticsFileInputRef}
                             className={styles.hiddenFileInput}
                             type="file"
-                            accept=".xlsx,.xls,.csv,.tsv,.txt"
+                            accept=".xlsx,.csv,.tsv,.txt"
                             onChange={(event) => handleImportLogisticsRosterFile(event.target.files?.[0])}
                             disabled={!canEdit}
                           />
@@ -7105,7 +7145,7 @@ export default function App() {
                         ref={logisticsMasterFileInputRef}
                         className={styles.hiddenFileInput}
                         type="file"
-                        accept=".xlsx,.xls,.csv,.tsv,.txt"
+                        accept=".xlsx,.csv,.tsv,.txt"
                         onChange={(event) => handleImportLogisticsMasterRosterFile(event.target.files?.[0])}
                         disabled={!canEdit}
                       />
@@ -7500,7 +7540,7 @@ export default function App() {
                           ref={logisticsFileInputRef}
                           className={styles.hiddenFileInput}
                           type="file"
-                          accept=".xlsx,.xls,.csv,.tsv,.txt"
+                          accept=".xlsx,.csv,.tsv,.txt"
                           onChange={(event) => handleImportLogisticsRosterFile(event.target.files?.[0])}
                           disabled={!canEdit}
                         />
@@ -7784,6 +7824,53 @@ export default function App() {
                     <span className={styles.portalBadge}>Rooms</span>
                   </div>
 
+                  <section className={styles.roomStaffSelector}>
+                    <div className={styles.roomStaffSelectorHeader}>
+                      <div>
+                        <p className={styles.portalCardLabel}>教练 / 领队</p>
+                        <h4>选择本房间入住的工作人员</h4>
+                      </div>
+                      <span>可直接勾选添加</span>
+                    </div>
+                    <div className={styles.roomStaffGroups}>
+                      {(['教练', '领队'] as const).map((role) => (
+                        <div className={styles.roomStaffGroup} key={role}>
+                          <strong>{role}</strong>
+                          <div className={styles.roomStaffGrid}>
+                            {logisticsFixedStaffCandidates
+                              .filter((staff) => staff.role === role)
+                              .map((staff) => {
+                                const isSelectedForRoom = logisticsRoomForm.participantIds.includes(staff.id);
+                                const isAssignedToRoom = logisticsRoomsForSelectedItem.some((room) =>
+                                  room.participantIds.includes(staff.id));
+
+                                return (
+                                  <label
+                                    key={staff.id}
+                                    className={[
+                                      styles.roomPersonChip,
+                                      styles.roomStaffChip,
+                                      isAssignedToRoom ? styles.roomPersonChipAssigned : '',
+                                      isSelectedForRoom ? styles.roomPersonChipSelected : '',
+                                    ].filter(Boolean).join(' ')}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelectedForRoom}
+                                      onChange={() => handleToggleLogisticsRoomParticipant(staff.id)}
+                                      disabled={!canEdit || isAssignedToRoom}
+                                    />
+                                    <span>{staff.name}</span>
+                                    <small>{role}{isAssignedToRoom ? ' · 已入住' : ''}</small>
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
                   <div className={styles.logisticsFormGrid}>
                     <label className={styles.logisticsField}>
                       <span>房间号</span>
@@ -7831,10 +7918,10 @@ export default function App() {
                   </div>
 
                   <div className={styles.roomPicker}>
-                    {logisticsParticipantsForSelectedItem.length === 0 ? (
+                    {logisticsRoomParticipantCandidates.length === 0 ? (
                       <div className={styles.logisticsEmpty}>暂无可选入住人员。进入对应赛项后，先在队员基础信息库中新增人员。</div>
                     ) : (
-                      logisticsParticipantsForSelectedItem.map((participant) => {
+                      logisticsRoomParticipantCandidates.map((participant) => {
                         const isSelectedForRoom = logisticsRoomForm.participantIds.includes(participant.id);
                         const isAssignedToRoom = logisticsRoomsForSelectedItem.some((room) =>
                           room.participantIds.includes(participant.id));
@@ -8082,8 +8169,8 @@ export default function App() {
                           disabled={!canEdit}
                         >
                           <option value="">暂不分配</option>
-                          {logisticsMentors.map((mentor) => (
-                            <option key={mentor.id} value={mentor.id}>{mentor.name}</option>
+                          {logisticsFixedStaffCandidates.map((mentor) => (
+                            <option key={mentor.id} value={mentor.id}>{mentor.name} · {mentor.role}</option>
                           ))}
                         </select>
                       </label>
@@ -8175,7 +8262,7 @@ export default function App() {
                     ref={logisticsFileInputRef}
                     className={styles.hiddenFileInput}
                     type="file"
-                    accept=".xlsx,.xls,.csv,.tsv,.txt"
+                    accept=".xlsx,.csv,.tsv,.txt"
                     onChange={(event) => handleImportLogisticsRosterFile(event.target.files?.[0])}
                     disabled={!canEdit}
                   />
@@ -8218,8 +8305,8 @@ export default function App() {
                   <span className={styles.portalBadge}>Mentor Map</span>
                 </div>
 
-                {logisticsParticipantsForSelectedItem.length === 0 ? (
-                  <div className={styles.logisticsEmpty}>暂无人员。先在上方新增教练、领队和队员。</div>
+                {logisticsMentorAssignmentParticipants.length === 0 ? (
+                  <div className={styles.logisticsEmpty}>暂无参赛队员，请先在上方新增或导入队员。</div>
                 ) : (
                   <div className={styles.logisticsTableWrap}>
                     <table className={styles.logisticsTable}>
@@ -8235,7 +8322,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {logisticsParticipantsForSelectedItem.map((participant) => {
+                        {logisticsMentorAssignmentParticipants.map((participant) => {
                           const isEditing = editingLogisticsParticipantId === participant.id;
                           const isEditingTeamMember = editingLogisticsParticipantForm.role === '队员';
                           return (
@@ -8273,8 +8360,8 @@ export default function App() {
                                   disabled={!canEdit}
                                 >
                                   <option value="">未分配</option>
-                                  {logisticsMentors.map((mentor) => (
-                                    <option key={mentor.id} value={mentor.id}>{mentor.name}</option>
+                                  {logisticsFixedStaffCandidates.map((mentor) => (
+                                    <option key={mentor.id} value={mentor.id}>{mentor.name} · {mentor.role}</option>
                                   ))}
                                 </select>
                               ) : (
@@ -9308,7 +9395,7 @@ export default function App() {
             />
 
             <section className={styles.practiceWorkspace}>
-              <ExplorerScheduleGenerator />
+              <ExplorerScheduleGenerator accessToken={getStoredAccessToken() ?? undefined} />
 
               <section className={styles.parameterPanel}>
                 <div>

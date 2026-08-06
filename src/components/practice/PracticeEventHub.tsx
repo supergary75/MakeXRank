@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import styles from './PracticeEventHub.module.css';
 import { ScoreCalculator, type ScoreCalculatorResult } from '../scoring/ScoreCalculator';
+import {
+  generateExplorerSchedule,
+  type PracticeMatch,
+  type PracticeTeam,
+} from '../../utils/practiceScheduleGenerator';
 
 interface PracticeEventRecord {
   id: string;
@@ -31,24 +36,6 @@ export interface PracticeLogisticsEvent {
   participants: PracticeLogisticsParticipant[];
 }
 
-interface PracticeTeam {
-  id: string;
-  eventItem: string;
-  teamNo: string;
-  teamName: string;
-  members: Array<{ id: string; name: string }>;
-}
-
-interface PracticeMatch {
-  id: string;
-  slot: number;
-  field: number;
-  red1: PracticeTeam;
-  red2: PracticeTeam;
-  blue1: PracticeTeam;
-  blue2: PracticeTeam;
-}
-
 interface PracticeEventHubProps {
   logisticsEvents: PracticeLogisticsEvent[];
   accessToken?: string;
@@ -58,12 +45,123 @@ interface PracticeEventHubProps {
   onOpenScoreCalculator: () => void;
 }
 
+interface ExplorerScheduleGeneratorProps {
+  accessToken?: string;
+}
+
+interface ExplorerScheduleState {
+  fieldCount: number;
+  schedule: PracticeMatch[];
+  results: Record<string, ScoreCalculatorResult>;
+  updatedAt: string;
+}
+
 const STORAGE_KEY = 'makexrank::practice-events';
 const ACTIVE_EXPLORER_TEAMS_KEY = 'makexrank::active-practice-explorer-teams';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
 const PRACTICE_SYNC_TABLE = import.meta.env.VITE_SUPABASE_PRACTICE_SYNC_TABLE?.trim() || 'practice_sync';
 const PRACTICE_SYNC_ID = 'shared-practice-state';
+const EXPLORER_SCHEDULE_STORAGE_KEY = 'makexrank::explorer-schedule-state';
+const EXPLORER_SCHEDULE_SYNC_ID = 'shared-explorer-schedule-state';
+
+const EMPTY_EXPLORER_SCHEDULE_STATE: ExplorerScheduleState = {
+  fieldCount: 1,
+  schedule: [],
+  results: {},
+  updatedAt: '',
+};
+
+function normalizeExplorerScheduleState(value: unknown): ExplorerScheduleState {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return EMPTY_EXPLORER_SCHEDULE_STATE;
+  }
+
+  const source = value as Partial<ExplorerScheduleState>;
+  const rawFieldCount = Number(source.fieldCount);
+  const fieldCount = Number.isInteger(rawFieldCount) && rawFieldCount >= 1 && rawFieldCount <= 4
+    ? rawFieldCount
+    : 1;
+  const results = source.results && typeof source.results === 'object' && !Array.isArray(source.results)
+    ? Object.fromEntries(Object.entries(source.results).filter(([, result]) => {
+      if (!result || typeof result !== 'object') return false;
+      const score = result as Partial<ScoreCalculatorResult>;
+      return Number.isFinite(score.redScore) && Number.isFinite(score.blueScore);
+    })) as Record<string, ScoreCalculatorResult>
+    : {};
+
+  return {
+    fieldCount,
+    schedule: Array.isArray(source.schedule) ? source.schedule as PracticeMatch[] : [],
+    results,
+    updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : '',
+  };
+}
+
+function loadExplorerScheduleState(): ExplorerScheduleState {
+  try {
+    return normalizeExplorerScheduleState(JSON.parse(
+      window.localStorage.getItem(EXPLORER_SCHEDULE_STORAGE_KEY) ?? 'null',
+    ));
+  } catch {
+    return EMPTY_EXPLORER_SCHEDULE_STATE;
+  }
+}
+
+function saveExplorerScheduleState(state: ExplorerScheduleState): void {
+  window.localStorage.setItem(EXPLORER_SCHEDULE_STORAGE_KEY, JSON.stringify(state));
+}
+
+function getPracticeSyncHeaders(accessToken: string): HeadersInit {
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+async function fetchRemoteExplorerScheduleState(accessToken: string): Promise<ExplorerScheduleState | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const query = new URLSearchParams({
+    select: 'events,updated_at',
+    id: `eq.${EXPLORER_SCHEDULE_SYNC_ID}`,
+    limit: '1',
+  });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?${query.toString()}`, {
+    headers: getPracticeSyncHeaders(accessToken),
+  });
+  if (!response.ok) throw new Error(`读取赛程云数据失败（${response.status}）`);
+  const rows = await response.json() as Array<{ events?: unknown; updated_at?: string }>;
+  if (!rows.length) return null;
+  const state = normalizeExplorerScheduleState(rows[0].events);
+  return {
+    ...state,
+    updatedAt: state.updatedAt || rows[0].updated_at || '',
+  };
+}
+
+async function saveRemoteExplorerScheduleState(
+  state: ExplorerScheduleState,
+  accessToken: string,
+): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?on_conflict=id`,
+    {
+      method: 'POST',
+      headers: {
+        ...getPracticeSyncHeaders(accessToken),
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify({
+        id: EXPLORER_SCHEDULE_SYNC_ID,
+        events: state,
+        updated_at: state.updatedAt || new Date().toISOString(),
+      }),
+    },
+  );
+  if (!response.ok) throw new Error(`保存赛程云数据失败（${response.status}）`);
+}
 
 async function syncPracticeEvents(events: PracticeEventRecord[], accessToken: string): Promise<PracticeEventRecord[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return events;
@@ -155,94 +253,81 @@ function mergePracticeTeams(...teamSets: PracticeTeam[][]): PracticeTeam[] {
   return Array.from(merged.values());
 }
 
-function shuffled<T>(items: T[]): T[] {
-  const copy = [...items];
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const target = Math.floor(Math.random() * (index + 1));
-    [copy[index], copy[target]] = [copy[target], copy[index]];
-  }
-  return copy;
-}
-
-function generateExplorerSchedule(teams: PracticeTeam[], roundsPerTeam: number, fieldCount: number): PracticeMatch[] | null {
-  if (teams.length < 4 || (teams.length * roundsPerTeam) % 4 !== 0) return null;
-  const matchCount = (teams.length * roundsPerTeam) / 4;
-  let best: { matches: PracticeMatch[]; score: number } | null = null;
-
-  for (let attempt = 0; attempt < 700; attempt += 1) {
-    const remaining = new Map(teams.map((team) => [team.id, roundsPerTeam]));
-    const lastPlayed = new Map<string, number>();
-    const partners = new Map<string, number>();
-    const opponents = new Map<string, number>();
-    const matches: PracticeMatch[] = [];
-    let score = 0;
-    let currentSlotTeams = new Set<string>();
-
-    for (let matchIndex = 0; matchIndex < matchCount; matchIndex += 1) {
-      const slot = Math.floor(matchIndex / fieldCount);
-      const field = (matchIndex % fieldCount) + 1;
-      if (field === 1) currentSlotTeams = new Set<string>();
-      const available = shuffled(teams).filter((team) => (remaining.get(team.id) ?? 0) > 0 && !currentSlotTeams.has(team.id));
-      const chosen: PracticeTeam[] = [];
-      while (chosen.length < 4) {
-        const candidates = available.filter((team) => !chosen.some((item) => item.id === team.id));
-        if (!candidates.length) break;
-        candidates.sort((a, b) => {
-          const restA = lastPlayed.get(a.id) === slot - 1 ? 100 : 0;
-          const restB = lastPlayed.get(b.id) === slot - 1 ? 100 : 0;
-          return restA - restB || (remaining.get(b.id) ?? 0) - (remaining.get(a.id) ?? 0) || Math.random() - 0.5;
-        });
-        chosen.push(candidates[0]);
-      }
-      if (chosen.length < 4) break;
-
-      let bestOrder = chosen;
-      let bestOrderScore = Number.POSITIVE_INFINITY;
-      for (let orderAttempt = 0; orderAttempt < 24; orderAttempt += 1) {
-        const order = shuffled(chosen);
-        const partnerPairs = [[order[0], order[1]], [order[2], order[3]]];
-        const opponentPairs = [[order[0], order[2]], [order[0], order[3]], [order[1], order[2]], [order[1], order[3]]];
-        const orderScore = partnerPairs.reduce((total, pair) => total + (partners.get(pair.map((team) => team.id).sort().join('|')) ?? 0) * 12, 0)
-          + opponentPairs.reduce((total, pair) => total + (opponents.get(pair.map((team) => team.id).sort().join('|')) ?? 0) * 3, 0);
-        if (orderScore < bestOrderScore) { bestOrder = order; bestOrderScore = orderScore; }
-      }
-
-      const [red1, red2, blue1, blue2] = bestOrder;
-      [[red1, red2], [blue1, blue2]].forEach((pair) => {
-        const key = pair.map((team) => team.id).sort().join('|');
-        partners.set(key, (partners.get(key) ?? 0) + 1);
-      });
-      [[red1, blue1], [red1, blue2], [red2, blue1], [red2, blue2]].forEach((pair) => {
-        const key = pair.map((team) => team.id).sort().join('|');
-        opponents.set(key, (opponents.get(key) ?? 0) + 1);
-      });
-      bestOrder.forEach((team) => {
-        if (lastPlayed.get(team.id) === slot - 1) score += 100;
-        remaining.set(team.id, (remaining.get(team.id) ?? 0) - 1);
-        lastPlayed.set(team.id, slot);
-        currentSlotTeams.add(team.id);
-      });
-      score += bestOrderScore;
-      matches.push({ id: `match-${matchIndex + 1}`, slot: slot + 1, field, red1, red2, blue1, blue2 });
-    }
-
-    if (matches.length === matchCount && Array.from(remaining.values()).every((count) => count === 0)) {
-      if (!best || score < best.score) best = { matches, score };
-      if (score === 0) break;
-    }
-  }
-  return best?.matches ?? null;
-}
-
-export function ExplorerScheduleGenerator() {
+export function ExplorerScheduleGenerator({ accessToken }: ExplorerScheduleGeneratorProps) {
   const roundsPerTeam = 4;
-  const [fieldCount, setFieldCount] = useState(1);
-  const [schedule, setSchedule] = useState<PracticeMatch[]>([]);
+  const [scheduleState, setScheduleState] = useState<ExplorerScheduleState>(loadExplorerScheduleState);
+  const [scheduleCloudReady, setScheduleCloudReady] = useState(false);
   const [message, setMessage] = useState('');
-  const [results, setResults] = useState<Record<string, ScoreCalculatorResult>>({});
   const [activeScoreMatch, setActiveScoreMatch] = useState<PracticeMatch | null>(null);
+  const { fieldCount, schedule, results } = scheduleState;
   let teams: PracticeTeam[] = [];
   try { teams = JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { teams = []; }
+
+  useEffect(() => {
+    saveExplorerScheduleState(scheduleState);
+  }, [scheduleState]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accessToken) {
+      setScheduleCloudReady(false);
+      return;
+    }
+
+    void fetchRemoteExplorerScheduleState(accessToken).then(async (remoteState) => {
+      if (cancelled) return;
+      const localState = loadExplorerScheduleState();
+      const nextState = remoteState && remoteState.updatedAt > localState.updatedAt
+        ? remoteState
+        : localState;
+      setScheduleState(nextState);
+      saveExplorerScheduleState(nextState);
+      if (!remoteState || localState.updatedAt > remoteState.updatedAt) {
+        await saveRemoteExplorerScheduleState(nextState, accessToken);
+      }
+      if (!cancelled) setScheduleCloudReady(true);
+    }).catch(() => {
+      if (!cancelled) setScheduleCloudReady(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken || !scheduleCloudReady) return;
+    const timer = window.setTimeout(() => {
+      void saveRemoteExplorerScheduleState(scheduleState, accessToken);
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [accessToken, scheduleCloudReady, scheduleState]);
+
+  useEffect(() => {
+    if (!accessToken || !scheduleCloudReady) return;
+    let cancelled = false;
+    const pullLatest = () => {
+      void fetchRemoteExplorerScheduleState(accessToken).then((remoteState) => {
+        if (cancelled || !remoteState) return;
+        setScheduleState((current) => remoteState.updatedAt > current.updatedAt ? remoteState : current);
+      }).catch(() => undefined);
+    };
+    const interval = window.setInterval(pullLatest, 12000);
+    window.addEventListener('focus', pullLatest);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', pullLatest);
+    };
+  }, [accessToken, scheduleCloudReady]);
+
+  const updateScheduleState = (
+    updater: (current: ExplorerScheduleState) => Omit<ExplorerScheduleState, 'updatedAt'>,
+  ) => {
+    setScheduleState((current) => ({
+      ...updater(current),
+      updatedAt: new Date().toISOString(),
+    }));
+  };
+
   const createSchedule = () => {
     const minimumTeamCount = fieldCount * 4;
     const virtualTeamCount = Math.max(0, minimumTeamCount - teams.length);
@@ -255,8 +340,7 @@ export function ExplorerScheduleGenerator() {
     }));
     const scheduledTeams = [...teams, ...virtualTeams];
     const next = generateExplorerSchedule(scheduledTeams, roundsPerTeam, fieldCount);
-    setSchedule(next ?? []);
-    setResults({});
+    updateScheduleState(() => ({ fieldCount, schedule: next ?? [], results: {} }));
     setMessage(next
       ? `已使用 ${teams.length} 支真实赛队${virtualTeamCount ? `，并补入 ${virtualTeamCount} 支虚拟赛队` : ''}，生成 ${next.length} 场随机赛程；每队参加固定4场资格赛。`
       : '当前条件未找到合适赛程，请重新生成。');
@@ -278,9 +362,9 @@ export function ExplorerScheduleGenerator() {
     return { team, played, wins, draws, losses, rankingPoints, totalScore, netScore };
   }).sort((a, b) => b.rankingPoints - a.rankingPoints || b.totalScore - a.totalScore || b.netScore - a.netScore || a.team.teamNo.localeCompare(b.team.teamNo));
   return <section className={styles.secondarySchedule}>
-    <div><small>Schedule Generator</small><h2>Explorer 赛程生成器</h2></div>
+    <div><small>Schedule Generator</small><h2>Explorer 赛程生成器</h2>{accessToken && <em>{scheduleCloudReady ? 'Supabase 已同步' : '正在连接云端'}</em>}</div>
     <p>每支赛队固定参加4场资格赛；多个场地可同时比赛，同一时间轮次不会重复安排同一支赛队。赛队不足场地满负荷时，自动创建虚拟赛队补足。</p>
-    <div className={styles.scheduleControls}><label><span>比赛场地数量</span><select value={fieldCount} onChange={(event) => { setFieldCount(Number(event.target.value)); setSchedule([]); setMessage(''); }}><option value={1}>1 个场地</option><option value={2}>2 个场地</option><option value={3}>3 个场地</option><option value={4}>4 个场地</option></select></label><button type="button" onClick={createSchedule}>生成随机赛程</button></div>
+    <div className={styles.scheduleControls}><label><span>比赛场地数量</span><select value={fieldCount} onChange={(event) => { const nextFieldCount = Number(event.target.value); updateScheduleState(() => ({ fieldCount: nextFieldCount, schedule: [], results: {} })); setMessage(''); }}><option value={1}>1 个场地</option><option value={2}>2 个场地</option><option value={3}>3 个场地</option><option value={4}>4 个场地</option></select></label><button type="button" onClick={createSchedule}>生成随机赛程</button></div>
     {message && <p className={styles.scheduleMessage}>{message}</p>}
     {schedule.length > 0 && <div className={styles.scheduleTableWrap}>
       <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
@@ -290,7 +374,7 @@ export function ExplorerScheduleGenerator() {
       </table>
     </div>}
     {schedule.length > 0 && <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>}
-    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => setResults((current) => ({ ...current, [activeScoreMatch.id]: result }))} matchInfo={{ field: `场地${activeScoreMatch.field}`, matchNo: String(activeScoreMatch.slot), red1: `${activeScoreMatch.red1.teamNo} ${activeScoreMatch.red1.teamName}`, red2: `${activeScoreMatch.red2.teamNo} ${activeScoreMatch.red2.teamName}`, blue1: `${activeScoreMatch.blue1.teamNo} ${activeScoreMatch.blue1.teamName}`, blue2: `${activeScoreMatch.blue2.teamNo} ${activeScoreMatch.blue2.teamName}` }} />}
+    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => updateScheduleState((current) => ({ ...current, results: { ...current.results, [activeScoreMatch.id]: result } }))} matchInfo={{ field: `场地${activeScoreMatch.field}`, matchNo: String(activeScoreMatch.slot), red1: `${activeScoreMatch.red1.teamNo} ${activeScoreMatch.red1.teamName}`, red2: `${activeScoreMatch.red2.teamNo} ${activeScoreMatch.red2.teamName}`, blue1: `${activeScoreMatch.blue1.teamNo} ${activeScoreMatch.blue1.teamName}`, blue2: `${activeScoreMatch.blue2.teamNo} ${activeScoreMatch.blue2.teamName}` }} />}
   </section>;
 }
 
