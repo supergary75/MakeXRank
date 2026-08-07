@@ -2201,6 +2201,7 @@ export default function App() {
   const [teamTagOptions, setTeamTagOptions] = useState<string[]>(() => loadTeamTagOptions());
   const [teamTagCloudReady, setTeamTagCloudReady] = useState(false);
   const [practiceExplorer] = useState<PracticeExplorerState>(() => loadPracticeExplorerState());
+  const [schedulePracticeExplorerRows, setSchedulePracticeExplorerRows] = useState<PracticeExplorerMatchRow[]>([]);
   const [, setPracticeExplorerAwaitingPaste] = useState(false);
   const [logisticsEvents, setLogisticsEvents] = useState<LogisticsEventRecord[]>(() => loadLogisticsEvents());
   const [logisticsEventForm, setLogisticsEventForm] = useState<LogisticsEventForm>({
@@ -2427,15 +2428,18 @@ export default function App() {
     sortOrder,
     activeEventType,
   );
+  const practiceExplorerAnalysisRows = schedulePracticeExplorerRows.length
+    ? schedulePracticeExplorerRows
+    : practiceExplorer.rows;
   const practiceExplorerTeamCount =
-    new Set(practiceExplorer.rows.map((row) => row.team)).size || practiceExplorer.teamsData.length;
-  const practiceExplorerHighestSingleMatchScore = practiceExplorer.rows.reduce(
+    new Set(practiceExplorerAnalysisRows.map((row) => row.team)).size || practiceExplorer.teamsData.length;
+  const practiceExplorerHighestSingleMatchScore = practiceExplorerAnalysisRows.reduce(
     (best, row) => Math.max(best, row.totalScore),
     0,
   );
-  const practiceExplorerTotalMatches = practiceExplorer.rows.length;
-  const practiceExplorerInsights = buildPracticeExplorerInsights(practiceExplorer.rows);
-  const practiceExplorerMetricRankings = getPracticeExplorerMetricRankings(practiceExplorer.rows);
+  const practiceExplorerTotalMatches = practiceExplorerAnalysisRows.length;
+  const practiceExplorerInsights = buildPracticeExplorerInsights(practiceExplorerAnalysisRows);
+  const practiceExplorerMetricRankings = getPracticeExplorerMetricRankings(practiceExplorerAnalysisRows);
   const practiceExplorerBestEpaInsight = practiceExplorerInsights
     .slice()
     .sort((left, right) => right.bestEpa - left.bestEpa)[0];
@@ -9489,7 +9493,10 @@ export default function App() {
             />
 
             <section className={styles.practiceWorkspace}>
-              <ExplorerScheduleGenerator accessToken={getStoredAccessToken() ?? undefined} />
+              <ExplorerScheduleGenerator
+                accessToken={getStoredAccessToken() ?? undefined}
+                onAnalysisRowsChange={setSchedulePracticeExplorerRows}
+              />
 
               <section className={styles.parameterPanel}>
                 <div>
@@ -9613,7 +9620,7 @@ export default function App() {
                   <div>
                     <p className={styles.portalEyebrow}>Metric Rankings</p>
                     <h2>单项能力排名</h2>
-                    <p>每个关键得分项都会列出所有队伍排名，优先看单项最高值，同时显示平均值判断常态水平。</p>
+                    <p>汇总本次集训全部赛程卡中的已计分比赛，通过红蓝联盟得分回归计算各赛队 EPA，并同步生成各单项得分能力排名。</p>
                   </div>
                 </div>
 
@@ -9625,7 +9632,7 @@ export default function App() {
                       <article key={ranking.key} className={styles.metricRankingCard}>
                         <div className={styles.metricRankingTitle}>
                           <span>{ranking.label}</span>
-                          <strong>{ranking.teams[0]?.best ?? 0}</strong>
+                          <strong>{ranking.teams[0]?.best.toFixed(1) ?? '0.0'}</strong>
                           <small>{ranking.teams[0]?.team ?? '暂无数据'}</small>
                         </div>
                         <div className={styles.metricRankingList}>
@@ -9633,7 +9640,7 @@ export default function App() {
                             <div key={`${ranking.key}-${team.team}`} className={styles.metricRankingRow}>
                               <span className={styles.metricRankingOrder}>{index + 1}</span>
                               <span className={styles.metricRankingTeam}>{team.team}</span>
-                              <strong>{team.best}</strong>
+                              <strong>{team.best.toFixed(1)}</strong>
                               <small>均值 {team.average.toFixed(1)}</small>
                             </div>
                           ))}

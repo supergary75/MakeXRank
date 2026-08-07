@@ -6,6 +6,7 @@ import {
   type PracticeMatch,
   type PracticeTeam,
 } from '../../utils/practiceScheduleGenerator';
+import type { PracticeExplorerMatchRow } from '../../utils/practiceExplorerAnalysis';
 
 interface PracticeEventRecord {
   id: string;
@@ -47,6 +48,7 @@ interface PracticeEventHubProps {
 
 interface ExplorerScheduleGeneratorProps {
   accessToken?: string;
+  onAnalysisRowsChange?: (rows: PracticeExplorerMatchRow[]) => void;
 }
 
 interface ExplorerScheduleCard {
@@ -323,7 +325,105 @@ function getExplorerScheduleRanking(
     || a.team.teamNo.localeCompare(b.team.teamNo));
 }
 
-export function ExplorerScheduleGenerator({ accessToken }: ExplorerScheduleGeneratorProps) {
+interface AllianceScoreObservation {
+  teamIds: [string, string];
+  total: number;
+  breakdown: Record<string, number>;
+}
+
+function solveRidgeEpa(
+  teamIds: string[],
+  observations: AllianceScoreObservation[],
+  getValue: (observation: AllianceScoreObservation) => number,
+): Map<string, number> {
+  if (!teamIds.length || !observations.length) return new Map();
+  const indexByTeam = new Map(teamIds.map((id, index) => [id, index]));
+  const size = teamIds.length;
+  const matrix = Array.from({ length: size }, () => Array(size + 1).fill(0) as number[]);
+  observations.forEach((observation) => {
+    const indexes = observation.teamIds
+      .map((id) => indexByTeam.get(id))
+      .filter((index): index is number => index != null);
+    indexes.forEach((row) => {
+      indexes.forEach((column) => { matrix[row][column] += 1; });
+      matrix[row][size] += getValue(observation);
+    });
+  });
+  for (let index = 0; index < size; index += 1) matrix[index][index] += 0.75;
+  for (let pivot = 0; pivot < size; pivot += 1) {
+    let best = pivot;
+    for (let row = pivot + 1; row < size; row += 1) {
+      if (Math.abs(matrix[row][pivot]) > Math.abs(matrix[best][pivot])) best = row;
+    }
+    [matrix[pivot], matrix[best]] = [matrix[best], matrix[pivot]];
+    const divisor = matrix[pivot][pivot];
+    if (Math.abs(divisor) < 1e-9) continue;
+    for (let column = pivot; column <= size; column += 1) matrix[pivot][column] /= divisor;
+    for (let row = 0; row < size; row += 1) {
+      if (row === pivot) continue;
+      const factor = matrix[row][pivot];
+      for (let column = pivot; column <= size; column += 1) matrix[row][column] -= factor * matrix[pivot][column];
+    }
+  }
+  return new Map(teamIds.map((id, index) => [id, matrix[index][size]]));
+}
+
+function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplorerMatchRow[] {
+  const teams = new Map<string, PracticeTeam>();
+  const appearances = new Map<string, number>();
+  const observations: AllianceScoreObservation[] = [];
+  cards.forEach((card) => card.schedule.forEach((match) => {
+    const result = card.results[match.id];
+    if (!result) return;
+    [match.red1, match.red2, match.blue1, match.blue2].forEach((team) => {
+      teams.set(team.id, team);
+      appearances.set(team.id, (appearances.get(team.id) ?? 0) + 1);
+    });
+    observations.push(
+      { teamIds: [match.red1.id, match.red2.id], total: result.redScore, breakdown: result.redBreakdown ?? {} },
+      { teamIds: [match.blue1.id, match.blue2.id], total: result.blueScore, breakdown: result.blueBreakdown ?? {} },
+    );
+  }));
+  const teamIds = Array.from(teams.keys());
+  const totalEpa = solveRidgeEpa(teamIds, observations, (observation) => observation.total);
+  const metricEpa = (keys: string[]) => solveRidgeEpa(
+    teamIds,
+    observations,
+    (observation) => keys.reduce((sum, key) => sum + (observation.breakdown[key] ?? 0), 0),
+  );
+  const flag = metricEpa(['flag']);
+  const bucket = metricEpa(['cone']);
+  const yellowBlock = metricEpa(['yellowBlock']);
+  const redBlueBlock = metricEpa(['colorBlock']);
+  const yellowBall = metricEpa(['yellowNet', 'yellowFrame']);
+  const onlineBall = metricEpa(['ballNet', 'ballFrame']);
+  const fieldBall = metricEpa(['ball5', 'ball10', 'ball20']);
+  const penalty = metricEpa(['violation', 'yellow', 'redCard']);
+  const redCard = metricEpa(['redCard']);
+  return Array.from(teams.values()).flatMap((team) => {
+    if (team.id.startsWith('virtual-team-')) return [];
+    const matchCount = appearances.get(team.id) ?? 0;
+    const label = `${team.teamNo} · ${team.teamName}`;
+    return Array.from({ length: matchCount }, (_, index): PracticeExplorerMatchRow => ({
+      team: label,
+      round: index + 1,
+      equity: 0,
+      bucket: Math.max(0, bucket.get(team.id) ?? 0),
+      flag: Math.max(0, flag.get(team.id) ?? 0),
+      yellowBlock: Math.max(0, yellowBlock.get(team.id) ?? 0),
+      redBlueBlock: Math.max(0, redBlueBlock.get(team.id) ?? 0),
+      yellowBall: Math.max(0, yellowBall.get(team.id) ?? 0),
+      onlineBall: Math.max(0, onlineBall.get(team.id) ?? 0),
+      fieldBall: Math.max(0, fieldBall.get(team.id) ?? 0),
+      penalty: Math.min(0, penalty.get(team.id) ?? 0),
+      redCard: Math.min(0, redCard.get(team.id) ?? 0),
+      epa: totalEpa.get(team.id) ?? 0,
+      totalScore: totalEpa.get(team.id) ?? 0,
+    }));
+  });
+}
+
+export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }: ExplorerScheduleGeneratorProps) {
   const roundsPerTeam = 4;
   const [scheduleState, setScheduleState] = useState<ExplorerScheduleState>(loadExplorerScheduleState);
   const [scheduleCloudReady, setScheduleCloudReady] = useState(false);
@@ -337,6 +437,10 @@ export function ExplorerScheduleGenerator({ accessToken }: ExplorerScheduleGener
   useEffect(() => {
     saveExplorerScheduleState(scheduleState);
   }, [scheduleState]);
+
+  useEffect(() => {
+    onAnalysisRowsChange?.(buildScheduleAnalysisRows(cards));
+  }, [cards, onAnalysisRowsChange]);
 
   useEffect(() => {
     let cancelled = false;
