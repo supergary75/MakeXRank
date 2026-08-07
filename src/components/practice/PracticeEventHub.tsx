@@ -329,6 +329,7 @@ export function ExplorerScheduleGenerator({ accessToken }: ExplorerScheduleGener
   const [scheduleCloudReady, setScheduleCloudReady] = useState(false);
   const [message, setMessage] = useState('');
   const [activeScoreMatch, setActiveScoreMatch] = useState<{ cardId: string; match: PracticeMatch } | null>(null);
+  const [openScheduleCardId, setOpenScheduleCardId] = useState<string | null>(null);
   const { fieldCount, cards } = scheduleState;
   let teams: PracticeTeam[] = [];
   try { teams = JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { teams = []; }
@@ -432,18 +433,19 @@ export function ExplorerScheduleGenerator({ accessToken }: ExplorerScheduleGener
     {message && <p className={styles.scheduleMessage}>{message}</p>}
     {cards.length === 0 && <div className={styles.scheduleEmpty}>尚未生成赛程。点击“生成随机赛程”后，会在这里新增第一张赛程卡。</div>}
     <div className={styles.scheduleCardList}>{cards.map((card, cardIndex) => {
-      const ranking = getExplorerScheduleRanking(card.schedule, card.results);
+      const isOpen = openScheduleCardId === card.id;
+      const ranking = isOpen ? getExplorerScheduleRanking(card.schedule, card.results) : [];
       const completedMatches = Object.keys(card.results).length;
       return <article className={styles.scheduleCard} key={card.id}>
-        <div className={styles.scheduleCardHeader}><div><small>赛程卡 {cardIndex + 1}</small><h3>Explorer 资格排位赛 · 赛程与成绩</h3></div><span>{card.fieldCount} 个场地 · {card.schedule.length} 场 · 已计分 {completedMatches} 场{card.createdAt ? ` · ${new Date(card.createdAt).toLocaleString('zh-CN')}` : ''}</span></div>
-        <div className={styles.scheduleTableWrap}>
+        <div className={styles.scheduleCardHeader}><div><small>赛程卡 {cardIndex + 1}</small><h3>Explorer 资格排位赛 · 赛程与成绩</h3><span>{card.fieldCount} 个场地 · {card.schedule.length} 场 · 已计分 {completedMatches} 场{card.createdAt ? ` · ${new Date(card.createdAt).toLocaleString('zh-CN')}` : ''}</span></div><button type="button" onClick={() => setOpenScheduleCardId(isOpen ? null : card.id)}>{isOpen ? '收起赛程卡' : '进入赛程卡'}</button></div>
+        {isOpen && <><div className={styles.scheduleTableWrap}>
           <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
           <table className={styles.scheduleTable}>
             <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
             <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{team.teamName}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
           </table>
         </div>
-        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>
+        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div></>}
       </article>;
     })}</div>
     {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => updateScheduleState((current) => ({ ...current, cards: current.cards.map((card) => card.id === activeScoreMatch.cardId ? { ...card, results: { ...card.results, [activeScoreMatch.match.id]: result } } : card) }))} matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${activeScoreMatch.match.red1.teamName}`, red2: `${activeScoreMatch.match.red2.teamNo} ${activeScoreMatch.match.red2.teamName}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${activeScoreMatch.match.blue1.teamName}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${activeScoreMatch.match.blue2.teamName}` }} />}
