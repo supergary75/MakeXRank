@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './PracticeEventHub.module.css';
 import { ScoreCalculator, type ScoreCalculatorResult } from '../scoring/ScoreCalculator';
 import {
@@ -178,6 +178,21 @@ async function fetchRemoteExplorerScheduleState(accessToken: string): Promise<Ex
     ...state,
     updatedAt: state.updatedAt || rows[0].updated_at || '',
   };
+}
+
+async function fetchRemoteExplorerScheduleUpdatedAt(accessToken: string): Promise<string> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return '';
+  const query = new URLSearchParams({
+    select: 'updated_at',
+    id: `eq.${EXPLORER_SCHEDULE_SYNC_ID}`,
+    limit: '1',
+  });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?${query.toString()}`, {
+    headers: getPracticeSyncHeaders(accessToken),
+  });
+  if (!response.ok) throw new Error(`读取赛程云端版本失败（${response.status}）`);
+  const rows = await response.json() as Array<{ updated_at?: string }>;
+  return rows[0]?.updated_at ?? '';
 }
 
 async function saveRemoteExplorerScheduleState(
@@ -430,12 +445,14 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
   const [message, setMessage] = useState('');
   const [activeScoreMatch, setActiveScoreMatch] = useState<{ cardId: string; match: PracticeMatch } | null>(null);
   const [openScheduleCardId, setOpenScheduleCardId] = useState<string | null>(null);
+  const scheduleUpdatedAtRef = useRef(scheduleState.updatedAt);
   const { fieldCount, cards } = scheduleState;
   let teams: PracticeTeam[] = [];
   try { teams = JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { teams = []; }
 
   useEffect(() => {
     saveExplorerScheduleState(scheduleState);
+    scheduleUpdatedAtRef.current = scheduleState.updatedAt;
   }, [scheduleState]);
 
   useEffect(() => {
@@ -480,17 +497,25 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
     if (!accessToken || !scheduleCloudReady) return;
     let cancelled = false;
     const pullLatest = () => {
-      void fetchRemoteExplorerScheduleState(accessToken).then((remoteState) => {
-        if (cancelled || !remoteState) return;
-        setScheduleState((current) => remoteState.updatedAt > current.updatedAt ? remoteState : current);
+      void fetchRemoteExplorerScheduleUpdatedAt(accessToken).then(async (remoteUpdatedAt) => {
+        if (cancelled || !remoteUpdatedAt || remoteUpdatedAt <= scheduleUpdatedAtRef.current) return;
+        const remoteState = await fetchRemoteExplorerScheduleState(accessToken);
+        if (cancelled || !remoteState || remoteState.updatedAt <= scheduleUpdatedAtRef.current) return;
+        scheduleUpdatedAtRef.current = remoteState.updatedAt;
+        setScheduleState(remoteState);
       }).catch(() => undefined);
     };
-    const interval = window.setInterval(pullLatest, 12000);
+    const pullWhenVisible = () => { if (document.visibilityState === 'visible') pullLatest(); };
+    const interval = window.setInterval(pullLatest, 3000);
     window.addEventListener('focus', pullLatest);
+    window.addEventListener('online', pullLatest);
+    document.addEventListener('visibilitychange', pullWhenVisible);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
       window.removeEventListener('focus', pullLatest);
+      window.removeEventListener('online', pullLatest);
+      document.removeEventListener('visibilitychange', pullWhenVisible);
     };
   }, [accessToken, scheduleCloudReady]);
 
@@ -558,6 +583,28 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
             <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
             <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{team.teamName}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
           </table>
+        </div>
+        <div className={styles.mobileMatchList}>
+          <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程与成绩</div>
+          {card.schedule.map((match) => {
+            const result = card.results[match.id];
+            return <article className={styles.mobileMatchCard} key={`mobile-${match.id}`}>
+              <div className={styles.mobileMatchHeader}>
+                <div><strong>场次 {match.slot}</strong><span>场地 {match.field}</span></div>
+                <button type="button" onClick={() => setActiveScoreMatch({ cardId: card.id, match })}>进入计分</button>
+              </div>
+              <div className={`${styles.mobileAlliance} ${styles.mobileRedAlliance}`}>
+                <div><b>红方</b><strong>{result ? result.redScore : '待计分'}</strong></div>
+                <p><span>{match.red1.teamNo}</span>{match.red1.teamName}</p>
+                <p><span>{match.red2.teamNo}</span>{match.red2.teamName}</p>
+              </div>
+              <div className={`${styles.mobileAlliance} ${styles.mobileBlueAlliance}`}>
+                <div><b>蓝方</b><strong>{result ? result.blueScore : '待计分'}</strong></div>
+                <p><span>{match.blue1.teamNo}</span>{match.blue1.teamName}</p>
+                <p><span>{match.blue2.teamNo}</span>{match.blue2.teamName}</p>
+              </div>
+            </article>;
+          })}
         </div>
         <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div></>}
       </article>;

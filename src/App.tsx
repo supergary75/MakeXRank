@@ -2429,18 +2429,9 @@ export default function App() {
     activeEventType,
   );
   const practiceExplorerAnalysisRows = useMemo(
-    () => schedulePracticeExplorerRows.length ? schedulePracticeExplorerRows : practiceExplorer.rows,
-    [practiceExplorer.rows, schedulePracticeExplorerRows],
+    () => schedulePracticeExplorerRows,
+    [schedulePracticeExplorerRows],
   );
-  const practiceExplorerTeamCount = useMemo(
-    () => new Set(practiceExplorerAnalysisRows.map((row) => row.team)).size || practiceExplorer.teamsData.length,
-    [practiceExplorer.teamsData.length, practiceExplorerAnalysisRows],
-  );
-  const practiceExplorerHighestSingleMatchScore = useMemo(
-    () => practiceExplorerAnalysisRows.reduce((best, row) => Math.max(best, row.totalScore), 0),
-    [practiceExplorerAnalysisRows],
-  );
-  const practiceExplorerTotalMatches = practiceExplorerAnalysisRows.length;
   const practiceExplorerInsights = useMemo(
     () => buildPracticeExplorerInsights(practiceExplorerAnalysisRows),
     [practiceExplorerAnalysisRows],
@@ -2448,10 +2439,6 @@ export default function App() {
   const practiceExplorerMetricRankings = useMemo(
     () => getPracticeExplorerMetricRankings(practiceExplorerAnalysisRows),
     [practiceExplorerAnalysisRows],
-  );
-  const practiceExplorerBestEpaInsight = useMemo(
-    () => practiceExplorerInsights.slice().sort((left, right) => right.bestEpa - left.bestEpa)[0],
-    [practiceExplorerInsights],
   );
   const filteredPracticeExplorerInsights = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
@@ -9511,38 +9498,6 @@ export default function App() {
                 onAnalysisRowsChange={setSchedulePracticeExplorerRows}
               />
 
-              <section className={styles.parameterPanel}>
-                <div>
-                  <p className={styles.portalEyebrow}>Parameter Analysis</p>
-                  <h2>表格内各项参数分析</h2>
-                  <p>自动汇总参赛队伍、练习赛场次、最高 EPA、单场最高得分，并进一步生成稳定性、短板和训练建议。</p>
-                </div>
-
-                <div className={styles.parameterGrid}>
-                  <div className={styles.parameterCard}>
-                    <span>参赛队伍</span>
-                    <strong>{practiceExplorerTeamCount}</strong>
-                  </div>
-                  <div className={styles.parameterCard}>
-                    <span>总比赛场次</span>
-                    <strong>
-                      {Number.isInteger(practiceExplorerTotalMatches)
-                        ? practiceExplorerTotalMatches
-                        : practiceExplorerTotalMatches.toFixed(1)}
-                    </strong>
-                  </div>
-                  <div className={styles.parameterCard}>
-                    <span>最高 EPA 队伍</span>
-                    <strong>{practiceExplorerBestEpaInsight?.bestEpa.toFixed(1) ?? '0.0'}</strong>
-                    <small>{practiceExplorerBestEpaInsight?.team ?? '暂无数据'}</small>
-                  </div>
-                  <div className={styles.parameterCard}>
-                    <span>单场最高得分</span>
-                    <strong>{practiceExplorerHighestSingleMatchScore.toFixed(2)}</strong>
-                  </div>
-                </div>
-              </section>
-
               <section className={styles.diagnosticPanel}>
                 <div className={styles.diagnosticHeader}>
                   <div>
@@ -9598,13 +9553,13 @@ export default function App() {
                   <div>
                     <p className={styles.portalEyebrow}>Training Diagnosis</p>
                     <h2>训练诊断总览</h2>
-                    <p>综合平均分、最高分、近三场、稳定性和 EPA，判断每支队伍当前更适合冲分、稳分还是补短板。</p>
+                    <p>集中汇总本次集训所有赛程卡中的已计分比赛，综合平均分、最高分、近三场、稳定性和 EPA，判断每支队伍当前更适合冲分、稳分还是补短板。</p>
                   </div>
                 </div>
 
                 {practiceExplorerInsights.length === 0 ? (
                   <div className={styles.logisticsEmpty}>
-                    暂无练习赛诊断数据。请先粘贴包含队名、场次、各项得分、EPA 和总分的练习赛表格。
+                    暂无训练诊断数据。请先进入任意赛程卡完成比赛计分，所有赛程卡的成绩会自动集中到这里。
                   </div>
                 ) : (
                   <div className={styles.diagnosticGrid}>
