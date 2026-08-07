@@ -3,6 +3,7 @@ export interface PracticeTeam {
   eventItem: string;
   teamNo: string;
   teamName: string;
+  isKClub?: boolean;
   members: Array<{ id: string; name: string }>;
 }
 

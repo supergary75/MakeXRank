@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { EventType, TeamRanked } from '../../types';
 import { formatSecondsAsClock } from '../../utils/time';
+import { getTeamNumberFromName, getTeamTag, type TeamTagMap } from '../../utils/teamTags';
 import { Modal } from '../ui/Modal';
 import styles from './FeaturedTeams.module.css';
 
@@ -11,6 +12,7 @@ interface Props {
   onAdd: (name: string) => void;
   onRemove: (name: string) => void;
   allTeamNames: string[];
+  teamTags?: TeamTagMap;
 }
 
 export function FeaturedTeams({
@@ -20,6 +22,7 @@ export function FeaturedTeams({
   onAdd,
   onRemove,
   allTeamNames,
+  teamTags = {},
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -62,7 +65,7 @@ export function FeaturedTeams({
               return (
                 <div key={team.team} className={styles.card}>
                   <div className={styles.cardHeader}>
-                    <h3>🌟 {team.team}</h3>
+                    <h3>🌟 {team.team}{getTeamTag(teamTags, getTeamNumberFromName(team.team), team.team) === 'KC' && <span className={styles.kcTeamBadge}>KC</span>}</h3>
                     <div className={styles.rank} style={{ color: rankColor }}>
                       排名: <span>{rank}</span>
                     </div>

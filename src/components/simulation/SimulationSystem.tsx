@@ -12,6 +12,7 @@ interface TeamState {
   alliance: Alliance;
   number: string;
   name: string;
+  isKClub?: boolean;
   penalties: Record<Penalty, number>;
 }
 
@@ -33,6 +34,7 @@ interface SourceTeam {
   number: string;
   name: string;
   eventItem: string;
+  isKClub: boolean;
 }
 
 interface SimulationSystemProps {
@@ -172,7 +174,7 @@ export function SimulationSystem({ sourceEvents }: SimulationSystemProps) {
       const name = participant.teamName.trim();
       if (!number && !name) return;
       const key = `${participant.eventItem}::${number}::${name}`;
-      if (!unique.has(key)) unique.set(key, { key, number, name: name || number, eventItem: participant.eventItem });
+      if (!unique.has(key)) unique.set(key, { key, number, name: name || number, eventItem: participant.eventItem, isKClub: true });
     });
     const selectedSeries = eventName.includes('Explorer') ? 'Explorer' : eventName.includes('Inspire') ? 'Inspire' : 'Challenge';
     const matching = Array.from(unique.values()).filter((team) => !team.eventItem || team.eventItem.includes(selectedSeries));
@@ -197,7 +199,7 @@ export function SimulationSystem({ sourceEvents }: SimulationSystemProps) {
   const selectSourceTeam = (slotId: string, sourceKey: string) => {
     const selected = sourceTeams.find((team) => team.key === sourceKey);
     if (!selected) return;
-    updateTeam(slotId, { number: selected.number, name: selected.name });
+    updateTeam(slotId, { number: selected.number, name: selected.name, isKClub: selected.isKClub });
   };
 
   const addPenalty = (id: string, penalty: Penalty) => {
@@ -321,7 +323,7 @@ export function SimulationSystem({ sourceEvents }: SimulationSystemProps) {
               <article key={team.id} className={`${styles.teamCard} ${team.alliance === 'red' ? styles.redCard : styles.blueCard}`}>
                 <div className={styles.allianceLabel}>{team.alliance === 'red' ? '红方' : '蓝方'}</div>
                 {sourceEventId && (
-                  <label><span>从赛事赛队中选择</span><select value="" onChange={(event) => selectSourceTeam(team.id, event.target.value)}><option value="">请选择战队</option>{sourceTeams.map((sourceTeam) => <option key={sourceTeam.key} value={sourceTeam.key}>{sourceTeam.number} · {sourceTeam.name}</option>)}</select></label>
+                  <label><span>从赛事赛队中选择</span><select value="" onChange={(event) => selectSourceTeam(team.id, event.target.value)}><option value="">请选择战队</option>{sourceTeams.map((sourceTeam) => <option key={sourceTeam.key} value={sourceTeam.key}>{sourceTeam.number} · {sourceTeam.name} · KC</option>)}</select></label>
                 )}
                 <label><span>战队名称</span><input value={team.name} onChange={(event) => updateTeam(team.id, { name: event.target.value })} /></label>
                 <label><span>战队编号</span><input value={team.number} onChange={(event) => updateTeam(team.id, { number: event.target.value })} /></label>
@@ -350,7 +352,7 @@ export function SimulationSystem({ sourceEvents }: SimulationSystemProps) {
                   <h3 className={alliance === 'red' ? styles.redHeading : styles.blueHeading}>{alliance === 'red' ? '红方' : '蓝方'}</h3>
                   {teams.filter((team) => team.alliance === alliance).map((team) => (
                     <article key={team.id} className={styles.matchTeam}>
-                      <div><strong>{team.number}</strong><span>{team.name}</span></div>
+                      <div><strong>{team.number}</strong><span>{team.name}{team.isKClub && <i className={styles.kcTeamBadge}>KC</i>}</span></div>
                       <div className={styles.penaltyCounts}>
                         <span>违例 {team.penalties.foul}</span><span>黄牌 {team.penalties.yellow}</span><span>红牌 {team.penalties.red}</span>
                       </div>

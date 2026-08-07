@@ -294,3 +294,17 @@
     font-size: 0.75em;
   }
 }
+.kcTeamBadge {
+  display: inline-flex;
+  margin-left: 0.45rem;
+  padding: 0.1rem 0.42rem;
+  border: 1px solid rgba(198, 157, 43, 0.5);
+  border-radius: 999px;
+  background: #fff8d9;
+  color: #946b0c;
+  font-family: Arial, sans-serif;
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}

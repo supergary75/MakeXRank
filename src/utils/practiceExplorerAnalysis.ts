@@ -243,8 +243,8 @@ function average(values: number[]): number {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
-function formatNumber(value: number, digits = 1): string {
-  return value.toFixed(digits).replace(/\.0$/, '');
+function formatNumber(value: number): string {
+  return String(Math.round(value));
 }
 
 function getAverageMetric(rows: PracticeExplorerMatchRow[], key: keyof PracticeExplorerMatchRow): number {

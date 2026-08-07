@@ -285,7 +285,7 @@ function buildPracticeTeams(source: PracticeLogisticsEvent, selectedEventItem: s
     const normalizedTeamName = teamName.replace(/\s+/g, '').toLowerCase();
     const teamIdentity = normalizedTeamNo && !teamNo.includes('未填写') ? normalizedTeamNo : normalizedTeamName;
     const key = `${normalizeEventItem(selectedEventItem)}::${teamIdentity}`;
-    const team = groups.get(key) ?? { id: key, eventItem: selectedEventItem, teamNo, teamName, members: [] };
+    const team = groups.get(key) ?? { id: key, eventItem: selectedEventItem, teamNo, teamName, isKClub: true, members: [] };
     if (!team.members.some((member) => member.id === participant.id)) {
       team.members.push({ id: participant.id, name: participant.name });
     }
@@ -300,6 +300,7 @@ function mergePracticeTeams(...teamSets: PracticeTeam[][]): PracticeTeam[] {
     const key = `${normalizeEventItem(team.eventItem)}::${team.teamNo.replace(/\s+/g, '').toLowerCase()}`;
     const current = merged.get(key);
     if (!current) { merged.set(key, { ...team, id: key, members: [...team.members] }); return; }
+    current.isKClub = Boolean(current.isKClub || team.isKClub);
     team.members.forEach((member) => {
       if (!current.members.some((item) => item.name.trim().toLowerCase() === member.name.trim().toLowerCase())) current.members.push(member);
     });
@@ -449,6 +450,16 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
   const { fieldCount, cards } = scheduleState;
   let teams: PracticeTeam[] = [];
   try { teams = JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { teams = []; }
+  const isKClubTeam = (team: PracticeTeam) => Boolean(
+    team.isKClub || teams.some((candidate) => candidate.isKClub && (
+      (candidate.teamNo.trim() && candidate.teamNo.trim().toLowerCase() === team.teamNo.trim().toLowerCase())
+      || (candidate.teamName.trim() && candidate.teamName.trim().toLowerCase() === team.teamName.trim().toLowerCase())
+    )),
+  );
+  const renderTeamName = (team: PracticeTeam) => (
+    <>{team.teamName}{isKClubTeam(team) && <span className={styles.kcTeamBadge}>KC</span>}</>
+  );
+  const formatTeamName = (team: PracticeTeam) => `${team.teamName}${isKClubTeam(team) ? ' KC' : ''}`;
 
   useEffect(() => {
     saveExplorerScheduleState(scheduleState);
@@ -581,7 +592,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
           <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
           <table className={styles.scheduleTable}>
             <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
-            <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{team.teamName}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
+            <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{renderTeamName(team)}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
           </table>
         </div>
         <div className={styles.mobileMatchList}>
@@ -595,21 +606,21 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
               </div>
               <div className={`${styles.mobileAlliance} ${styles.mobileRedAlliance}`}>
                 <div><b>红方</b><strong>{result ? result.redScore : '待计分'}</strong></div>
-                <p><span>{match.red1.teamNo}</span>{match.red1.teamName}</p>
-                <p><span>{match.red2.teamNo}</span>{match.red2.teamName}</p>
+                <p><span>{match.red1.teamNo}</span>{renderTeamName(match.red1)}</p>
+                <p><span>{match.red2.teamNo}</span>{renderTeamName(match.red2)}</p>
               </div>
               <div className={`${styles.mobileAlliance} ${styles.mobileBlueAlliance}`}>
                 <div><b>蓝方</b><strong>{result ? result.blueScore : '待计分'}</strong></div>
-                <p><span>{match.blue1.teamNo}</span>{match.blue1.teamName}</p>
-                <p><span>{match.blue2.teamNo}</span>{match.blue2.teamName}</p>
+                <p><span>{match.blue1.teamNo}</span>{renderTeamName(match.blue1)}</p>
+                <p><span>{match.blue2.teamNo}</span>{renderTeamName(match.blue2)}</p>
               </div>
             </article>;
           })}
         </div>
-        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div></>}
+        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{renderTeamName(row.team)}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div></>}
       </article>;
     })}</div>
-    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => updateScheduleState((current) => ({ ...current, cards: current.cards.map((card) => card.id === activeScoreMatch.cardId ? { ...card, results: { ...card.results, [activeScoreMatch.match.id]: result } } : card) }))} matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${activeScoreMatch.match.red1.teamName}`, red2: `${activeScoreMatch.match.red2.teamNo} ${activeScoreMatch.match.red2.teamName}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${activeScoreMatch.match.blue1.teamName}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${activeScoreMatch.match.blue2.teamName}` }} />}
+    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => updateScheduleState((current) => ({ ...current, cards: current.cards.map((card) => card.id === activeScoreMatch.cardId ? { ...card, results: { ...card.results, [activeScoreMatch.match.id]: result } } : card) }))} matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${formatTeamName(activeScoreMatch.match.red1)}`, red2: `${activeScoreMatch.match.red2.teamNo} ${formatTeamName(activeScoreMatch.match.red2)}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${formatTeamName(activeScoreMatch.match.blue1)}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${formatTeamName(activeScoreMatch.match.blue2)}` }} />}
   </section>;
 }
 
@@ -806,7 +817,7 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
                   <div className={styles.teamTableWrap}>
                     <table className={styles.teamTable}>
                       <thead><tr><th>队号</th><th>赛队名称</th><th>队员人数</th><th>参赛队员</th></tr></thead>
-                      <tbody>{group.teams.map((team) => <tr key={team.id}><td><strong>{team.teamNo}</strong></td><td>{team.teamName}</td><td>{team.members.length} 人</td><td>{team.members.map((member) => member.name).join('、')}</td></tr>)}</tbody>
+                      <tbody>{group.teams.map((team) => <tr key={team.id}><td><strong>{team.teamNo}</strong></td><td>{team.teamName}{team.isKClub && <span className={styles.kcTeamBadge}>KC</span>}</td><td>{team.members.length} 人</td><td>{team.members.map((member) => member.name).join('、')}</td></tr>)}</tbody>
                     </table>
                   </div>
                 )}

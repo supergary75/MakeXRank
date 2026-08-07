@@ -1243,8 +1243,8 @@
   display: inline-flex;
   padding: 8px 12px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(93, 214, 255, 0.16);
-  background: rgba(8, 12, 18, 0.52);
+  border: 1px solid rgba(22, 104, 232, 0.16);
+  background: rgba(238, 246, 255, 0.88);
   color: var(--gray-500);
   line-height: 1.4;
 }
@@ -1254,20 +1254,21 @@
   gap: 14px;
   padding: 18px;
   border-radius: 20px;
-  border: 1px solid rgba(93, 214, 255, 0.18);
+  border: 1px solid rgba(22, 104, 232, 0.18);
   background:
-    radial-gradient(circle at 0% 0%, rgba(93, 214, 255, 0.14), transparent 34%),
-    rgba(8, 12, 18, 0.58);
+    radial-gradient(circle at 0% 0%, rgba(213, 173, 56, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(235, 245, 255, 0.9));
+  box-shadow: 0 14px 34px rgba(45, 92, 143, 0.1);
 }
 
 .rollCallNodeSoon {
-  border-color: rgba(244, 178, 74, 0.54);
-  box-shadow: 0 0 24px rgba(244, 178, 74, 0.14);
+  border-color: rgba(213, 173, 56, 0.54);
+  box-shadow: 0 14px 34px rgba(213, 173, 56, 0.13);
 }
 
 .rollCallNodeDue {
-  border-color: rgba(255, 95, 95, 0.62);
-  box-shadow: 0 0 28px rgba(255, 78, 78, 0.16);
+  border-color: rgba(214, 86, 86, 0.46);
+  box-shadow: 0 14px 34px rgba(214, 86, 86, 0.12);
 }
 
 .rollCallTimeLabel {
@@ -1278,18 +1279,18 @@
 }
 
 .rollCallTimeLabel span {
-  color: var(--gray-300);
+  color: var(--gray-500);
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.14em;
 }
 
 .rollCallTimeLabel strong {
-  color: #d8ecff;
+  color: #315986;
   font-size: 1.06rem;
   font-weight: 900;
   letter-spacing: 0.1em;
-  text-shadow: 0 0 14px rgba(93, 214, 255, 0.18);
+  text-shadow: none;
 }
 
 .rollCallStatusStack {
@@ -1311,21 +1312,17 @@
 }
 
 .rollCallTimeAlertSoon {
-  border: 1px solid rgba(244, 178, 74, 0.68);
-  background:
-    radial-gradient(circle at 20% 20%, rgba(255, 226, 150, 0.34), transparent 55%),
-    rgba(92, 58, 15, 0.76);
-  color: #ffe6a8;
-  box-shadow: 0 0 18px rgba(244, 178, 74, 0.18);
+  border: 1px solid rgba(213, 173, 56, 0.48);
+  background: #fff8df;
+  color: #8f6b08;
+  box-shadow: 0 8px 18px rgba(213, 173, 56, 0.12);
 }
 
 .rollCallTimeAlertDue {
-  border: 1px solid rgba(255, 95, 95, 0.72);
-  background:
-    radial-gradient(circle at 20% 20%, rgba(255, 150, 150, 0.34), transparent 55%),
-    rgba(92, 18, 26, 0.8);
-  color: #ffd7d7;
-  box-shadow: 0 0 22px rgba(255, 78, 78, 0.22);
+  border: 1px solid rgba(214, 86, 86, 0.42);
+  background: #fff1f1;
+  color: #b7352d;
+  box-shadow: 0 8px 18px rgba(214, 86, 86, 0.12);
 }
 
 .mentorRollCallBlock {
@@ -1333,8 +1330,8 @@
   gap: 10px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
-  background: rgba(18, 25, 34, 0.72);
+  border: 1px solid rgba(22, 104, 232, 0.14);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .mentorRollCallTitle {
@@ -1358,21 +1355,17 @@
 }
 
 .rollCallProgressWarning {
-  border-color: rgba(255, 95, 95, 0.62) !important;
-  background:
-    radial-gradient(circle at 25% 20%, rgba(255, 120, 120, 0.35), transparent 48%),
-    rgba(74, 18, 24, 0.74) !important;
-  color: #ffd3d3 !important;
-  box-shadow: 0 0 18px rgba(255, 78, 78, 0.16);
+  border-color: rgba(214, 86, 86, 0.42) !important;
+  background: #fff1f1 !important;
+  color: #b7352d !important;
+  box-shadow: 0 8px 18px rgba(214, 86, 86, 0.1);
 }
 
 .rollCallProgressComplete {
-  border-color: rgba(93, 232, 157, 0.68) !important;
-  background:
-    radial-gradient(circle at 25% 20%, rgba(93, 232, 157, 0.34), transparent 48%),
-    rgba(16, 72, 48, 0.78) !important;
-  color: #d9ffe9 !important;
-  box-shadow: 0 0 20px rgba(93, 232, 157, 0.18);
+  border-color: rgba(213, 173, 56, 0.56) !important;
+  background: linear-gradient(145deg, #f4d68a, #b58a2c) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px rgba(181, 138, 44, 0.18);
 }
 
 .attendanceRow {
@@ -1381,16 +1374,16 @@
   gap: 12px;
   align-items: center;
   padding: 10px 0;
-  border-top: 1px solid rgba(217, 226, 236, 0.08);
+  border-top: 1px solid rgba(22, 104, 232, 0.1);
 }
 
 .attendanceToggleButton {
   width: 100%;
   min-height: 46px;
-  border: 1px solid rgba(217, 226, 236, 0.14);
+  border: 1px solid rgba(22, 104, 232, 0.18);
   border-radius: 16px;
-  background: rgba(8, 12, 18, 0.82);
-  color: var(--gray-700);
+  background: rgba(238, 246, 255, 0.94);
+  color: #315986;
   font: inherit;
   font-weight: 900;
   cursor: pointer;
@@ -1399,19 +1392,17 @@
 }
 
 .attendanceToggleButton:hover:not(:disabled) {
-  border-color: rgba(93, 214, 255, 0.55);
-  color: var(--gray-800);
-  box-shadow: 0 0 18px rgba(93, 214, 255, 0.14);
+  border-color: rgba(22, 104, 232, 0.5);
+  color: #173f78;
+  box-shadow: 0 8px 18px rgba(22, 104, 232, 0.12);
   transform: translateY(-1px);
 }
 
 .attendanceToggleButtonArrived {
   border-color: rgba(244, 214, 138, 0.82);
-  background:
-    linear-gradient(135deg, rgba(214, 169, 74, 0.96), rgba(103, 78, 32, 0.92)),
-    rgba(214, 169, 74, 0.34);
-  color: #fff7df;
-  box-shadow: 0 0 18px rgba(214, 169, 74, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  background: linear-gradient(145deg, #f4d68a, #b58a2c);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(181, 138, 44, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
 .attendanceToggleButton:disabled {
@@ -1424,6 +1415,176 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.roomDateCalendar {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(22, 104, 232, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.86));
+  box-shadow: 0 12px 30px rgba(45, 92, 143, 0.08);
+}
+
+.roomDateCalendarHeader,
+.roomDateCalendarActions,
+.roomDateSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.roomDateCalendarHeader {
+  justify-content: space-between;
+}
+
+.roomDateCalendarHeader h4 {
+  margin: 4px 0 0;
+  color: var(--gray-900);
+}
+
+.roomDateCalendarActions button,
+.roomDateSummary button {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid rgba(22, 104, 232, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #315986;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.roomDateCalendarActions strong {
+  min-width: 112px;
+  color: var(--gray-800);
+  text-align: center;
+}
+
+.roomDateSummary {
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: rgba(234, 243, 255, 0.75);
+  color: var(--gray-600);
+}
+
+.roomDateSummary strong {
+  color: #1668e8;
+}
+
+.roomDateSummary span {
+  flex: 1;
+  min-width: 180px;
+  font-size: 0.84rem;
+}
+
+.roomDateCalendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.roomDateCalendarGrid > span {
+  color: var(--gray-500);
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.roomDateDay {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  border: 1px solid rgba(22, 104, 232, 0.14);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--gray-800);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.roomDateDay:hover:not(:disabled) {
+  border-color: rgba(22, 104, 232, 0.5);
+  transform: translateY(-1px);
+}
+
+.roomDateDay small {
+  color: #fff;
+  font-size: 0.66rem;
+}
+
+.roomDateDayMuted {
+  opacity: 0.38;
+}
+
+.roomDateDaySelected {
+  border-color: #3457c5;
+  background: linear-gradient(145deg, #5487ec, #3457c5);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(52, 87, 197, 0.22);
+}
+
+.roomDateList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.roomDateList span {
+  padding: 4px 7px;
+  border-radius: 8px;
+  background: #eef5ff;
+  color: #315986;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.roomNumberInput {
+  width: 140px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid rgba(22, 104, 232, 0.18);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--gray-800);
+  font-weight: 800;
+}
+
+.roomNumberInput::placeholder {
+  color: var(--gray-400);
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .roomDateCalendar {
+    padding: 13px;
+  }
+
+  .roomDateCalendarHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .roomDateCalendarActions {
+    justify-content: space-between;
+  }
+
+  .roomDateCalendarActions button {
+    min-width: 72px;
+  }
+
+  .roomDateCalendarGrid {
+    gap: 5px;
+  }
+
+  .roomDateDay {
+    min-height: 48px;
+    border-radius: 10px;
+    padding: 3px;
+  }
 }
 
 .roomStaffSelector {
@@ -2967,4 +3128,21 @@
   .backButton {
     width: 100%;
   }
+}
+.kcTeamBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.45rem;
+  padding: 0.12rem 0.46rem;
+  border: 1px solid rgba(198, 157, 43, 0.5);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff8d7, #eaf3ff);
+  color: #946b0c;
+  font-family: Arial, sans-serif;
+  font-size: 0.68em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  vertical-align: middle;
 }

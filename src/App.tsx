@@ -44,6 +44,8 @@ import {
 import { calculateRanking, sortTeams } from './utils/rankingAlgorithm';
 import {
   DEFAULT_TEAM_TAG_OPTIONS,
+  getTeamNumberFromName,
+  getTeamTag,
   getTeamTagKey,
   loadTeamTagOptions,
   loadTeamTags,
@@ -337,12 +339,14 @@ interface LogisticsTimelineForm {
 interface LogisticsRoomAssignment {
   id: string;
   roomNo: string;
+  dates: string[];
   participantIds: string[];
   notes: string;
 }
 
 interface LogisticsRoomForm {
   roomNo: string;
+  dates: string[];
   participantIds: string[];
   notes: string;
 }
@@ -413,6 +417,7 @@ const DEFAULT_LOGISTICS_TIMELINE_FORM: LogisticsTimelineForm = {
 
 const DEFAULT_LOGISTICS_ROOM_FORM: LogisticsRoomForm = {
   roomNo: '',
+  dates: [],
   participantIds: [],
   notes: '',
 };
@@ -1014,13 +1019,13 @@ function normalizeLogisticsRoomAssignment(item: unknown): LogisticsRoomAssignmen
 
   const source = item as Partial<LogisticsRoomAssignment>;
   const roomNo = typeof source.roomNo === 'string' ? source.roomNo.trim() : '';
-  if (!roomNo) {
-    return null;
-  }
 
   return {
     id: typeof source.id === 'string' ? source.id : `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     roomNo,
+    dates: Array.isArray(source.dates)
+      ? Array.from(new Set(source.dates.filter((date): date is string => typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)))).sort()
+      : [],
     participantIds: Array.isArray(source.participantIds)
       ? source.participantIds.filter((id): id is string => typeof id === 'string')
       : [],
@@ -1565,6 +1570,12 @@ function getCalendarDays(monthKey: string): CalendarDay[] {
       isCurrentMonth: date.getMonth() === month - 1,
     };
   });
+}
+
+function logisticsRoomDatesOverlap(left: string[], right: string[]): boolean {
+  if (left.length === 0 || right.length === 0) return true;
+  const rightDates = new Set(right);
+  return left.some((date) => rightDates.has(date));
 }
 
 function getTrainingScheduleKey(eventId: string, dateKey: string): string {
@@ -2224,6 +2235,7 @@ export default function App() {
     useState<LogisticsTimelineForm>(DEFAULT_LOGISTICS_TIMELINE_FORM);
   const [logisticsRoomForm, setLogisticsRoomForm] =
     useState<LogisticsRoomForm>(DEFAULT_LOGISTICS_ROOM_FORM);
+  const [visibleLogisticsRoomMonth, setVisibleLogisticsRoomMonth] = useState(() => getMonthKey(getTodayKey()));
   const [logisticsRoomNoteMode, setLogisticsRoomNoteMode] = useState('');
   const [logisticsRosterPaste, setLogisticsRosterPaste] = useState('');
   const [logisticsRosterInputOpen, setLogisticsRosterInputOpen] = useState(false);
@@ -2303,6 +2315,21 @@ export default function App() {
     competitions.find((competition) => competition.id === activeCompetitionId) ?? null;
   const activeLogisticsEvent =
     logisticsEvents.find((event) => event.id === activeLogisticsEventId) ?? null;
+  const effectiveTeamTags = useMemo(() => {
+    const next: TeamTagMap = { ...teamTags };
+    logisticsEvents.forEach((event) => {
+      event.participants.forEach((participant) => {
+        if (participant.role !== '队员' || (!participant.teamNo.trim() && !participant.teamName.trim())) return;
+        if (participant.teamNo.trim()) next[getTeamTagKey(participant.teamNo, participant.teamName)] = 'KC';
+        if (participant.teamName.trim()) next[getTeamTagKey('', participant.teamName)] = 'KC';
+      });
+    });
+    return next;
+  }, [logisticsEvents, teamTags]);
+  const isKClubTeamLabel = useCallback((teamLabel: string) => (
+    getTeamTag(effectiveTeamTags, getTeamNumberFromName(teamLabel), teamLabel) === 'KC'
+  ), [effectiveTeamTags]);
+  const logisticsRoomCalendarDays = getCalendarDays(visibleLogisticsRoomMonth);
   const activeLogisticsRosterSourceEvent =
     logisticsEvents.find((event) => event.id === activeLogisticsRosterSourceId) ?? null;
   const logisticsParticipantsForSelectedItem = activeLogisticsEvent
@@ -2335,11 +2362,15 @@ export default function App() {
   const logisticsRollCallNodes = activeLogisticsEvent
     ? activeLogisticsEvent.timeline.filter((item) => item.rollCallEnabled)
     : [];
-  const logisticsRoomsForSelectedItem = activeLogisticsEvent
+  const logisticsRoomsForSelectedItem = useMemo(() => activeLogisticsEvent
     ? activeLogisticsEvent.rooms.filter((room) =>
       room.participantIds.some((participantId) =>
-        logisticsParticipantsForSelectedItem.some((participant) => participant.id === participantId)))
-    : [];
+        activeLogisticsEvent.participants.some((participant) =>
+          participant.id === participantId
+          && (!activeLogisticsEventItem
+            || participant.role !== '队员'
+            || matchesLogisticsEventItem(participant.eventItem, activeLogisticsEventItem)))))
+    : [], [activeLogisticsEvent, activeLogisticsEventItem]);
   const logisticsRollCallTotal = logisticsRollCallNodes.length * logisticsStudents.length;
   const logisticsRollCallDone = activeLogisticsEvent
     ? logisticsRollCallNodes.reduce(
@@ -3829,6 +3860,15 @@ export default function App() {
     }));
   }, []);
 
+  const handleToggleLogisticsRoomDate = useCallback((dateKey: string) => {
+    setLogisticsRoomForm((previous) => ({
+      ...previous,
+      dates: previous.dates.includes(dateKey)
+        ? previous.dates.filter((date) => date !== dateKey)
+        : [...previous.dates, dateKey].sort(),
+    }));
+  }, []);
+
   const handleLogisticsDocumentImageFile = useCallback(
     async (file: File | undefined) => {
       if (!file) {
@@ -4384,8 +4424,8 @@ export default function App() {
     }
 
     const roomNo = logisticsRoomForm.roomNo.trim();
-    if (!roomNo) {
-      showNotification('请先填写房间号。', 'error');
+    if (logisticsRoomForm.dates.length === 0) {
+      showNotification('请在日历中至少选择 1 个入住日期。', 'error');
       return;
     }
 
@@ -4394,9 +4434,18 @@ export default function App() {
       return;
     }
 
+    const hasDateConflict = logisticsRoomsForSelectedItem.some((room) =>
+      logisticsRoomDatesOverlap(room.dates, logisticsRoomForm.dates)
+      && room.participantIds.some((participantId) => logisticsRoomForm.participantIds.includes(participantId)));
+    if (hasDateConflict) {
+      showNotification('所选人员在部分日期已有住房安排，请调整日期或人员。', 'error');
+      return;
+    }
+
     const nextRoom: LogisticsRoomAssignment = {
       id: `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       roomNo,
+      dates: logisticsRoomForm.dates,
       participantIds: logisticsRoomForm.participantIds,
       notes: logisticsRoomForm.notes.trim(),
     };
@@ -4417,13 +4466,15 @@ export default function App() {
     setLogisticsRoomForm((previous) => ({
       ...previous,
       roomNo: '',
+      dates: [],
       participantIds: [],
     }));
-    showNotification(`已添加房间：${roomNo}`, 'success');
+    showNotification(roomNo ? `已添加房间：${roomNo}` : '已添加预分房，房间号可在到店后补填。', 'success');
   }, [
     canEdit,
     logisticsRoomForm,
     logisticsFixedStaffCandidates,
+    logisticsRoomsForSelectedItem,
     showNotification,
     updateActiveLogisticsEvent,
   ]);
@@ -4812,6 +4863,17 @@ export default function App() {
     },
     [],
   );
+
+  const handleUpdateLogisticsRoomNo = useCallback((roomId: string, roomNo: string) => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+    updateActiveLogisticsEvent((event) => ({
+      ...event,
+      rooms: event.rooms.map((room) => room.id === roomId ? { ...room, roomNo } : room),
+    }));
+  }, [canEdit, showNotification, updateActiveLogisticsEvent]);
 
   const handleSelectTrainingLogisticsEvent = useCallback((eventId: string) => {
     setSelectedTrainingLogisticsEventId(eventId);
@@ -7922,6 +7984,46 @@ export default function App() {
                     <span className={styles.portalBadge}>Rooms</span>
                   </div>
 
+                  <section className={styles.roomDateCalendar}>
+                    <div className={styles.roomDateCalendarHeader}>
+                      <div>
+                        <p className={styles.portalCardLabel}>入住日期</p>
+                        <h4>可在日历中连续或分散选择多日</h4>
+                      </div>
+                      <div className={styles.roomDateCalendarActions}>
+                        <button type="button" onClick={() => setVisibleLogisticsRoomMonth((month) => addMonths(month, -1))}>上月</button>
+                        <strong>{formatMonthLabel(visibleLogisticsRoomMonth)}</strong>
+                        <button type="button" onClick={() => setVisibleLogisticsRoomMonth((month) => addMonths(month, 1))}>下月</button>
+                      </div>
+                    </div>
+                    <div className={styles.roomDateSummary}>
+                      <strong>已选 {logisticsRoomForm.dates.length} 日</strong>
+                      <span>{logisticsRoomForm.dates.length > 0 ? logisticsRoomForm.dates.join('、') : '请点击下方日期进行多选'}</span>
+                      {logisticsRoomForm.dates.length > 0 && <button type="button" onClick={() => handleLogisticsRoomFormChange('dates', [])}>清空日期</button>}
+                    </div>
+                    <div className={styles.roomDateCalendarGrid}>
+                      {['一', '二', '三', '四', '五', '六', '日'].map((weekday) => <span key={weekday}>{weekday}</span>)}
+                      {logisticsRoomCalendarDays.map((day) => {
+                        const selected = logisticsRoomForm.dates.includes(day.dateKey);
+                        return <button
+                          key={day.dateKey}
+                          type="button"
+                          className={[
+                            styles.roomDateDay,
+                            day.isCurrentMonth ? '' : styles.roomDateDayMuted,
+                            selected ? styles.roomDateDaySelected : '',
+                          ].filter(Boolean).join(' ')}
+                          onClick={() => handleToggleLogisticsRoomDate(day.dateKey)}
+                          disabled={!canEdit}
+                          aria-pressed={selected}
+                        >
+                          <span>{day.day}</span>
+                          {selected && <small>已选</small>}
+                        </button>;
+                      })}
+                    </div>
+                  </section>
+
                   <section className={styles.roomStaffSelector}>
                     <div className={styles.roomStaffSelectorHeader}>
                       <div>
@@ -7940,7 +8042,8 @@ export default function App() {
                               .map((staff) => {
                                 const isSelectedForRoom = logisticsRoomForm.participantIds.includes(staff.id);
                                 const isAssignedToRoom = logisticsRoomsForSelectedItem.some((room) =>
-                                  room.participantIds.includes(staff.id));
+                                  room.participantIds.includes(staff.id)
+                                  && logisticsRoomDatesOverlap(room.dates, logisticsRoomForm.dates));
 
                                 return (
                                   <label
@@ -7971,11 +8074,11 @@ export default function App() {
 
                   <div className={styles.logisticsFormGrid}>
                     <label className={styles.logisticsField}>
-                      <span>房间号</span>
+                      <span>房间号（可到店后补填）</span>
                       <input
                         value={logisticsRoomForm.roomNo}
                         onChange={(event) => handleLogisticsRoomFormChange('roomNo', event.target.value)}
-                        placeholder="例如：1208 / A301"
+                        placeholder="预分房时可留空"
                         disabled={!canEdit}
                       />
                     </label>
@@ -8022,7 +8125,8 @@ export default function App() {
                       logisticsRoomParticipantCandidates.map((participant) => {
                         const isSelectedForRoom = logisticsRoomForm.participantIds.includes(participant.id);
                         const isAssignedToRoom = logisticsRoomsForSelectedItem.some((room) =>
-                          room.participantIds.includes(participant.id));
+                          room.participantIds.includes(participant.id)
+                          && logisticsRoomDatesOverlap(room.dates, logisticsRoomForm.dates));
 
                         return (
                           <label
@@ -8052,7 +8156,7 @@ export default function App() {
                   </div>
 
                   <button className={styles.portalButton} onClick={handleAddLogisticsRoom} disabled={!canEdit}>
-                    添加住房分配
+                    添加预分房
                   </button>
 
                   <div className={styles.roomRecordHeader}>
@@ -8065,12 +8169,13 @@ export default function App() {
 
                   <div className={styles.logisticsTableWrap}>
                     {logisticsRoomsForSelectedItem.length === 0 ? (
-                      <div className={styles.logisticsEmpty}>暂无住房分配。填写房间号并选择入住人员后生成记录。</div>
+                      <div className={styles.logisticsEmpty}>暂无住房分配。选择日期和入住人员即可先建立预分房，房间号可到店后补填。</div>
                     ) : (
                       <table className={styles.logisticsTable}>
                         <thead>
                           <tr>
                             <th>房间号</th>
+                            <th>入住日期</th>
                             <th>入住人员</th>
                             <th>人数</th>
                             <th>备注</th>
@@ -8085,7 +8190,22 @@ export default function App() {
 
                             return (
                               <tr key={room.id}>
-                                <td><strong>{room.roomNo}</strong></td>
+                                <td>
+                                  <input
+                                    className={styles.roomNumberInput}
+                                    value={room.roomNo}
+                                    onChange={(event) => handleUpdateLogisticsRoomNo(room.id, event.target.value)}
+                                    placeholder="待酒店确认"
+                                    disabled={!canEdit}
+                                  />
+                                </td>
+                                <td>
+                                  <div className={styles.roomDateList}>
+                                    {room.dates.length > 0
+                                      ? room.dates.map((date) => <span key={date}>{date}</span>)
+                                      : <span>日期未记录</span>}
+                                  </div>
+                                </td>
                                 <td>
                                   <div className={styles.roomPeopleList}>
                                     {roomParticipants.map((participant) => (
@@ -9518,9 +9638,9 @@ export default function App() {
                         <div className={styles.practicePlanTitle}>
                           <div>
                             <span>{insight.trainingType}</span>
-                            <h3>{insight.team}</h3>
+                            <h3>{insight.team}{isKClubTeamLabel(insight.team) && <span className={styles.kcTeamBadge}>KC</span>}</h3>
                           </div>
-                          <strong>{insight.averageScore.toFixed(1)}</strong>
+                          <strong>{Math.round(insight.averageScore)}</strong>
                         </div>
 
                         <div className={styles.practicePlanBlock}>
@@ -9567,14 +9687,14 @@ export default function App() {
                       <article key={insight.team} className={styles.diagnosticCard}>
                         <div className={styles.diagnosticCardTop}>
                           <span>#{index + 1}</span>
-                          <strong>{insight.team}</strong>
+                          <strong>{insight.team}{isKClubTeamLabel(insight.team) && <span className={styles.kcTeamBadge}>KC</span>}</strong>
                           <em>{insight.trainingType}</em>
                         </div>
                         <div className={styles.diagnosticStats}>
-                          <span>均分 {insight.averageScore.toFixed(1)}</span>
-                          <span>最高 {insight.highestScore}</span>
+                          <span>均分 {Math.round(insight.averageScore)}</span>
+                          <span>最高 {Math.round(insight.highestScore)}</span>
                           <span>稳定差 {insight.stabilityGap}</span>
-                          <span>近三场 {insight.recentAverageScore.toFixed(1)}</span>
+                          <span>近三场 {Math.round(insight.recentAverageScore)}</span>
                         </div>
                         <p>{insight.suggestion}</p>
                       </article>
@@ -9600,16 +9720,16 @@ export default function App() {
                       <article key={ranking.key} className={styles.metricRankingCard}>
                         <div className={styles.metricRankingTitle}>
                           <span>{ranking.label}</span>
-                          <strong>{ranking.teams[0]?.best.toFixed(1) ?? '0.0'}</strong>
+                          <strong>{Math.round(ranking.teams[0]?.best ?? 0)}</strong>
                           <small>{ranking.teams[0]?.team ?? '暂无数据'}</small>
                         </div>
                         <div className={styles.metricRankingList}>
                           {ranking.teams.map((team, index) => (
                             <div key={`${ranking.key}-${team.team}`} className={styles.metricRankingRow}>
                               <span className={styles.metricRankingOrder}>{index + 1}</span>
-                              <span className={styles.metricRankingTeam}>{team.team}</span>
-                              <strong>{team.best.toFixed(1)}</strong>
-                              <small>均值 {team.average.toFixed(1)}</small>
+                              <span className={styles.metricRankingTeam}>{team.team}{isKClubTeamLabel(team.team) && <span className={styles.kcTeamBadge}>KC</span>}</span>
+                              <strong>{Math.round(team.best)}</strong>
+                              <small>均值 {Math.round(team.average)}</small>
                             </div>
                           ))}
                         </div>
@@ -9656,17 +9776,17 @@ export default function App() {
                         filteredPracticeExplorerInsights.map((insight) => (
                           <tr key={insight.team}>
                             <td>{practiceExplorerInsights.indexOf(insight) + 1}</td>
-                            <td>{insight.team}</td>
+                            <td>{insight.team}{isKClubTeamLabel(insight.team) && <span className={styles.kcTeamBadge}>KC</span>}</td>
                             <td>
                               <span className={styles.trainingTypeBadge}>{insight.trainingType}</span>
                             </td>
                             <td>{insight.matches}</td>
-                            <td>{insight.averageScore.toFixed(1)}</td>
-                            <td>{insight.highestScore}</td>
-                            <td>{insight.lowestScore}</td>
-                            <td>{insight.recentAverageScore.toFixed(1)}</td>
-                            <td>{insight.averageEpa.toFixed(1)}</td>
-                            <td>{insight.bestEpa.toFixed(1)}</td>
+                            <td>{Math.round(insight.averageScore)}</td>
+                            <td>{Math.round(insight.highestScore)}</td>
+                            <td>{Math.round(insight.lowestScore)}</td>
+                            <td>{Math.round(insight.recentAverageScore)}</td>
+                            <td>{Math.round(insight.averageEpa)}</td>
+                            <td>{Math.round(insight.bestEpa)}</td>
                             <td>{insight.weakness}</td>
                           </tr>
                         ))
@@ -9796,6 +9916,7 @@ export default function App() {
                   onAdd={addTeam}
                   onRemove={removeTeam}
                   allTeamNames={teamsData.map((team) => team.team)}
+                  teamTags={effectiveTeamTags}
                 />
 
                 <SearchBox onSearch={setSearchKeyword} />
@@ -9809,7 +9930,7 @@ export default function App() {
                   searchKeyword={searchKeyword}
                   featuredNames={featuredTeams}
                   onTeamClick={toggleTeam}
-                  teamTags={teamTags}
+                  teamTags={effectiveTeamTags}
                   tagOptions={teamTagOptions}
                   onSetTeamTag={handleSetTeamTag}
                   onAddTagOption={handleAddTeamTagOption}
@@ -9830,7 +9951,7 @@ export default function App() {
                 key={activeCompetition.id}
                 competitionId={activeCompetition.id}
                 showNotification={showNotification}
-                teamTags={teamTags}
+                teamTags={effectiveTeamTags}
                 tagOptions={teamTagOptions}
                 onSetTeamTag={handleSetTeamTag}
                 onAddTagOption={handleAddTeamTagOption}
