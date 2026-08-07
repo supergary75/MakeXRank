@@ -49,10 +49,17 @@ interface ExplorerScheduleGeneratorProps {
   accessToken?: string;
 }
 
-interface ExplorerScheduleState {
+interface ExplorerScheduleCard {
+  id: string;
+  createdAt: string;
   fieldCount: number;
   schedule: PracticeMatch[];
   results: Record<string, ScoreCalculatorResult>;
+}
+
+interface ExplorerScheduleState {
+  fieldCount: number;
+  cards: ExplorerScheduleCard[];
   updatedAt: string;
 }
 
@@ -67,10 +74,34 @@ const EXPLORER_SCHEDULE_SYNC_ID = 'shared-explorer-schedule-state';
 
 const EMPTY_EXPLORER_SCHEDULE_STATE: ExplorerScheduleState = {
   fieldCount: 1,
-  schedule: [],
-  results: {},
+  cards: [],
   updatedAt: '',
 };
+
+function normalizeScheduleResults(value: unknown): Record<string, ScoreCalculatorResult> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([, result]) => {
+    if (!result || typeof result !== 'object') return false;
+    const score = result as Partial<ScoreCalculatorResult>;
+    return Number.isFinite(score.redScore) && Number.isFinite(score.blueScore);
+  })) as Record<string, ScoreCalculatorResult>;
+}
+
+function normalizeExplorerScheduleCard(value: unknown, index: number): ExplorerScheduleCard | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const source = value as Partial<ExplorerScheduleCard>;
+  if (!Array.isArray(source.schedule) || source.schedule.length === 0) return null;
+  const rawFieldCount = Number(source.fieldCount);
+  return {
+    id: typeof source.id === 'string' && source.id ? source.id : `schedule-card-${index + 1}`,
+    createdAt: typeof source.createdAt === 'string' ? source.createdAt : '',
+    fieldCount: Number.isInteger(rawFieldCount) && rawFieldCount >= 1 && rawFieldCount <= 4
+      ? rawFieldCount
+      : 1,
+    schedule: source.schedule as PracticeMatch[],
+    results: normalizeScheduleResults(source.results),
+  };
+}
 
 function normalizeExplorerScheduleState(value: unknown): ExplorerScheduleState {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -82,18 +113,25 @@ function normalizeExplorerScheduleState(value: unknown): ExplorerScheduleState {
   const fieldCount = Number.isInteger(rawFieldCount) && rawFieldCount >= 1 && rawFieldCount <= 4
     ? rawFieldCount
     : 1;
-  const results = source.results && typeof source.results === 'object' && !Array.isArray(source.results)
-    ? Object.fromEntries(Object.entries(source.results).filter(([, result]) => {
-      if (!result || typeof result !== 'object') return false;
-      const score = result as Partial<ScoreCalculatorResult>;
-      return Number.isFinite(score.redScore) && Number.isFinite(score.blueScore);
-    })) as Record<string, ScoreCalculatorResult>
-    : {};
+  const cards = Array.isArray(source.cards)
+    ? source.cards
+      .map(normalizeExplorerScheduleCard)
+      .filter((card): card is ExplorerScheduleCard => Boolean(card))
+    : [];
+  const legacySource = source as Partial<ExplorerScheduleCard>;
+  if (cards.length === 0 && Array.isArray(legacySource.schedule) && legacySource.schedule.length > 0) {
+    cards.push({
+      id: 'legacy-schedule-card',
+      createdAt: typeof source.updatedAt === 'string' ? source.updatedAt : '',
+      fieldCount,
+      schedule: legacySource.schedule,
+      results: normalizeScheduleResults(legacySource.results),
+    });
+  }
 
   return {
     fieldCount,
-    schedule: Array.isArray(source.schedule) ? source.schedule as PracticeMatch[] : [],
-    results,
+    cards,
     updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : '',
   };
 }
@@ -253,13 +291,45 @@ function mergePracticeTeams(...teamSets: PracticeTeam[][]): PracticeTeam[] {
   return Array.from(merged.values());
 }
 
+function getExplorerScheduleRanking(
+  schedule: PracticeMatch[],
+  results: Record<string, ScoreCalculatorResult>,
+) {
+  return Array.from(new Map(
+    schedule.flatMap((match) => [match.red1, match.red2, match.blue1, match.blue2])
+      .map((team) => [team.id, team]),
+  ).values()).map((team) => {
+    let played = 0; let wins = 0; let draws = 0; let losses = 0;
+    let rankingPoints = 0; let totalScore = 0; let netScore = 0;
+    schedule.forEach((match) => {
+      const result = results[match.id];
+      if (!result) return;
+      const isRed = match.red1.id === team.id || match.red2.id === team.id;
+      const isBlue = match.blue1.id === team.id || match.blue2.id === team.id;
+      if (!isRed && !isBlue) return;
+      played += 1;
+      const own = isRed ? result.redScore : result.blueScore;
+      const other = isRed ? result.blueScore : result.redScore;
+      totalScore += own;
+      netScore += own - other;
+      if (own > other) { wins += 1; rankingPoints += 3; }
+      else if (own === other) { draws += 1; rankingPoints += 1; }
+      else losses += 1;
+    });
+    return { team, played, wins, draws, losses, rankingPoints, totalScore, netScore };
+  }).sort((a, b) => b.rankingPoints - a.rankingPoints
+    || b.totalScore - a.totalScore
+    || b.netScore - a.netScore
+    || a.team.teamNo.localeCompare(b.team.teamNo));
+}
+
 export function ExplorerScheduleGenerator({ accessToken }: ExplorerScheduleGeneratorProps) {
   const roundsPerTeam = 4;
   const [scheduleState, setScheduleState] = useState<ExplorerScheduleState>(loadExplorerScheduleState);
   const [scheduleCloudReady, setScheduleCloudReady] = useState(false);
   const [message, setMessage] = useState('');
-  const [activeScoreMatch, setActiveScoreMatch] = useState<PracticeMatch | null>(null);
-  const { fieldCount, schedule, results } = scheduleState;
+  const [activeScoreMatch, setActiveScoreMatch] = useState<{ cardId: string; match: PracticeMatch } | null>(null);
+  const { fieldCount, cards } = scheduleState;
   let teams: PracticeTeam[] = [];
   try { teams = JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { teams = []; }
 
@@ -340,41 +410,43 @@ export function ExplorerScheduleGenerator({ accessToken }: ExplorerScheduleGener
     }));
     const scheduledTeams = [...teams, ...virtualTeams];
     const next = generateExplorerSchedule(scheduledTeams, roundsPerTeam, fieldCount);
-    updateScheduleState(() => ({ fieldCount, schedule: next ?? [], results: {} }));
+    if (next) {
+      const createdAt = new Date().toISOString();
+      const card: ExplorerScheduleCard = {
+        id: `schedule-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt,
+        fieldCount,
+        schedule: next,
+        results: {},
+      };
+      updateScheduleState((current) => ({ ...current, fieldCount, cards: [...current.cards, card] }));
+    }
     setMessage(next
-      ? `已使用 ${teams.length} 支真实赛队${virtualTeamCount ? `，并补入 ${virtualTeamCount} 支虚拟赛队` : ''}，生成 ${next.length} 场随机赛程；每队参加固定4场资格赛。`
+      ? `已新增赛程卡 ${cards.length + 1}：使用 ${teams.length} 支真实赛队${virtualTeamCount ? `，并补入 ${virtualTeamCount} 支虚拟赛队` : ''}，生成 ${next.length} 场随机赛程。`
       : '当前条件未找到合适赛程，请重新生成。');
   };
-  const ranking = Array.from(new Map(schedule.flatMap((match) => [match.red1, match.red2, match.blue1, match.blue2]).map((team) => [team.id, team])).values()).map((team) => {
-    let played = 0; let wins = 0; let draws = 0; let losses = 0; let rankingPoints = 0; let totalScore = 0; let netScore = 0;
-    schedule.forEach((match) => {
-      const result = results[match.id];
-      if (!result) return;
-      const isRed = match.red1.id === team.id || match.red2.id === team.id;
-      const isBlue = match.blue1.id === team.id || match.blue2.id === team.id;
-      if (!isRed && !isBlue) return;
-      played += 1;
-      const own = isRed ? result.redScore : result.blueScore;
-      const other = isRed ? result.blueScore : result.redScore;
-      totalScore += own; netScore += own - other;
-      if (own > other) { wins += 1; rankingPoints += 3; } else if (own === other) { draws += 1; rankingPoints += 1; } else losses += 1;
-    });
-    return { team, played, wins, draws, losses, rankingPoints, totalScore, netScore };
-  }).sort((a, b) => b.rankingPoints - a.rankingPoints || b.totalScore - a.totalScore || b.netScore - a.netScore || a.team.teamNo.localeCompare(b.team.teamNo));
   return <section className={styles.secondarySchedule}>
     <div><small>Schedule Generator</small><h2>Explorer 赛程生成器</h2>{accessToken && <em>{scheduleCloudReady ? 'Supabase 已同步' : '正在连接云端'}</em>}</div>
     <p>每支赛队固定参加4场资格赛；多个场地可同时比赛，同一时间轮次不会重复安排同一支赛队。赛队不足场地满负荷时，自动创建虚拟赛队补足。</p>
-    <div className={styles.scheduleControls}><label><span>比赛场地数量</span><select value={fieldCount} onChange={(event) => { const nextFieldCount = Number(event.target.value); updateScheduleState(() => ({ fieldCount: nextFieldCount, schedule: [], results: {} })); setMessage(''); }}><option value={1}>1 个场地</option><option value={2}>2 个场地</option><option value={3}>3 个场地</option><option value={4}>4 个场地</option></select></label><button type="button" onClick={createSchedule}>生成随机赛程</button></div>
+    <div className={styles.scheduleControls}><label><span>比赛场地数量</span><select value={fieldCount} onChange={(event) => { const nextFieldCount = Number(event.target.value); updateScheduleState((current) => ({ ...current, fieldCount: nextFieldCount })); setMessage(''); }}><option value={1}>1 个场地</option><option value={2}>2 个场地</option><option value={3}>3 个场地</option><option value={4}>4 个场地</option></select></label><button type="button" onClick={createSchedule}>生成随机赛程</button></div>
     {message && <p className={styles.scheduleMessage}>{message}</p>}
-    {schedule.length > 0 && <div className={styles.scheduleTableWrap}>
-      <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
-      <table className={styles.scheduleTable}>
-        <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
-        <tbody>{schedule.map((match) => { const result = results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch(match)} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{team.teamName}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
-      </table>
-    </div>}
-    {schedule.length > 0 && <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>}
-    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => updateScheduleState((current) => ({ ...current, results: { ...current.results, [activeScoreMatch.id]: result } }))} matchInfo={{ field: `场地${activeScoreMatch.field}`, matchNo: String(activeScoreMatch.slot), red1: `${activeScoreMatch.red1.teamNo} ${activeScoreMatch.red1.teamName}`, red2: `${activeScoreMatch.red2.teamNo} ${activeScoreMatch.red2.teamName}`, blue1: `${activeScoreMatch.blue1.teamNo} ${activeScoreMatch.blue1.teamName}`, blue2: `${activeScoreMatch.blue2.teamNo} ${activeScoreMatch.blue2.teamName}` }} />}
+    {cards.length === 0 && <div className={styles.scheduleEmpty}>尚未生成赛程。点击“生成随机赛程”后，会在这里新增第一张赛程卡。</div>}
+    <div className={styles.scheduleCardList}>{cards.map((card, cardIndex) => {
+      const ranking = getExplorerScheduleRanking(card.schedule, card.results);
+      const completedMatches = Object.keys(card.results).length;
+      return <article className={styles.scheduleCard} key={card.id}>
+        <div className={styles.scheduleCardHeader}><div><small>赛程卡 {cardIndex + 1}</small><h3>Explorer 资格排位赛 · 赛程与成绩</h3></div><span>{card.fieldCount} 个场地 · {card.schedule.length} 场 · 已计分 {completedMatches} 场{card.createdAt ? ` · ${new Date(card.createdAt).toLocaleString('zh-CN')}` : ''}</span></div>
+        <div className={styles.scheduleTableWrap}>
+          <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
+          <table className={styles.scheduleTable}>
+            <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
+            <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{team.teamName}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
+          </table>
+        </div>
+        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{row.team.teamName}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>
+      </article>;
+    })}</div>
+    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => updateScheduleState((current) => ({ ...current, cards: current.cards.map((card) => card.id === activeScoreMatch.cardId ? { ...card, results: { ...card.results, [activeScoreMatch.match.id]: result } } : card) }))} matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${activeScoreMatch.match.red1.teamName}`, red2: `${activeScoreMatch.match.red2.teamNo} ${activeScoreMatch.match.red2.teamName}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${activeScoreMatch.match.blue1.teamName}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${activeScoreMatch.match.blue2.teamName}` }} />}
   </section>;
 }
 

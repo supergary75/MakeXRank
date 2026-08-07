@@ -4129,6 +4129,56 @@ export default function App() {
     [canEdit, showNotification, updateActiveLogisticsEvent],
   );
 
+  const handleToggleFixedLogisticsStaffForEvent = useCallback(
+    (staffName: string, shouldInclude: boolean) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      const fixedStaff = createFixedLogisticsStaffParticipants(`fixed-event-${activeLogisticsEventId ?? 'event'}`)
+        .find((staff) => normalizeFixedStaffName(staff.name) === normalizeFixedStaffName(staffName));
+      if (!fixedStaff) return;
+
+      updateActiveLogisticsEvent((event) => {
+        const matchingIds = new Set(event.participants
+          .filter((participant) => normalizeFixedStaffName(participant.name) === normalizeFixedStaffName(staffName))
+          .map((participant) => participant.id));
+
+        if (shouldInclude) {
+          if (matchingIds.size > 0) return event;
+          return {
+            ...event,
+            participants: [...event.participants, fixedStaff],
+          };
+        }
+
+        const attendance = Object.fromEntries(
+          Object.entries(event.attendance).map(([nodeId, rows]) => [
+            nodeId,
+            Object.fromEntries(Object.entries(rows).filter(([participantId]) => !matchingIds.has(participantId))),
+          ]),
+        );
+        return {
+          ...event,
+          participants: event.participants
+            .filter((participant) => !matchingIds.has(participant.id))
+            .map((participant) => ({
+              ...participant,
+              mentorId: matchingIds.has(participant.mentorId) ? '' : participant.mentorId,
+            })),
+          rooms: event.rooms.map((room) => ({
+            ...room,
+            participantIds: room.participantIds.filter((participantId) => !matchingIds.has(participantId)),
+          })),
+          attendance,
+        };
+      });
+      showNotification(`${staffName}已${shouldInclude ? '加入' : '移出'}本场人员分表。`, 'success');
+    },
+    [activeLogisticsEventId, canEdit, showNotification, updateActiveLogisticsEvent],
+  );
+
   const syncLogisticsEventParticipantsToMaster = useCallback(
     (events: LogisticsEventRecord[], sourceLabel: string) => {
       if (!canEdit) {
@@ -7811,6 +7861,50 @@ export default function App() {
                       </table>
                     )}
                   </div>
+
+                  <section className={styles.roomStaffSelector}>
+                    <div className={styles.roomStaffSelectorHeader}>
+                      <div>
+                        <p className={styles.portalCardLabel}>教练 / 领队快捷选择</p>
+                        <h4>选择加入本场人员分表的工作人员</h4>
+                      </div>
+                      <span>支持多选，勾选后自动保存</span>
+                    </div>
+                    <div className={styles.roomStaffGroups}>
+                      {(['教练', '领队'] as const).map((role) => (
+                        <div className={styles.roomStaffGroup} key={role}>
+                          <strong>{role}</strong>
+                          <div className={styles.roomStaffGrid}>
+                            {FIXED_LOGISTICS_STAFF
+                              .filter((staff) => staff.role === role)
+                              .map((staff) => {
+                                const isIncluded = activeLogisticsEvent.participants.some((participant) =>
+                                  normalizeFixedStaffName(participant.name) === normalizeFixedStaffName(staff.name));
+                                return (
+                                  <label
+                                    key={staff.name}
+                                    className={[
+                                      styles.roomPersonChip,
+                                      styles.roomStaffChip,
+                                      isIncluded ? styles.roomPersonChipSelected : '',
+                                    ].filter(Boolean).join(' ')}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isIncluded}
+                                      onChange={(event) => handleToggleFixedLogisticsStaffForEvent(staff.name, event.target.checked)}
+                                      disabled={!canEdit}
+                                    />
+                                    <span>{staff.name}</span>
+                                    <small>{staff.role}{isIncluded ? ' · 已加入本场' : ''}</small>
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 </article>
               )}
 
