@@ -2428,24 +2428,37 @@ export default function App() {
     sortOrder,
     activeEventType,
   );
-  const practiceExplorerAnalysisRows = schedulePracticeExplorerRows.length
-    ? schedulePracticeExplorerRows
-    : practiceExplorer.rows;
-  const practiceExplorerTeamCount =
-    new Set(practiceExplorerAnalysisRows.map((row) => row.team)).size || practiceExplorer.teamsData.length;
-  const practiceExplorerHighestSingleMatchScore = practiceExplorerAnalysisRows.reduce(
-    (best, row) => Math.max(best, row.totalScore),
-    0,
+  const practiceExplorerAnalysisRows = useMemo(
+    () => schedulePracticeExplorerRows.length ? schedulePracticeExplorerRows : practiceExplorer.rows,
+    [practiceExplorer.rows, schedulePracticeExplorerRows],
+  );
+  const practiceExplorerTeamCount = useMemo(
+    () => new Set(practiceExplorerAnalysisRows.map((row) => row.team)).size || practiceExplorer.teamsData.length,
+    [practiceExplorer.teamsData.length, practiceExplorerAnalysisRows],
+  );
+  const practiceExplorerHighestSingleMatchScore = useMemo(
+    () => practiceExplorerAnalysisRows.reduce((best, row) => Math.max(best, row.totalScore), 0),
+    [practiceExplorerAnalysisRows],
   );
   const practiceExplorerTotalMatches = practiceExplorerAnalysisRows.length;
-  const practiceExplorerInsights = buildPracticeExplorerInsights(practiceExplorerAnalysisRows);
-  const practiceExplorerMetricRankings = getPracticeExplorerMetricRankings(practiceExplorerAnalysisRows);
-  const practiceExplorerBestEpaInsight = practiceExplorerInsights
-    .slice()
-    .sort((left, right) => right.bestEpa - left.bestEpa)[0];
-  const filteredPracticeExplorerInsights = searchKeyword.trim()
-    ? practiceExplorerInsights.filter((insight) => insight.team.toLowerCase().includes(searchKeyword.trim().toLowerCase()))
-    : practiceExplorerInsights;
+  const practiceExplorerInsights = useMemo(
+    () => buildPracticeExplorerInsights(practiceExplorerAnalysisRows),
+    [practiceExplorerAnalysisRows],
+  );
+  const practiceExplorerMetricRankings = useMemo(
+    () => getPracticeExplorerMetricRankings(practiceExplorerAnalysisRows),
+    [practiceExplorerAnalysisRows],
+  );
+  const practiceExplorerBestEpaInsight = useMemo(
+    () => practiceExplorerInsights.slice().sort((left, right) => right.bestEpa - left.bestEpa)[0],
+    [practiceExplorerInsights],
+  );
+  const filteredPracticeExplorerInsights = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    return keyword
+      ? practiceExplorerInsights.filter((insight) => insight.team.toLowerCase().includes(keyword))
+      : practiceExplorerInsights;
+  }, [practiceExplorerInsights, searchKeyword]);
   const topEpaTeams: CompetitionTopTeam[] = competitions
     .flatMap((competition) => {
       const competitionRankedTeams = sortTeams(
