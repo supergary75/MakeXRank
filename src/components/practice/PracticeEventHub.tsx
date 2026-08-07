@@ -530,6 +530,16 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
       ? `已新增赛程卡 ${cards.length + 1}：使用 ${teams.length} 支真实赛队${virtualTeamCount ? `，并补入 ${virtualTeamCount} 支虚拟赛队` : ''}，生成 ${next.length} 场随机赛程。`
       : '当前条件未找到合适赛程，请重新生成。');
   };
+  const deleteScheduleCard = (card: ExplorerScheduleCard, cardIndex: number) => {
+    if (!window.confirm(`确定删除“赛程卡 ${cardIndex + 1}”吗？该卡内的赛程、计分和排名数据会一起删除。`)) return;
+    updateScheduleState((current) => ({
+      ...current,
+      cards: current.cards.filter((item) => item.id !== card.id),
+    }));
+    if (openScheduleCardId === card.id) setOpenScheduleCardId(null);
+    if (activeScoreMatch?.cardId === card.id) setActiveScoreMatch(null);
+    setMessage(`赛程卡 ${cardIndex + 1} 已删除，正在同步到云端。`);
+  };
   return <section className={styles.secondarySchedule}>
     <div><small>Schedule Generator</small><h2>Explorer 赛程生成器</h2>{accessToken && <em>{scheduleCloudReady ? 'Supabase 已同步' : '正在连接云端'}</em>}</div>
     <p>每支赛队固定参加4场资格赛；多个场地可同时比赛，同一时间轮次不会重复安排同一支赛队。赛队不足场地满负荷时，自动创建虚拟赛队补足。</p>
@@ -541,7 +551,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
       const ranking = isOpen ? getExplorerScheduleRanking(card.schedule, card.results) : [];
       const completedMatches = Object.keys(card.results).length;
       return <article className={styles.scheduleCard} key={card.id}>
-        <div className={styles.scheduleCardHeader}><div><small>赛程卡 {cardIndex + 1}</small><h3>Explorer 资格排位赛 · 赛程与成绩</h3><span>{card.fieldCount} 个场地 · {card.schedule.length} 场 · 已计分 {completedMatches} 场{card.createdAt ? ` · ${new Date(card.createdAt).toLocaleString('zh-CN')}` : ''}</span></div><button type="button" onClick={() => setOpenScheduleCardId(isOpen ? null : card.id)}>{isOpen ? '收起赛程卡' : '进入赛程卡'}</button></div>
+        <div className={styles.scheduleCardHeader}><div><small>赛程卡 {cardIndex + 1}</small><h3>Explorer 资格排位赛 · 赛程与成绩</h3><span>{card.fieldCount} 个场地 · {card.schedule.length} 场 · 已计分 {completedMatches} 场{card.createdAt ? ` · ${new Date(card.createdAt).toLocaleString('zh-CN')}` : ''}</span></div><div className={styles.scheduleCardActions}><button type="button" onClick={() => setOpenScheduleCardId(isOpen ? null : card.id)}>{isOpen ? '收起赛程卡' : '进入赛程卡'}</button><button type="button" className={styles.deleteScheduleCardButton} onClick={() => deleteScheduleCard(card, cardIndex)}>删除赛程卡</button></div></div>
         {isOpen && <><div className={styles.scheduleTableWrap}>
           <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
           <table className={styles.scheduleTable}>

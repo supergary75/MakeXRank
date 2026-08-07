@@ -25,6 +25,8 @@
 .scheduleCardHeader small { color:#a27a0a; }
 .scheduleCardHeader h3 { margin:5px 0 0; color:var(--gray-900); font-size:1.25rem; }
 .scheduleCardHeader span { display:block; margin-top:9px; color:var(--gray-500); font-size:.82rem; font-weight:700; }
-.scheduleCardHeader > button { min-width:150px; min-height:48px; padding:10px 18px; border:0; border-radius:14px; background:linear-gradient(145deg,#5487ec,#3457c5); color:#fff; font-weight:900; cursor:pointer; box-shadow:0 10px 24px rgba(52,87,197,.18); }
-.scheduleCardHeader > button:hover { transform:translateY(-1px); }
-@media (max-width:700px) { .scheduleCard { padding:13px; border-radius:17px; }.scheduleCardHeader { align-items:stretch; flex-direction:column; }.scheduleCardHeader > button { width:100%; } }
+.scheduleCardActions { display:flex; gap:10px; align-items:center; }
+.scheduleCardActions button { min-width:150px; min-height:48px; padding:10px 18px; border:0; border-radius:14px; background:linear-gradient(145deg,#5487ec,#3457c5); color:#fff; font-weight:900; cursor:pointer; box-shadow:0 10px 24px rgba(52,87,197,.18); }
+.scheduleCardActions button:hover { transform:translateY(-1px); }
+.scheduleCardActions .deleteScheduleCardButton { min-width:126px; border:1px solid rgba(191,57,46,.22); background:#fff7f5; color:#b7352d; box-shadow:none; }
+@media (max-width:700px) { .scheduleCard { padding:13px; border-radius:17px; }.scheduleCardHeader { align-items:stretch; flex-direction:column; }.scheduleCardActions { display:grid; grid-template-columns:1fr 1fr; }.scheduleCardActions button { width:100%; min-width:0; } }
