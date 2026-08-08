@@ -382,15 +382,24 @@ function getExplorerScheduleRanking(
 
 function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplorerMatchRow[] {
   const teams = new Map<string, PracticeTeam>();
-  const appearances = new Map<string, number>();
+  const appearances = new Map<string, Array<{ totalScore: number }>>();
   const observations: AllianceScoreObservation[] = [];
   cards.forEach((card) => card.schedule.forEach((match) => {
     const result = card.results[match.id];
     if (!result) return;
-    [match.red1, match.red2, match.blue1, match.blue2].forEach((team) => {
+    const redTeams = [match.red1, match.red2];
+    const blueTeams = [match.blue1, match.blue2];
+    [...redTeams, ...blueTeams].forEach((team) => {
       teams.set(team.id, team);
-      appearances.set(team.id, (appearances.get(team.id) ?? 0) + 1);
     });
+    redTeams.forEach((team) => appearances.set(team.id, [
+      ...(appearances.get(team.id) ?? []),
+      { totalScore: result.redScore },
+    ]));
+    blueTeams.forEach((team) => appearances.set(team.id, [
+      ...(appearances.get(team.id) ?? []),
+      { totalScore: result.blueScore },
+    ]));
     observations.push(
       { teamIds: [match.red1.id, match.red2.id], total: result.redScore, breakdown: result.redBreakdown ?? {} },
       { teamIds: [match.blue1.id, match.blue2.id], total: result.blueScore, breakdown: result.blueBreakdown ?? {} },
@@ -414,9 +423,9 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
   const redCard = metricEpa(['redCard']);
   return Array.from(teams.values()).flatMap((team) => {
     if (team.id.startsWith('virtual-team-')) return [];
-    const matchCount = appearances.get(team.id) ?? 0;
+    const teamAppearances = appearances.get(team.id) ?? [];
     const label = `${team.teamNo} · ${team.teamName}`;
-    return Array.from({ length: matchCount }, (_, index): PracticeExplorerMatchRow => ({
+    return teamAppearances.map((appearance, index): PracticeExplorerMatchRow => ({
       team: label,
       round: index + 1,
       equity: 0,
@@ -430,7 +439,7 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
       penalty: Math.min(0, penalty.get(team.id) ?? 0),
       redCard: Math.min(0, redCard.get(team.id) ?? 0),
       epa: totalEpa.get(team.id) ?? 0,
-      totalScore: totalEpa.get(team.id) ?? 0,
+      totalScore: appearance.totalScore,
     }));
   });
 }
