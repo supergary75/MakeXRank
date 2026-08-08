@@ -190,6 +190,7 @@ interface TeamTagSyncRow {
 
 interface LogisticsCloudState {
   events: LogisticsEventRecord[];
+  updatedAt?: string;
 }
 
 interface LogisticsSyncRow {
@@ -1952,13 +1953,14 @@ async function fetchRemoteLogisticsState(accessToken: string): Promise<Logistics
 
   return {
     events: normalizeLogisticsEvents(rows[0].events),
+    updatedAt: rows[0].updated_at,
   };
 }
 
-async function saveRemoteLogisticsState(events: LogisticsEventRecord[], accessToken: string): Promise<void> {
+async function saveRemoteLogisticsState(events: LogisticsEventRecord[], accessToken: string): Promise<string | null> {
   const params = new URLSearchParams({ on_conflict: 'id' });
 
-  await requestTrainingSync<LogisticsSyncRow[]>(
+  const rows = await requestTrainingSync<LogisticsSyncRow[]>(
     `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
     accessToken,
     {
@@ -1973,6 +1975,8 @@ async function saveRemoteLogisticsState(events: LogisticsEventRecord[], accessTo
       }),
     },
   );
+
+  return rows[0]?.updated_at ?? null;
 }
 
 function mergeLogisticsState(
@@ -2299,6 +2303,8 @@ export default function App() {
   const trainingCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const teamTagCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logisticsCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logisticsCloudUpdatedAtRef = useRef('');
+  const logisticsApplyingRemoteRef = useRef(false);
   const logisticsFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsDocumentImageInputRef = useRef<HTMLInputElement>(null);
   const logisticsMasterFileInputRef = useRef<HTMLInputElement>(null);
@@ -2782,9 +2788,15 @@ export default function App() {
           return;
         }
 
-        setLogisticsEvents(mergedState.events);
+        setLogisticsEvents((current) => {
+          if (JSON.stringify(current) === JSON.stringify(mergedState.events)) return current;
+          logisticsApplyingRemoteRef.current = true;
+          return mergedState.events;
+        });
         saveLogisticsEvents(mergedState.events);
-        await saveRemoteLogisticsState(mergedState.events, accessToken);
+        logisticsCloudUpdatedAtRef.current = remoteState?.updatedAt ?? '';
+        const savedAt = await saveRemoteLogisticsState(mergedState.events, accessToken);
+        if (savedAt) logisticsCloudUpdatedAtRef.current = savedAt;
 
         if (!cancelled) {
           setLogisticsCloudReady(true);
@@ -2811,6 +2823,11 @@ export default function App() {
       return;
     }
 
+    if (logisticsApplyingRemoteRef.current) {
+      logisticsApplyingRemoteRef.current = false;
+      return;
+    }
+
     const accessToken = getStoredAccessToken();
     if (!accessToken) {
       return;
@@ -2821,10 +2838,14 @@ export default function App() {
     }
 
     logisticsCloudSaveTimerRef.current = setTimeout(() => {
-      void saveRemoteLogisticsState(logisticsEvents, accessToken).catch((error) => {
-        const message = error instanceof Error ? error.message : '未知错误';
-        showNotification(`赛事后勤保存到 Supabase 失败：${message}`, 'error');
-      });
+      void saveRemoteLogisticsState(logisticsEvents, accessToken)
+        .then((savedAt) => {
+          if (savedAt) logisticsCloudUpdatedAtRef.current = savedAt;
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : '未知错误';
+          showNotification(`赛事后勤保存到 Supabase 失败：${message}`, 'error');
+        });
     }, 500);
 
     return () => {
@@ -2834,6 +2855,54 @@ export default function App() {
       }
     };
   }, [authUser, logisticsCloudReady, logisticsEvents, showNotification]);
+
+  useEffect(() => {
+    if (!authUser || !logisticsCloudReady) return;
+
+    const accessToken = getStoredAccessToken();
+    if (!accessToken) return;
+
+    let cancelled = false;
+    const pullLatest = async () => {
+      try {
+        const remoteState = await fetchRemoteLogisticsState(accessToken);
+        if (
+          cancelled
+          || !remoteState?.updatedAt
+          || remoteState.updatedAt <= logisticsCloudUpdatedAtRef.current
+        ) return;
+
+        logisticsCloudUpdatedAtRef.current = remoteState.updatedAt;
+        logisticsApplyingRemoteRef.current = true;
+        setLogisticsEvents((current) => {
+          if (JSON.stringify(current) === JSON.stringify(remoteState.events)) {
+            logisticsApplyingRemoteRef.current = false;
+            return current;
+          }
+          return remoteState.events;
+        });
+        saveLogisticsEvents(remoteState.events);
+      } catch {
+        // Keep the current local state and retry on the next interval.
+      }
+    };
+
+    const pullWhenVisible = () => {
+      if (document.visibilityState === 'visible') void pullLatest();
+    };
+    const timer = window.setInterval(() => void pullLatest(), 3000);
+    window.addEventListener('focus', pullWhenVisible);
+    window.addEventListener('online', pullWhenVisible);
+    document.addEventListener('visibilitychange', pullWhenVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', pullWhenVisible);
+      window.removeEventListener('online', pullWhenVisible);
+      document.removeEventListener('visibilitychange', pullWhenVisible);
+    };
+  }, [authUser, logisticsCloudReady]);
 
   useEffect(() => {
     let cancelled = false;

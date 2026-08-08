@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateExplorerSchedule } from '../../utils/practiceScheduleGenerator';
+import { solveRidgeEpa } from '../../utils/practiceEpa';
 
 describe('generateExplorerSchedule', () => {
   it('gives every team four matches without duplicating teams in a simultaneous slot', () => {
@@ -30,5 +31,18 @@ describe('generateExplorerSchedule', () => {
     });
 
     teams.forEach((team) => expect(appearances.get(team.id)).toBe(4));
+  });
+});
+
+describe('Explorer schedule EPA', () => {
+  it('splits a single alliance score evenly between its two teams', () => {
+    const result = solveRidgeEpa(
+      ['team-a', 'team-b'],
+      [{ teamIds: ['team-a', 'team-b'], total: 30, breakdown: {} }],
+      (observation) => observation.total,
+    );
+
+    expect(result.get('team-a')).toBeCloseTo(15, 3);
+    expect(result.get('team-b')).toBeCloseTo(15, 3);
   });
 });
