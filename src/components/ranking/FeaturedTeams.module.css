@@ -308,3 +308,14 @@
   letter-spacing: 0.06em;
   vertical-align: middle;
 }
+
+/* Light featured-team cards and editor */
+.container { background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(232,244,255,.8)); }
+.card { background: rgba(255,255,255,.9); border-color: rgba(22,104,232,.15); }
+.cardHeader { border-bottom-color: rgba(22,104,232,.12); }
+.cardHeader h3 { color: #0b5dcc; }
+.statItem,
+.listItem { background: #f3f8ff; border-color: rgba(22,104,232,.1); color: #203b60; }
+.statItem:hover,
+.listItem:hover { background: #eaf3ff; }
+.teamInput { background: #fff; color: #102f5c; border-color: rgba(22,104,232,.18); }

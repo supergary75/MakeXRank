@@ -406,6 +406,44 @@
   color: #fff4dc;
 }
 
+/* Light playoff workspace */
+.hero,
+.section { background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(232,244,255,.82)); border-color: rgba(22,104,232,.15); }
+.eyebrow,
+.helperText { color: #8a6710; }
+.hero h2,
+.section h3,
+.seedCard strong,
+.powerTitle strong,
+.matchHeader strong,
+.podiumCard strong { color: #102f5c; }
+.description,
+.sectionHeader p,
+.importHeader span,
+.numberControl,
+.selectBlock span,
+.seedMeta,
+.powerMeta,
+.allianceStats { color: #506b89; }
+.heroBadges span,
+.allianceHeader span,
+.seedNo { background: #fff8dc; border-color: rgba(213,173,56,.28); color: #8a6710; }
+.numberControl input,
+.numberControl select,
+.selectBlock select,
+.textarea { background: #fff; color: #102f5c; border-color: rgba(22,104,232,.18); }
+.seedCard,
+.allianceCard,
+.powerCard,
+.matchCard,
+.podiumCard,
+.importPanel { background: rgba(255,255,255,.82); border-color: rgba(22,104,232,.13); }
+.seedMeta span,
+.powerMeta span,
+.allianceStats span { background: #eef6ff; }
+.secondaryButton { background: #eef6ff; border-color: rgba(22,104,232,.18); color: #0b5dcc; }
+.bracketColumnTitle { background: linear-gradient(145deg, #fff9df, #eaf3ff); border-color: rgba(22,104,232,.15); }
+
 .bracketColumnTitle span {
   color: #f4d28c;
   font-size: 0.84rem;
@@ -711,3 +749,29 @@
   background: linear-gradient(145deg, rgba(214, 169, 74, 0.12), rgba(18, 25, 34, 0.92));
   border-color: rgba(93, 214, 255, 0.16);
 }
+
+/* Final light-theme guard: this block must follow the legacy theme rules. */
+.hero,
+.section { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,244,255,.86)); border-color: rgba(22,104,232,.16); }
+.numberControl input,
+.numberControl select,
+.selectBlock select,
+.textarea { background: #fff; color: #102f5c; border-color: rgba(22,104,232,.2); }
+.seedCard,
+.allianceCard,
+.powerCard,
+.matchCard,
+.podiumCard,
+.importPanel,
+.bracketMatch,
+.bronzePlayoffCard { background: rgba(255,255,255,.9); border-color: rgba(22,104,232,.14); }
+.seedMeta span,
+.powerMeta span,
+.allianceStats span,
+.metricGrid div,
+.teamRow { background: #eef6ff; }
+.secondaryButton { background: #eef6ff; border-color: rgba(22,104,232,.18); color: #0b5dcc; }
+.bracketColumnTitle { background: linear-gradient(145deg, #fff9df, #eaf3ff); border-color: rgba(22,104,232,.16); color:#102f5c; }
+.bracketMatchHeader { color:#102f5c; }
+.bracketAlliance span,
+.medalCard span { color: #fff; }

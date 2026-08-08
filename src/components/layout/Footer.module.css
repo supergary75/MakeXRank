@@ -1,9 +1,9 @@
 .footer {
   padding: 24px 30px;
-  background: rgba(83, 28, 23, 0.34);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(232, 244, 255, 0.82));
   text-align: center;
   color: var(--gray-500);
-  border-top: 1px solid rgba(225, 184, 90, 0.16);
+  border-top: 1px solid rgba(22, 104, 232, 0.14);
   font-size: 0.9em;
   letter-spacing: 0.04em;
 }

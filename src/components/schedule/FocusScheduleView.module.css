@@ -166,6 +166,32 @@
   line-height: 1.7;
 }
 
+/* Light schedule analysis surfaces */
+.resultPanel,
+.scheduleCard { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,244,255,.84)); border-color: rgba(22,104,232,.2); box-shadow: 0 16px 40px rgba(45,92,143,.11); }
+.resultPanel h3,
+.scheduleHeader h4 { color: #102f5c; text-shadow: none; }
+.resultPanel .panelHeader p { color: #506b89; }
+.table { background: #fff; border-color: rgba(22,104,232,.18); box-shadow: none; }
+.table th { background: linear-gradient(180deg, #e8f2ff, #f7fbff); color: #203b60; text-shadow: none; }
+.table td { color: #203b60; border-bottom-color: rgba(22,104,232,.1); }
+.tagPicker { background: #fff; color: #203b60; border-color: rgba(22,104,232,.22); box-shadow: 0 14px 32px rgba(45,92,143,.15); }
+.tagPicker strong { color: #0b5dcc; text-shadow: none; }
+.tagOptions button,
+.customTagRow button { background: #eef6ff; color: #203b60; }
+.customTagRow input { background: #fff; color: #102f5c; }
+.redTeam { background: #fff1f3; color: #9f233c; text-shadow: none; }
+.blueTeam { background: #edf6ff; color: #0b5dcc; text-shadow: none; }
+.redAllianceCell,
+.sameAllianceRow .redAllianceCell,
+.headToHeadRow .redAllianceCell { background: #fff1f3; }
+.blueAllianceCell,
+.sameAllianceRow .blueAllianceCell,
+.headToHeadRow .blueAllianceCell { background: #edf6ff; }
+.emptyState,
+.notFound { background: #f7fbff; color: #506b89; border-color: rgba(22,104,232,.18); }
+.textarea { background: #fff; color: #102f5c; }
+
 .emptyState {
   padding: 22px;
 }
@@ -720,3 +746,22 @@
   border-color: rgba(217, 226, 236, 0.1);
   color: var(--gray-600);
 }
+
+/* Final light-theme guard: this block must follow the legacy theme rules. */
+.hero,
+.panel,
+.resultPanel,
+.scheduleCard { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,244,255,.84)); border-color: rgba(22,104,232,.18); }
+.resultPanel h3,
+.scheduleHeader h4 { color:#102f5c; text-shadow:none; }
+.resultPanel .panelHeader p { color:#506b89; }
+.textarea,
+.customTagRow input { background:#fff; color:#102f5c; border-color:rgba(22,104,232,.18); }
+.table { background:#fff; border-color:rgba(22,104,232,.18); box-shadow:none; }
+.table th { background:linear-gradient(180deg,#e8f2ff,#f7fbff); color:#203b60; text-shadow:none; }
+.table td { color:#203b60; border-bottom-color:rgba(22,104,232,.1); }
+.tagPicker { background:#fff; color:#203b60; border-color:rgba(22,104,232,.22); box-shadow:0 14px 32px rgba(45,92,143,.15); }
+.redTeam { background:#fff1f3; color:#9f233c; text-shadow:none; }
+.blueTeam { background:#edf6ff; color:#0b5dcc; text-shadow:none; }
+.emptyState,
+.notFound { background:#f7fbff; border-color:rgba(22,104,232,.18); color:#506b89; }

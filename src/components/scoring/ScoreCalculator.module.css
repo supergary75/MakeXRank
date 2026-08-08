@@ -27,3 +27,32 @@ button{user-select:none;-webkit-user-select:none}
 .item input::-moz-range-thumb{width:34px;height:34px;border:4px solid #fff;background:#f38a42;box-shadow:0 3px 9px #0008}
 .item output{top:-15px;left:3px;z-index:2;font-size:28px;font-weight:600;line-height:1;color:#ff8a3d;text-shadow:0 2px 4px #0008;pointer-events:none}
 .item small{margin-top:-5px;font-size:19px}
+
+/* Light mobile scoring UI. Alliance colors and the orange action color remain
+   semantic, while every structural surface stays light and readable. */
+.overlay{background:#eaf3ff;color:#17375f}
+.phone{background:#f7fbff;box-shadow:0 0 54px rgba(45,92,143,.16)}
+.head button,.review header button{color:#17375f}
+.tabs{background:#dce9f8;border:1px solid rgba(22,104,232,.16)}
+.tabs button{color:#203b60}
+.tabs .on{background:#ff7a26;color:#fff}
+.panel{background:#fff;border:1px solid rgba(22,104,232,.14);box-shadow:0 12px 30px rgba(45,92,143,.1)}
+.item{border-bottom-color:#d7e4f3}
+.item button,.penalties button{color:#203b60}
+.foot,.reviewFoot{background:#e6effb;border:1px solid rgba(22,104,232,.14);box-shadow:0 -10px 30px rgba(45,92,143,.1)}
+.review header{background:#e6f1ff;color:#17375f;border-bottom:1px solid rgba(22,104,232,.14)}
+.teams i{background:#9bb0c8}
+.totals{border-top-color:#cbd9e9}
+.card{background:#fff;border:1px solid rgba(22,104,232,.14);box-shadow:0 10px 24px rgba(45,92,143,.08)}
+.table{background:#eef5ff}
+.reviewFoot button{color:#17375f;background:#fff}
+.reviewFoot button:last-child{color:#fff}
+.shade{background:rgba(37,73,112,.28)}
+.modal{background:#fff;color:#102f5c;box-shadow:0 24px 64px rgba(36,78,125,.24)}
+.toast{background:#fff;color:#17375f;border:1px solid rgba(22,104,232,.18);box-shadow:0 10px 26px rgba(45,92,143,.18)}
+.item input::-webkit-slider-runnable-track{background:#c9d5df;box-shadow:inset 0 1px 3px rgba(35,59,82,.25)}
+.item input::-moz-range-track{background:#c9d5df;box-shadow:inset 0 1px 3px rgba(35,59,82,.25)}
+.item input::-webkit-slider-thumb{box-shadow:0 3px 9px rgba(35,59,82,.28)}
+.item input::-moz-range-thumb{box-shadow:0 3px 9px rgba(35,59,82,.28)}
+.item output{text-shadow:none}
+@media (min-width:521px){.phone{border-color:rgba(22,104,232,.14);box-shadow:0 0 54px rgba(45,92,143,.16)}}

@@ -325,3 +325,35 @@
     margin-right: 16px;
   }
 }
+
+/* Light authentication workspace */
+.overlay { background: rgba(37, 73, 112, 0.24); }
+.panel {
+  border-color: rgba(22, 104, 232, 0.18);
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(235,246,255,.96));
+  box-shadow: 0 28px 72px rgba(36, 78, 125, 0.2);
+}
+.closeButton,
+.card,
+.adminArea,
+.profileCard,
+.userCard,
+.checkboxTag {
+  border-color: rgba(22, 104, 232, 0.14);
+  background: rgba(255, 255, 255, 0.78);
+  color: #203b60;
+}
+.helper,
+.field span,
+.profileCard,
+.scopeLabel,
+.scopeHint,
+.userCard span { color: #506b89; }
+.profileCard strong,
+.userCard strong { color: #102f5c; }
+.field input,
+.field select { background: #fff; color: #102f5c; border-color: rgba(22,104,232,.2); }
+.notice { background: #eef7ff; color: #203b60; }
+.tip { background: #fff8dc; border-color: rgba(213,173,56,.28); color: #506b89; }
+.secondaryButton,
+.inlineButton { background: #eef6ff; color: #0b5dcc; }

@@ -324,6 +324,7 @@ interface LogisticsTimelineItem {
   owner: string;
   notes: string;
   rollCallEnabled: boolean;
+  excludedParticipantIds: string[];
 }
 
 interface LogisticsTimelineForm {
@@ -712,7 +713,9 @@ function getPersonalLogisticsTasks(
             return [];
           }
 
-          const visibleStudents = assignedStudents.length > 0 ? assignedStudents : students;
+          const excludedParticipantIds = new Set(node.excludedParticipantIds);
+          const visibleStudents = (assignedStudents.length > 0 ? assignedStudents : students)
+            .filter((student) => !excludedParticipantIds.has(student.id));
           const arrivedCount = visibleStudents.filter((student) =>
             normalizeLogisticsAttendanceStatus(event.attendance[node.id]?.[student.id]) === LOGISTICS_ATTENDANCE_STATUS[1]).length;
           const totalCount = visibleStudents.length;
@@ -1009,6 +1012,10 @@ function normalizeLogisticsTimelineItem(item: unknown): LogisticsTimelineItem | 
     owner: typeof source.owner === 'string' ? source.owner : '',
     notes: typeof source.notes === 'string' ? source.notes : '',
     rollCallEnabled: typeof source.rollCallEnabled === 'boolean' ? source.rollCallEnabled : true,
+    excludedParticipantIds: Array.isArray(source.excludedParticipantIds)
+      ? [...new Set(source.excludedParticipantIds.filter((participantId): participantId is string =>
+        typeof participantId === 'string' && Boolean(participantId.trim())))]
+      : [],
   };
 }
 
@@ -2371,12 +2378,18 @@ export default function App() {
             || participant.role !== '队员'
             || matchesLogisticsEventItem(participant.eventItem, activeLogisticsEventItem)))))
     : [], [activeLogisticsEvent, activeLogisticsEventItem]);
-  const logisticsRollCallTotal = logisticsRollCallNodes.length * logisticsStudents.length;
+  const logisticsRollCallTotal = logisticsRollCallNodes.reduce(
+    (total, node) => total + logisticsStudents.filter(
+      (student) => !node.excludedParticipantIds.includes(student.id),
+    ).length,
+    0,
+  );
   const logisticsRollCallDone = activeLogisticsEvent
     ? logisticsRollCallNodes.reduce(
         (total, node) =>
         total + logisticsStudents.filter((student) =>
-          normalizeLogisticsAttendanceStatus(activeLogisticsEvent.attendance[node.id]?.[student.id]) === '已到达').length,
+          !node.excludedParticipantIds.includes(student.id)
+          && normalizeLogisticsAttendanceStatus(activeLogisticsEvent.attendance[node.id]?.[student.id]) === '已到达').length,
         0,
       )
     : 0;
@@ -4310,6 +4323,7 @@ export default function App() {
       owner: logisticsTimelineForm.owner.trim(),
       notes: logisticsTimelineForm.notes.trim(),
       rollCallEnabled: logisticsTimelineForm.rollCallEnabled,
+      excludedParticipantIds: [],
     };
 
     updateActiveLogisticsEvent((event) => ({
@@ -4862,6 +4876,40 @@ export default function App() {
       }));
     },
     [],
+  );
+
+  const handleRemoveParticipantFromRollCall = useCallback(
+    (timelineId: string, participantId: string, participantName: string, timelineTitle: string) => {
+      if (!canEdit) {
+        showNotification('当前账号没有编辑权限。', 'error');
+        return;
+      }
+
+      if (!window.confirm(`确定将“${participantName}”从点名卡“${timelineTitle}”中移除吗？\n此操作不会删除本场人员，也不会影响其他点名卡。`)) {
+        return;
+      }
+
+      updateActiveLogisticsEvent((event) => ({
+        ...event,
+        timeline: event.timeline.map((item) =>
+          item.id === timelineId
+            ? {
+                ...item,
+                excludedParticipantIds: [...new Set([...item.excludedParticipantIds, participantId])],
+              }
+            : item,
+        ),
+        attendance: {
+          ...event.attendance,
+          [timelineId]: Object.fromEntries(
+            Object.entries(event.attendance[timelineId] ?? {})
+              .filter(([existingParticipantId]) => existingParticipantId !== participantId),
+          ),
+        },
+      }));
+      showNotification(`已将 ${participantName} 从本张点名卡移除。`, 'success');
+    },
+    [canEdit, showNotification, updateActiveLogisticsEvent],
   );
 
   const handleUpdateLogisticsRoomNo = useCallback((roomId: string, roomNo: string) => {
@@ -8846,9 +8894,12 @@ export default function App() {
                 ) : (
                   <div className={styles.rollCallGrid}>
                     {logisticsRollCallNodes.map((node) => {
-                      const nodeArrivedCount = logisticsStudents.filter((student) =>
+                      const nodeStudents = logisticsStudents.filter(
+                        (student) => !node.excludedParticipantIds.includes(student.id),
+                      );
+                      const nodeArrivedCount = nodeStudents.filter((student) =>
                         normalizeLogisticsAttendanceStatus(activeLogisticsEvent.attendance[node.id]?.[student.id]) === '已到达').length;
-                      const isNodeComplete = logisticsStudents.length > 0 && nodeArrivedCount === logisticsStudents.length;
+                      const isNodeComplete = nodeStudents.length > 0 && nodeArrivedCount === nodeStudents.length;
                       const timeAlertStatus = isNodeComplete
                         ? 'normal'
                         : getLogisticsTimeAlertStatus(node.date, node.time, logisticsAlertNow);
@@ -8881,7 +8932,7 @@ export default function App() {
                                 isNodeComplete ? styles.rollCallProgressComplete : styles.rollCallProgressWarning
                               }`}>
                                 {nodeArrivedCount}
-                                /{logisticsStudents.length}
+                                /{nodeStudents.length}
                               </span>
                             </div>
                           </div>
@@ -8903,7 +8954,7 @@ export default function App() {
                             idDocumentImage: '',
                             mentorId: '',
                           }].map((mentor) => {
-                            const students = logisticsStudents.filter((student) => student.mentorId === mentor.id);
+                            const students = nodeStudents.filter((student) => student.mentorId === mentor.id);
                             if (students.length === 0) {
                               return null;
                             }
@@ -8933,16 +8984,33 @@ export default function App() {
                                         <strong>{student.name}</strong>
                                         <small>{[student.eventItem, student.teamNo, student.teamName].filter(Boolean).join(' / ')}</small>
                                       </div>
-                                      <button
-                                        className={`${styles.attendanceToggleButton} ${
-                                          attendanceStatus === '已到达' ? styles.attendanceToggleButtonArrived : ''
-                                        }`}
-                                        type="button"
-                                        onClick={() => handleLogisticsAttendanceChange(node.id, student.id, nextAttendanceStatus)}
-                                        disabled={!canEdit}
-                                      >
-                                        {attendanceStatus}
-                                      </button>
+                                      <div className={styles.attendanceActions}>
+                                        <button
+                                          className={`${styles.attendanceToggleButton} ${
+                                            attendanceStatus === '已到达' ? styles.attendanceToggleButtonArrived : ''
+                                          }`}
+                                          type="button"
+                                          onClick={() => handleLogisticsAttendanceChange(node.id, student.id, nextAttendanceStatus)}
+                                          disabled={!canEdit}
+                                        >
+                                          {attendanceStatus}
+                                        </button>
+                                        <button
+                                          className={styles.attendanceRemoveButton}
+                                          type="button"
+                                          aria-label={`从本张点名卡移除 ${student.name}`}
+                                          title="仅从本张点名卡移除"
+                                          onClick={() => handleRemoveParticipantFromRollCall(
+                                            node.id,
+                                            student.id,
+                                            student.name,
+                                            node.title,
+                                          )}
+                                          disabled={!canEdit}
+                                        >
+                                          移除
+                                        </button>
+                                      </div>
                                     </div>
                                   );
                                 })}

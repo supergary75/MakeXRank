@@ -324,3 +324,32 @@
     padding: 32px 16px;
   }
 }
+
+/* Light ranking table */
+.container { background: rgba(238, 246, 255, 0.68); }
+.table {
+  background: rgba(255,255,255,.92);
+  border-color: rgba(22,104,232,.14);
+  box-shadow: 0 16px 40px rgba(45,92,143,.1);
+}
+.table thead { background: linear-gradient(90deg, #e6f1ff, #fff9df); color: #102f5c; }
+.sortable:hover,
+.active { background: rgba(22,104,232,.08); }
+.teamClickable { color: #0b5dcc; }
+.teamClickable:hover { background: #eef6ff; color: #083f91; }
+.teamTag { color: #203b60; background: #eef6ff; }
+.tagPicker {
+  background: #fff;
+  border-color: rgba(22,104,232,.2);
+  color: #203b60;
+}
+.tagPicker strong { color: #8a6710; }
+.tagOptions button,
+.customTagRow button { background: #eef6ff; color: #203b60; }
+.clearTagOption { color: #a91f34 !important; }
+.customTagRow input { background: #fff; color: #102f5c; }
+.table tbody tr { border-bottom-color: rgba(22,104,232,.1); }
+.table tbody tr:hover { background: #f3f8ff; }
+.rank1 { background: linear-gradient(90deg, #eaf4ff, #fff9df); }
+.rank2 { background: #f7faff; }
+.rank3 { background: linear-gradient(90deg, #fffaf0, #f4f8ff); }

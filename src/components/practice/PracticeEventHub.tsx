@@ -65,6 +65,10 @@ interface ExplorerScheduleState {
   updatedAt: string;
 }
 
+function createExplorerScheduleCardId(): string {
+  return `schedule-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 const STORAGE_KEY = 'makexrank::practice-events';
 const ACTIVE_EXPLORER_TEAMS_KEY = 'makexrank::active-practice-explorer-teams';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
@@ -554,7 +558,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
     if (next) {
       const createdAt = new Date().toISOString();
       const card: ExplorerScheduleCard = {
-        id: `schedule-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: createExplorerScheduleCardId(),
         createdAt,
         fieldCount,
         schedule: next,
