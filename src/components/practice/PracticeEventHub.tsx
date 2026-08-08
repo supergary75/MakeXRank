@@ -71,6 +71,7 @@ function createExplorerScheduleCardId(): string {
 }
 
 const STORAGE_KEY = 'makexrank::practice-events';
+const DELETED_EVENT_IDS_KEY = 'makexrank::practice-deleted-event-ids';
 const ACTIVE_EXPLORER_TEAMS_KEY = 'makexrank::active-practice-explorer-teams';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
@@ -223,16 +224,44 @@ async function saveRemoteExplorerScheduleState(
   if (!response.ok) throw new Error(`保存赛程云数据失败（${response.status}）`);
 }
 
-async function syncPracticeEvents(events: PracticeEventRecord[], accessToken: string): Promise<PracticeEventRecord[]> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return events;
+interface PracticeSyncResult {
+  events: PracticeEventRecord[];
+  deletedEventIds: string[];
+}
+
+function normalizeDeletedEventIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.filter((id): id is string => typeof id === 'string' && id.length > 0)));
+}
+
+function loadDeletedEventIds(): string[] {
+  try {
+    return normalizeDeletedEventIds(JSON.parse(window.localStorage.getItem(DELETED_EVENT_IDS_KEY) ?? '[]'));
+  } catch {
+    return [];
+  }
+}
+
+async function syncPracticeEvents(
+  events: PracticeEventRecord[],
+  deletedEventIds: string[],
+  accessToken: string,
+): Promise<PracticeSyncResult> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { events, deletedEventIds };
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
-  const query = new URLSearchParams({ select: 'events', id: `eq.${PRACTICE_SYNC_ID}`, limit: '1' });
+  const query = new URLSearchParams({ select: 'events,deleted_event_ids', id: `eq.${PRACTICE_SYNC_ID}`, limit: '1' });
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?${query.toString()}`, { headers });
   if (!response.ok) throw new Error(`读取练习赛云数据失败（${response.status}）`);
-  const rows = await response.json() as Array<{ events?: PracticeEventRecord[] }>;
-  const remoteEvents = Array.isArray(rows[0]?.events) ? rows[0].events : [];
+  const rows = await response.json() as Array<{ events?: PracticeEventRecord[]; deleted_event_ids?: unknown }>;
+  const nextDeletedEventIds = Array.from(new Set([
+    ...normalizeDeletedEventIds(rows[0]?.deleted_event_ids),
+    ...normalizeDeletedEventIds(deletedEventIds),
+  ]));
+  const deletedSet = new Set(nextDeletedEventIds);
+  const remoteEvents = (Array.isArray(rows[0]?.events) ? rows[0].events : [])
+    .filter((event) => !deletedSet.has(event.id));
   const merged = new Map(remoteEvents.map((event) => [event.id, event]));
-  events.forEach((event) => {
+  events.filter((event) => !deletedSet.has(event.id)).forEach((event) => {
     const remoteEvent = merged.get(event.id);
     merged.set(event.id, remoteEvent ? {
       ...remoteEvent,
@@ -244,10 +273,15 @@ async function syncPracticeEvents(events: PracticeEventRecord[], accessToken: st
   const saveResponse = await fetch(`${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?on_conflict=id`, {
     method: 'POST',
     headers: { ...headers, Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: PRACTICE_SYNC_ID, events: next, updated_at: new Date().toISOString() }),
+    body: JSON.stringify({
+      id: PRACTICE_SYNC_ID,
+      events: next,
+      deleted_event_ids: nextDeletedEventIds,
+      updated_at: new Date().toISOString(),
+    }),
   });
   if (!saveResponse.ok) throw new Error(`保存练习赛云数据失败（${saveResponse.status}）`);
-  return next;
+  return { events: next, deletedEventIds: nextDeletedEventIds };
 }
 
 function loadEvents(): PracticeEventRecord[] {
@@ -588,6 +622,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
 
 export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, onOpenExplorer, onOpenSimulation, onOpenScoreCalculator }: PracticeEventHubProps) {
   const [events, setEvents] = useState<PracticeEventRecord[]>(loadEvents);
+  const [deletedEventIds, setDeletedEventIds] = useState<string[]>(loadDeletedEventIds);
   const [cloudReady, setCloudReady] = useState(false);
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -605,12 +640,18 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
   }, [events]);
 
   useEffect(() => {
+    window.localStorage.setItem(DELETED_EVENT_IDS_KEY, JSON.stringify(deletedEventIds));
+  }, [deletedEventIds]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!accessToken) { setCloudReady(false); return; }
-    void syncPracticeEvents(loadEvents(), accessToken).then((next) => {
+    void syncPracticeEvents(loadEvents(), loadDeletedEventIds(), accessToken).then((next) => {
       if (cancelled) return;
-      setEvents(next);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setEvents(next.events);
+      setDeletedEventIds(next.deletedEventIds);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.events));
+      window.localStorage.setItem(DELETED_EVENT_IDS_KEY, JSON.stringify(next.deletedEventIds));
       setCloudReady(true);
     }).catch(() => { if (!cancelled) setCloudReady(false); });
     return () => { cancelled = true; };
@@ -618,18 +659,22 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
 
   useEffect(() => {
     if (!accessToken || !cloudReady) return;
-    const timer = window.setTimeout(() => { void syncPracticeEvents(events, accessToken); }, 600);
+    const timer = window.setTimeout(() => { void syncPracticeEvents(events, deletedEventIds, accessToken); }, 600);
     return () => window.clearTimeout(timer);
-  }, [accessToken, cloudReady, events]);
+  }, [accessToken, cloudReady, deletedEventIds, events]);
 
   useEffect(() => {
     if (!accessToken || !cloudReady) return;
     let cancelled = false;
     const pullLatest = () => {
-      void syncPracticeEvents(loadEvents(), accessToken).then((next) => {
+      void syncPracticeEvents(loadEvents(), loadDeletedEventIds(), accessToken).then((next) => {
         if (cancelled) return;
-        setEvents((current) => JSON.stringify(current) === JSON.stringify(next) ? current : next);
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        setEvents((current) => JSON.stringify(current) === JSON.stringify(next.events) ? current : next.events);
+        setDeletedEventIds((current) => JSON.stringify(current) === JSON.stringify(next.deletedEventIds)
+          ? current
+          : next.deletedEventIds);
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.events));
+        window.localStorage.setItem(DELETED_EVENT_IDS_KEY, JSON.stringify(next.deletedEventIds));
       }).catch(() => undefined);
     };
     const interval = window.setInterval(pullLatest, 12000);
@@ -718,6 +763,7 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
   };
 
   const deleteEvent = (eventId: string) => {
+    setDeletedEventIds((current) => current.includes(eventId) ? current : [...current, eventId]);
     setEvents((current) => current.filter((event) => event.id !== eventId));
     if (activeEventId === eventId) setActiveEventId(null);
   };
