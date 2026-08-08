@@ -1586,6 +1586,19 @@ function logisticsRoomDatesOverlap(left: string[], right: string[]): boolean {
   return left.some((date) => rightDates.has(date));
 }
 
+function buildLogisticsRoomDateRange(startDate: string, endDate: string): string[] {
+  if (!startDate || !endDate) return [];
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
+
+  const dates: string[] = [];
+  for (const cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    dates.push(cursor.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
 function getTrainingScheduleKey(eventId: string, dateKey: string): string {
   return `${eventId}::${dateKey}`;
 }
@@ -4992,6 +5005,43 @@ export default function App() {
     }));
   }, [canEdit, showNotification, updateActiveLogisticsEvent]);
 
+  const handleUpdateLogisticsRoomDateRange = useCallback((
+    roomId: string,
+    boundary: 'start' | 'end',
+    value: string,
+  ) => {
+    if (!canEdit) {
+      showNotification('当前账号没有编辑权限。', 'error');
+      return;
+    }
+    if (!activeLogisticsEvent || !value) return;
+
+    const room = activeLogisticsEvent.rooms.find((item) => item.id === roomId);
+    if (!room) return;
+    const sortedDates = [...room.dates].sort();
+    let startDate = boundary === 'start' ? value : sortedDates[0] || value;
+    let endDate = boundary === 'end' ? value : sortedDates.at(-1) || value;
+    if (startDate > endDate) {
+      if (boundary === 'start') endDate = startDate;
+      else startDate = endDate;
+    }
+    const dates = buildLogisticsRoomDateRange(startDate, endDate);
+    const hasConflict = activeLogisticsEvent.rooms.some((otherRoom) =>
+      otherRoom.id !== roomId
+      && logisticsRoomDatesOverlap(otherRoom.dates, dates)
+      && otherRoom.participantIds.some((participantId) => room.participantIds.includes(participantId)));
+    if (hasConflict) {
+      showNotification('所选人员在该日期已有住房安排，请调整日期。', 'error');
+      return;
+    }
+
+    updateActiveLogisticsEvent((event) => ({
+      ...event,
+      rooms: event.rooms.map((item) => item.id === roomId ? { ...item, dates } : item),
+    }));
+    showNotification('入住日期已更新。', 'success');
+  }, [activeLogisticsEvent, canEdit, showNotification, updateActiveLogisticsEvent]);
+
   const handleSelectTrainingLogisticsEvent = useCallback((eventId: string) => {
     setSelectedTrainingLogisticsEventId(eventId);
     const source = logisticsEvents.find((event) => event.id === eventId);
@@ -8317,10 +8367,26 @@ export default function App() {
                                   />
                                 </td>
                                 <td>
-                                  <div className={styles.roomDateList}>
-                                    {room.dates.length > 0
-                                      ? room.dates.map((date) => <span key={date}>{date}</span>)
-                                      : <span>日期未记录</span>}
+                                  <div className={styles.roomDateEditor}>
+                                    <label>
+                                      <span>开始日期</span>
+                                      <input
+                                        type="date"
+                                        value={[...room.dates].sort()[0] ?? ''}
+                                        onChange={(event) => handleUpdateLogisticsRoomDateRange(room.id, 'start', event.target.value)}
+                                        disabled={!canEdit}
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>结束日期</span>
+                                      <input
+                                        type="date"
+                                        value={[...room.dates].sort().at(-1) ?? ''}
+                                        onChange={(event) => handleUpdateLogisticsRoomDateRange(room.id, 'end', event.target.value)}
+                                        disabled={!canEdit}
+                                      />
+                                    </label>
+                                    <small>{room.dates.length > 0 ? `共 ${room.dates.length} 日` : '日期未记录，可随时补填'}</small>
                                   </div>
                                 </td>
                                 <td>

@@ -1572,6 +1572,38 @@
   white-space: nowrap;
 }
 
+.roomDateEditor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(138px, 1fr));
+  gap: 8px;
+  min-width: 290px;
+}
+
+.roomDateEditor label {
+  display: grid;
+  gap: 4px;
+  color: #5f7394;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.roomDateEditor input {
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 1px solid rgba(22, 104, 232, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #152a4d;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.roomDateEditor small {
+  grid-column: 1 / -1;
+  color: #7284a2;
+  font-size: 0.72rem;
+}
+
 .roomNumberInput {
   width: 140px;
   min-height: 42px;
@@ -1596,6 +1628,15 @@
   .roomDateCalendarHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .roomDateEditor {
+    grid-template-columns: 1fr;
+    min-width: 190px;
+  }
+
+  .roomDateEditor small {
+    grid-column: auto;
   }
 
   .roomDateCalendarActions {
