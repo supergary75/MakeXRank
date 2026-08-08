@@ -31,8 +31,8 @@
 .scheduleCardActions .deleteScheduleCardButton { min-width:126px; border:1px solid rgba(191,57,46,.22); background:#fff7f5; color:#b7352d; box-shadow:none; }
 .mobileMatchList { display:none; }
 .mobileMatchCard { display:grid; gap:10px; padding:13px; border:1px solid rgba(22,104,232,.18); border-radius:16px; background:#fff; box-shadow:0 8px 22px rgba(45,92,143,.08); }
-.mobileMatchHeader { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.mobileMatchHeader > div { display:grid; gap:2px; }
+.mobileMatchHeader { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; }
+.mobileMatchHeader > div { display:grid; min-width:0; gap:2px; }
 .mobileMatchHeader strong { color:var(--gray-900); font-size:1rem; }
 .mobileMatchHeader span { color:var(--gray-500); font-size:.8rem; }
 .mobileMatchHeader button { min-width:104px; min-height:48px; padding:8px 14px; border:0; border-radius:13px; background:linear-gradient(145deg,#5487ec,#3457c5); color:#fff; font-weight:900; touch-action:manipulation; }
@@ -47,7 +47,7 @@
 .mobileBlueAlliance { background:#eef6ff; border-left:4px solid #3b82e8; }
 .mobileBlueAlliance b,.mobileBlueAlliance > div strong { color:#1668e8; }
 @media (max-width:700px) { .scheduleCard { padding:13px; border-radius:17px; }.scheduleCardHeader { align-items:stretch; flex-direction:column; }.scheduleCardActions { display:grid; grid-template-columns:1fr 1fr; }.scheduleCardActions button { width:100%; min-width:0; }.scheduleTableWrap { display:none; }.mobileMatchList { display:grid; gap:12px; }.rankingWrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }.rankingTable { min-width:680px; } }
-@media (max-width:420px) { .scheduleCardActions { grid-template-columns:1fr; }.mobileMatchHeader { align-items:stretch; }.mobileMatchHeader button { min-width:96px; } }
+@media (max-width:420px) { .scheduleCardActions { grid-template-columns:1fr; }.mobileMatchHeader { grid-template-columns:1fr; align-items:stretch; }.mobileMatchHeader button { width:100%; min-width:0; } }
 .kcTeamBadge {
   display: inline-flex;
   align-items: center;
