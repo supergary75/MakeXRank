@@ -13,6 +13,8 @@ interface AuthSessionPayload {
   expiresAt: number;
 }
 
+let sessionRefreshPromise: Promise<AuthSessionPayload> | null = null;
+
 interface AuthTokenResponse {
   access_token: string;
   refresh_token: string;
@@ -273,6 +275,25 @@ async function refreshAuthSession(refreshToken: string): Promise<AuthSessionPayl
   };
   saveSession(session);
   return session;
+}
+
+export async function getValidAccessToken(forceRefresh = false): Promise<string | null> {
+  const cachedSession = readSession();
+  if (!cachedSession) return null;
+  // Refresh shortly before expiry so a token cannot expire during a score upload.
+  if (!forceRefresh && cachedSession.expiresAt > Date.now() + 60_000) {
+    return cachedSession.accessToken;
+  }
+  if (!sessionRefreshPromise) {
+    sessionRefreshPromise = refreshAuthSession(cachedSession.refreshToken)
+      .finally(() => { sessionRefreshPromise = null; });
+  }
+  try {
+    return (await sessionRefreshPromise).accessToken;
+  } catch {
+    clearSession();
+    return null;
+  }
 }
 
 async function fetchCurrentAuthUser(accessToken: string): Promise<{ id: string }> {

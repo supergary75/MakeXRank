@@ -94,11 +94,25 @@
   .scheduleCardActions button { width:100%; min-width:0; padding:9px 10px; }
   .scheduleTableWrap { display:none; }
   .mobileMatchList { display:grid; gap:10px; }
-  .mobileMatchCard { padding:10px; }
-  .mobileMatchHeader { min-width:0; }
+  .mobileMatchCard {
+    padding:10px;
+    overflow:hidden;
+  }
+  .mobileMatchHeader {
+    min-width:0;
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .mobileMatchHeader button {
+    width:100%;
+    min-width:0;
+  }
+  .mobileAlliance {
+    overflow:hidden;
+  }
   .mobileAlliance p {
     min-width:0;
-    grid-template-columns:72px minmax(0,1fr);
+    grid-template-columns:minmax(58px,72px) minmax(0,1fr);
     align-items:start;
   }
   .mobileAlliance p > :last-child,

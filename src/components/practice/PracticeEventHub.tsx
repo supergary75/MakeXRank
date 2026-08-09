@@ -8,6 +8,7 @@ import {
 } from '../../utils/practiceScheduleGenerator';
 import type { PracticeExplorerMatchRow } from '../../utils/practiceExplorerAnalysis';
 import { solveRidgeEpa, type AllianceScoreObservation } from '../../utils/practiceEpa';
+import { getValidAccessToken } from '../../services/authService';
 
 interface PracticeEventRecord {
   id: string;
@@ -206,12 +207,11 @@ async function saveRemoteExplorerScheduleState(
   accessToken: string,
 ): Promise<void> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?on_conflict=id`,
-    {
+  const saveWithToken = (token: string) => fetch(
+    `${SUPABASE_URL}/rest/v1/${PRACTICE_SYNC_TABLE}?on_conflict=id`, {
       method: 'POST',
       headers: {
-        ...getPracticeSyncHeaders(accessToken),
+        ...getPracticeSyncHeaders(token),
         Prefer: 'resolution=merge-duplicates,return=minimal',
       },
       body: JSON.stringify({
@@ -219,8 +219,12 @@ async function saveRemoteExplorerScheduleState(
         events: state,
         updated_at: state.updatedAt || new Date().toISOString(),
       }),
-    },
-  );
+    });
+  let response = await saveWithToken(accessToken);
+  if (response.status === 401) {
+    const refreshedToken = await getValidAccessToken(true);
+    if (refreshedToken) response = await saveWithToken(refreshedToken);
+  }
   if (!response.ok) throw new Error(`保存赛程云数据失败（${response.status}）`);
 }
 
@@ -641,7 +645,9 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
         saveExplorerScheduleState(nextState);
         scheduleUpdatedAtRef.current = nextState.updatedAt;
         setScheduleState(nextState);
-        if (accessToken) await saveRemoteExplorerScheduleState(nextState, accessToken);
+        const validAccessToken = await getValidAccessToken();
+        if (!validAccessToken) throw new Error('登录状态已失效，请重新登录后再保存。');
+        await saveRemoteExplorerScheduleState(nextState, validAccessToken);
       }}
       matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${formatTeamName(activeScoreMatch.match.red1)}`, red2: `${activeScoreMatch.match.red2.teamNo} ${formatTeamName(activeScoreMatch.match.red2)}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${formatTeamName(activeScoreMatch.match.blue1)}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${formatTeamName(activeScoreMatch.match.blue2)}` }}
     />}
