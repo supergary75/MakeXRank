@@ -2515,16 +2515,28 @@
   align-items: center;
 }
 
-.diagnosticCardTop span,
-.diagnosticCardTop em,
-.trainingTypeBadge {
+.diagnosticCardTop span {
   border-radius: var(--radius-full);
   padding: 6px 10px;
   background: rgba(214, 169, 74, 0.16);
-  color: #f4d68a;
+  color: #9a7215;
   font-size: 0.82rem;
   font-style: normal;
   font-weight: 800;
+  white-space: nowrap;
+}
+
+.diagnosticCardTop em,
+.trainingTypeBadge {
+  border: 1px solid rgba(52, 101, 205, 0.28);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  background: rgba(239, 246, 255, 0.96);
+  color: #214f9d;
+  box-shadow: 0 4px 12px rgba(45, 92, 143, 0.08);
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
   white-space: nowrap;
 }
 
@@ -2581,8 +2593,9 @@
   margin-bottom: 8px;
   padding: 6px 10px;
   border-radius: var(--radius-full);
-  background: rgba(93, 214, 255, 0.12);
-  color: var(--secondary);
+  border: 1px solid rgba(52, 101, 205, 0.28);
+  background: rgba(239, 246, 255, 0.96);
+  color: #214f9d;
   font-size: 0.8rem;
   font-weight: 900;
   letter-spacing: 0.06em;

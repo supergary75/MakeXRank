@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import s from "./ScoreCalculator.module.css";
 
@@ -46,19 +46,33 @@ export function ScoreCalculator({
   onBack,
   onSave,
   matchInfo,
+  draftKey,
 }: {
   onBack: () => void;
-  onSave?: (result: ScoreCalculatorResult) => void;
+  onSave?: (result: ScoreCalculatorResult) => void | Promise<void>;
   matchInfo?: ScoreCalculatorMatchInfo;
+  draftKey?: string;
 }) {
   const [side, setSide] = useState<Side>("red"),
     [page, setPage] = useState<Page>("entry"),
     [confirm, setConfirm] = useState(false),
-    [saved, setSaved] = useState(false);
-  const [data, setData] = useState<Record<Side, Record<string, number>>>({
-    red: blank(),
-    blue: blank(),
+    [saved, setSaved] = useState(false),
+    [saving, setSaving] = useState(false),
+    [saveError, setSaveError] = useState("");
+  const draftStorageKey = draftKey ? `makexrank::score-draft::${draftKey}` : "";
+  const [data, setData] = useState<Record<Side, Record<string, number>>>(() => {
+    if (draftStorageKey) {
+      try {
+        const draft = JSON.parse(window.localStorage.getItem(draftStorageKey) ?? "null") as Partial<Record<Side, Record<string, number>>> | null;
+        if (draft?.red && draft?.blue) return { red: { ...blank(), ...draft.red }, blue: { ...blank(), ...draft.blue } };
+      } catch { /* Ignore an invalid draft and start clean. */ }
+    }
+    return { red: blank(), blue: blank() };
   });
+  useEffect(() => {
+    if (!draftStorageKey) return;
+    try { window.localStorage.setItem(draftStorageKey, JSON.stringify(data)); } catch { /* Storage may be unavailable in private mode. */ }
+  }, [data, draftStorageKey]);
   const total = useMemo(() => {
     const calc = (x: Side) =>
       Math.max(
@@ -260,21 +274,32 @@ export function ScoreCalculator({
             <section>
               <button onClick={() => setConfirm(false)}>取消</button>
               <button
-                onClick={() => {
-                  setConfirm(false);
-                  setSaved(true);
-                  onSave?.({
-                    redScore: total.red,
-                    blueScore: total.blue,
-                    redBreakdown: breakdown('red'),
-                    blueBreakdown: breakdown('blue'),
-                  });
-                  if (onSave) onBack();
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  setSaveError("");
+                  try {
+                    await onSave?.({
+                      redScore: total.red,
+                      blueScore: total.blue,
+                      redBreakdown: breakdown('red'),
+                      blueBreakdown: breakdown('blue'),
+                    });
+                    if (draftStorageKey) window.localStorage.removeItem(draftStorageKey);
+                    setConfirm(false);
+                    setSaved(true);
+                    if (onSave) onBack();
+                  } catch (error) {
+                    setSaveError(error instanceof Error ? error.message : "保存失败，请检查网络后重试。");
+                  } finally {
+                    setSaving(false);
+                  }
                 }}
               >
-                确认
+                {saving ? "正在保存…" : "确认"}
               </button>
             </section>
+            {saveError && <p>{saveError}</p>}
           </div>
         </div>
       )}

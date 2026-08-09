@@ -9876,7 +9876,7 @@ export default function App() {
                   <div>
                     <p className={styles.portalEyebrow}>Training Diagnosis</p>
                     <h2>训练诊断总览</h2>
-                    <p>集中汇总本次集训所有赛程卡中的已计分比赛，综合平均分、最高分、近三场、稳定性和 EPA，判断每支队伍当前更适合冲分、稳分还是补短板。</p>
+                    <p>集中汇总本次集训所有赛程卡中的已计分比赛。平均贡献分按联盟总分平均分配，回归 EPA 根据全部联盟组合估算队伍的独立贡献，两种指标分开呈现。</p>
                   </div>
                 </div>
 
@@ -9911,7 +9911,7 @@ export default function App() {
                   <div>
                     <p className={styles.portalEyebrow}>Metric Rankings</p>
                     <h2>单项能力排名</h2>
-                    <p>汇总本次集训全部赛程卡中的已计分比赛，通过红蓝联盟得分回归计算各赛队 EPA，并同步生成各单项得分能力排名。</p>
+                    <p>汇总本次集训全部赛程卡中的已计分比赛；“平均贡献分”按联盟得分÷2统计，“回归 EPA”通过全部红蓝联盟组合回归估算，并同步生成各单项能力排名。</p>
                   </div>
                 </div>
 
@@ -9965,8 +9965,8 @@ export default function App() {
                         <th>最高分</th>
                         <th>最低分</th>
                         <th>近三场</th>
-                        <th>平均 EPA</th>
-                        <th>最佳 EPA</th>
+                        <th>平均贡献分</th>
+                        <th>回归 EPA</th>
                         <th>短板</th>
                       </tr>
                     </thead>
@@ -9988,8 +9988,8 @@ export default function App() {
                             <td>{Math.round(insight.highestScore)}</td>
                             <td>{Math.round(insight.lowestScore)}</td>
                             <td>{Math.round(insight.recentAverageScore)}</td>
+                            <td>{Math.round(insight.averageContribution)}</td>
                             <td>{Math.round(insight.averageEpa)}</td>
-                            <td>{Math.round(insight.bestEpa)}</td>
                             <td>{insight.weakness}</td>
                           </tr>
                         ))

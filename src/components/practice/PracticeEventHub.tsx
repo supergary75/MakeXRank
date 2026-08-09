@@ -373,7 +373,8 @@ function getExplorerScheduleRanking(
       else if (own === other) { draws += 1; rankingPoints += 1; }
       else losses += 1;
     });
-    return { team, played, wins, draws, losses, rankingPoints, totalScore, netScore };
+    const averageContribution = played > 0 ? totalScore / played / 2 : 0;
+    return { team, played, wins, draws, losses, rankingPoints, totalScore, netScore, averageContribution };
   }).sort((a, b) => b.rankingPoints - a.rankingPoints
     || b.totalScore - a.totalScore
     || b.netScore - a.netScore
@@ -438,6 +439,7 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
       fieldBall: Math.max(0, fieldBall.get(team.id) ?? 0),
       penalty: Math.min(0, penalty.get(team.id) ?? 0),
       redCard: Math.min(0, redCard.get(team.id) ?? 0),
+      contributionScore: appearance.totalScore / 2,
       epa: totalEpa.get(team.id) ?? 0,
       totalScore: appearance.totalScore,
     }));
@@ -622,10 +624,27 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
             </article>;
           })}
         </div>
-        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>总得分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{renderTeamName(row.team)}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{row.netScore}</td></tr>)}</tbody></table></div></>}
+        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>联盟总得分</th><th>平均贡献分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{renderTeamName(row.team)}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{Math.round(row.averageContribution)}</td><td>{row.netScore}</td></tr>)}</tbody></table></div></>}
       </article>;
     })}</div>
-    {activeScoreMatch && <ScoreCalculator onBack={() => setActiveScoreMatch(null)} onSave={(result) => updateScheduleState((current) => ({ ...current, cards: current.cards.map((card) => card.id === activeScoreMatch.cardId ? { ...card, results: { ...card.results, [activeScoreMatch.match.id]: result } } : card) }))} matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${formatTeamName(activeScoreMatch.match.red1)}`, red2: `${activeScoreMatch.match.red2.teamNo} ${formatTeamName(activeScoreMatch.match.red2)}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${formatTeamName(activeScoreMatch.match.blue1)}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${formatTeamName(activeScoreMatch.match.blue2)}` }} />}
+    {activeScoreMatch && <ScoreCalculator
+      onBack={() => setActiveScoreMatch(null)}
+      draftKey={`${activeScoreMatch.cardId}::${activeScoreMatch.match.id}`}
+      onSave={async (result) => {
+        const nextState: ExplorerScheduleState = {
+          ...scheduleState,
+          cards: scheduleState.cards.map((card) => card.id === activeScoreMatch.cardId
+            ? { ...card, results: { ...card.results, [activeScoreMatch.match.id]: result } }
+            : card),
+          updatedAt: new Date().toISOString(),
+        };
+        saveExplorerScheduleState(nextState);
+        scheduleUpdatedAtRef.current = nextState.updatedAt;
+        setScheduleState(nextState);
+        if (accessToken) await saveRemoteExplorerScheduleState(nextState, accessToken);
+      }}
+      matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${formatTeamName(activeScoreMatch.match.red1)}`, red2: `${activeScoreMatch.match.red2.teamNo} ${formatTeamName(activeScoreMatch.match.red2)}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${formatTeamName(activeScoreMatch.match.blue1)}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${formatTeamName(activeScoreMatch.match.blue2)}` }}
+    />}
   </section>;
 }
 

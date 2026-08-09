@@ -13,6 +13,7 @@ export interface PracticeExplorerMatchRow {
   fieldBall: number;
   penalty: number;
   redCard: number;
+  contributionScore: number;
   epa: number;
   totalScore: number;
 }
@@ -24,6 +25,8 @@ export interface PracticeExplorerInsight {
   highestScore: number;
   lowestScore: number;
   recentAverageScore: number;
+  averageContribution: number;
+  bestContribution: number;
   averageEpa: number;
   bestEpa: number;
   stabilityGap: number;
@@ -88,7 +91,8 @@ const COLUMN_ALIASES: Record<PracticeColumnKey, string[]> = {
 
 const METRICS: Array<{ key: keyof PracticeExplorerMatchRow; label: string }> = [
   { key: 'totalScore', label: '单场总分' },
-  { key: 'epa', label: 'EPA' },
+  { key: 'contributionScore', label: '平均贡献分' },
+  { key: 'epa', label: '回归 EPA' },
   { key: 'onlineBall', label: '红蓝球（网上）' },
   { key: 'fieldBall', label: '红蓝球（绿地）' },
   { key: 'yellowBall', label: '黄球' },
@@ -206,6 +210,7 @@ export function parsePracticeExplorerData(text: string): { rows: PracticeExplore
       fieldBall: valueAt(cells, currentIndexes, 'fieldBall'),
       penalty: valueAt(cells, currentIndexes, 'penalty'),
       redCard: valueAt(cells, currentIndexes, 'redCard'),
+      contributionScore: totalScore / 2,
       epa,
       totalScore,
     });
@@ -388,6 +393,7 @@ export function buildPracticeExplorerInsights(rows: PracticeExplorerMatchRow[]):
     .map(([team, teamRows]) => {
       const sortedRows = [...teamRows].sort((left, right) => left.round - right.round);
       const scores = sortedRows.map((row) => row.totalScore);
+      const contributions = sortedRows.map((row) => row.contributionScore);
       const epas = sortedRows.map((row) => row.epa);
       const averageScore = average(scores);
       const highestScore = Math.max(...scores);
@@ -415,6 +421,8 @@ export function buildPracticeExplorerInsights(rows: PracticeExplorerMatchRow[]):
         highestScore,
         lowestScore,
         recentAverageScore,
+        averageContribution: average(contributions),
+        bestContribution: Math.max(...contributions),
         averageEpa: average(epas),
         bestEpa: Math.max(...epas),
         stabilityGap,
