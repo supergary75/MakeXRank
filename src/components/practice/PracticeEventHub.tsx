@@ -387,7 +387,10 @@ function getExplorerScheduleRanking(
 
 function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplorerMatchRow[] {
   const teams = new Map<string, PracticeTeam>();
-  const appearances = new Map<string, Array<{ totalScore: number }>>();
+  const appearances = new Map<string, Array<{
+    totalScore: number;
+    breakdown: Record<string, number>;
+  }>>();
   const observations: AllianceScoreObservation[] = [];
   cards.forEach((card) => card.schedule.forEach((match) => {
     const result = card.results[match.id];
@@ -399,11 +402,11 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
     });
     redTeams.forEach((team) => appearances.set(team.id, [
       ...(appearances.get(team.id) ?? []),
-      { totalScore: result.redScore },
+      { totalScore: result.redScore, breakdown: result.redBreakdown ?? {} },
     ]));
     blueTeams.forEach((team) => appearances.set(team.id, [
       ...(appearances.get(team.id) ?? []),
-      { totalScore: result.blueScore },
+      { totalScore: result.blueScore, breakdown: result.blueBreakdown ?? {} },
     ]));
     observations.push(
       { teamIds: [match.red1.id, match.red2.id], total: result.redScore, breakdown: result.redBreakdown ?? {} },
@@ -412,20 +415,9 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
   }));
   const teamIds = Array.from(teams.keys());
   const totalEpa = solveRidgeEpa(teamIds, observations, (observation) => observation.total);
-  const metricEpa = (keys: string[]) => solveRidgeEpa(
-    teamIds,
-    observations,
-    (observation) => keys.reduce((sum, key) => sum + (observation.breakdown[key] ?? 0), 0),
+  const allianceShare = (breakdown: Record<string, number>, keys: string[]) => (
+    keys.reduce((sum, key) => sum + (Number(breakdown[key]) || 0), 0) / 2
   );
-  const flag = metricEpa(['flag']);
-  const bucket = metricEpa(['cone']);
-  const yellowBlock = metricEpa(['yellowBlock']);
-  const redBlueBlock = metricEpa(['colorBlock']);
-  const yellowBall = metricEpa(['yellowNet', 'yellowFrame']);
-  const onlineBall = metricEpa(['ballNet', 'ballFrame']);
-  const fieldBall = metricEpa(['ball5', 'ball10', 'ball20']);
-  const penalty = metricEpa(['violation', 'yellow', 'redCard']);
-  const redCard = metricEpa(['redCard']);
   return Array.from(teams.values()).flatMap((team) => {
     if (team.id.startsWith('virtual-team-')) return [];
     const teamAppearances = appearances.get(team.id) ?? [];
@@ -434,15 +426,15 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
       team: label,
       round: index + 1,
       equity: 0,
-      bucket: Math.max(0, bucket.get(team.id) ?? 0),
-      flag: Math.max(0, flag.get(team.id) ?? 0),
-      yellowBlock: Math.max(0, yellowBlock.get(team.id) ?? 0),
-      redBlueBlock: Math.max(0, redBlueBlock.get(team.id) ?? 0),
-      yellowBall: Math.max(0, yellowBall.get(team.id) ?? 0),
-      onlineBall: Math.max(0, onlineBall.get(team.id) ?? 0),
-      fieldBall: Math.max(0, fieldBall.get(team.id) ?? 0),
-      penalty: Math.min(0, penalty.get(team.id) ?? 0),
-      redCard: Math.min(0, redCard.get(team.id) ?? 0),
+      bucket: Math.max(0, allianceShare(appearance.breakdown, ['cone'])),
+      flag: Math.max(0, allianceShare(appearance.breakdown, ['flag'])),
+      yellowBlock: Math.max(0, allianceShare(appearance.breakdown, ['yellowBlock'])),
+      redBlueBlock: Math.max(0, allianceShare(appearance.breakdown, ['colorBlock'])),
+      yellowBall: Math.max(0, allianceShare(appearance.breakdown, ['yellowNet', 'yellowFrame'])),
+      onlineBall: Math.max(0, allianceShare(appearance.breakdown, ['ballNet', 'ballFrame'])),
+      fieldBall: Math.max(0, allianceShare(appearance.breakdown, ['ball5', 'ball10', 'ball20'])),
+      penalty: Math.min(0, allianceShare(appearance.breakdown, ['violation', 'yellow', 'redCard'])),
+      redCard: Math.min(0, allianceShare(appearance.breakdown, ['redCard'])),
       contributionScore: appearance.totalScore / 2,
       epa: totalEpa.get(team.id) ?? 0,
       totalScore: appearance.totalScore,
