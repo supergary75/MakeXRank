@@ -61,6 +61,7 @@ import {
 import { useNotification } from './hooks/useNotification';
 import { useFeaturedTeams } from './hooks/useFeaturedTeams';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
+import { mirrorLogisticsEventsToNormalizedTables } from './services/normalizedCollaborationStorage';
 
 import { CompetitionLobby } from './components/competition/CompetitionLobby';
 import { EventTypeSelector } from './components/competition/EventTypeSelector';
@@ -133,6 +134,7 @@ const TRAINING_TIME_OPTIONS = [
 ];
 const PRACTICE_EXPLORER_STORAGE_KEY = 'competitive-ranking-board::practice-explorer';
 const LOGISTICS_EVENTS_STORAGE_KEY = 'competitive-ranking-board::logistics-events';
+const LOGISTICS_DELETED_EVENT_IDS_STORAGE_KEY = 'competitive-ranking-board::logistics-deleted-event-ids';
 const LOGISTICS_ROSTER_STORAGE_KEY = 'competitive-ranking-board::logistics-master-roster';
 const TRAINING_EVENTS_STORAGE_KEY = 'competitive-ranking-board::training-events';
 const TRAINING_SCHEDULES_STORAGE_KEY = 'competitive-ranking-board::training-schedules';
@@ -143,6 +145,7 @@ const LOGISTICS_EVENT_ITEM_OPTIONS = [
   'MakeX Challenge',
   'FRC',
 ];
+const LOGISTICS_UNASSIGNED_EVENT_ITEM = '全赛事 / 待归类';
 const LOGISTICS_PARTICIPANT_ROLES = ['教练', '队员', '家长', '领队'];
 const LOGISTICS_ID_DOCUMENT_OPTIONS = ['身份证', '回乡证', '外籍护照', '中国护照'];
 const LOGISTICS_ROOM_NOTE_OPTIONS = ['男生房', '女生房', '教练开会房间'];
@@ -190,12 +193,14 @@ interface TeamTagSyncRow {
 
 interface LogisticsCloudState {
   events: LogisticsEventRecord[];
+  deletedEventIds: string[];
   updatedAt?: string;
 }
 
 interface LogisticsSyncRow {
   id: string;
   events: unknown;
+  deleted_event_ids?: unknown;
   updated_at: string;
 }
 
@@ -318,6 +323,7 @@ interface LogisticsParticipantForm {
 
 interface LogisticsTimelineItem {
   id: string;
+  eventItem: string;
   date: string;
   time: string;
   title: string;
@@ -329,6 +335,7 @@ interface LogisticsTimelineItem {
 }
 
 interface LogisticsTimelineForm {
+  eventItem: string;
   date: string;
   time: string;
   title: string;
@@ -408,6 +415,7 @@ const DEFAULT_LOGISTICS_PARTICIPANT_FORM: LogisticsParticipantForm = {
 };
 
 const DEFAULT_LOGISTICS_TIMELINE_FORM: LogisticsTimelineForm = {
+  eventItem: '',
   date: '',
   time: '',
   title: '',
@@ -715,7 +723,12 @@ function getPersonalLogisticsTasks(
           }
 
           const excludedParticipantIds = new Set(node.excludedParticipantIds);
-          const visibleStudents = (assignedStudents.length > 0 ? assignedStudents : students)
+          const studentsForNode = node.eventItem
+            ? students.filter((student) => matchesLogisticsEventItem(student.eventItem, node.eventItem))
+            : students;
+          const assignedStudentsForNode = assignedStudents.filter((student) =>
+            !node.eventItem || matchesLogisticsEventItem(student.eventItem, node.eventItem));
+          const visibleStudents = (assignedStudentsForNode.length > 0 ? assignedStudentsForNode : studentsForNode)
             .filter((student) => !excludedParticipantIds.has(student.id));
           const arrivedCount = visibleStudents.filter((student) =>
             normalizeLogisticsAttendanceStatus(event.attendance[node.id]?.[student.id]) === LOGISTICS_ATTENDANCE_STATUS[1]).length;
@@ -786,6 +799,13 @@ function matchesLogisticsEventItem(value: string, selectedItem: string): boolean
     || (normalizedSelected === 'makexinspire' && normalizedValue.includes('ins'))
     || (normalizedSelected === 'makexchallenge' && normalizedValue.includes('cha'))
     || (normalizedSelected === 'frc' && normalizedValue.includes('frc'));
+}
+
+function matchesLogisticsTimelineEventItem(value: string, selectedItem: string): boolean {
+  if (selectedItem === LOGISTICS_UNASSIGNED_EVENT_ITEM) {
+    return !value.trim();
+  }
+  return matchesLogisticsEventItem(value, selectedItem);
 }
 
 function getLogisticsEventItems(event: LogisticsEventRecord): string[] {
@@ -1006,6 +1026,7 @@ function normalizeLogisticsTimelineItem(item: unknown): LogisticsTimelineItem | 
 
   return {
     id: typeof source.id === 'string' ? source.id : `timeline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    eventItem: typeof source.eventItem === 'string' ? source.eventItem : '',
     date: typeof source.date === 'string' ? source.date : '',
     time: typeof source.time === 'string' ? source.time : '',
     title,
@@ -1580,10 +1601,48 @@ function getCalendarDays(monthKey: string): CalendarDay[] {
   });
 }
 
+function normalizeLogisticsDeletedEventIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.filter((id): id is string => typeof id === 'string' && Boolean(id.trim()))));
+}
+
+function loadLogisticsDeletedEventIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return normalizeLogisticsDeletedEventIds(JSON.parse(window.localStorage.getItem(LOGISTICS_DELETED_EVENT_IDS_STORAGE_KEY) ?? '[]'));
+  } catch {
+    return [];
+  }
+}
+
+function saveLogisticsDeletedEventIds(ids: string[]): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LOGISTICS_DELETED_EVENT_IDS_STORAGE_KEY, JSON.stringify(normalizeLogisticsDeletedEventIds(ids)));
+}
+
 function logisticsRoomDatesOverlap(left: string[], right: string[]): boolean {
   if (left.length === 0 || right.length === 0) return true;
-  const rightDates = new Set(right);
-  return left.some((date) => rightDates.has(date));
+
+  const leftDates = [...new Set(left)].sort();
+  const rightDates = [...new Set(right)].sort();
+  const rightDateSet = new Set(rightDates);
+  const sharedDates = leftDates.filter((date) => rightDateSet.has(date));
+
+  if (sharedDates.length === 0) return false;
+
+  // A checkout date may also be the next room's check-in date. Treat a
+  // single shared boundary date as a room change, not a double booking.
+  if (sharedDates.length === 1) {
+    const sharedDate = sharedDates[0];
+    const leftEndsWhenRightStarts = sharedDate === leftDates.at(-1)
+      && sharedDate === rightDates[0];
+    const rightEndsWhenLeftStarts = sharedDate === rightDates.at(-1)
+      && sharedDate === leftDates[0];
+
+    if (leftEndsWhenRightStarts || rightEndsWhenLeftStarts) return false;
+  }
+
+  return true;
 }
 
 function buildLogisticsRoomDateRange(startDate: string, endDate: string): string[] {
@@ -1950,7 +2009,7 @@ function getLogisticsEventCompletenessScore(event: LogisticsEventRecord): number
 
 async function fetchRemoteLogisticsState(accessToken: string): Promise<LogisticsCloudState | null> {
   const params = new URLSearchParams({
-    select: 'id,events,updated_at',
+    select: 'id,events,deleted_event_ids,updated_at',
     id: `eq.${LOGISTICS_SYNC_ID}`,
     limit: '1',
   });
@@ -1964,14 +2023,23 @@ async function fetchRemoteLogisticsState(accessToken: string): Promise<Logistics
     return null;
   }
 
+  const deletedEventIds = normalizeLogisticsDeletedEventIds(rows[0].deleted_event_ids);
+  const deletedIds = new Set(deletedEventIds);
   return {
-    events: normalizeLogisticsEvents(rows[0].events),
+    events: normalizeLogisticsEvents(rows[0].events).filter((event) => !deletedIds.has(event.id)),
+    deletedEventIds,
     updatedAt: rows[0].updated_at,
   };
 }
 
-async function saveRemoteLogisticsState(events: LogisticsEventRecord[], accessToken: string): Promise<string | null> {
+async function saveRemoteLogisticsState(
+  events: LogisticsEventRecord[],
+  deletedEventIds: string[],
+  accessToken: string,
+): Promise<string | null> {
   const params = new URLSearchParams({ on_conflict: 'id' });
+  const remoteState = await fetchRemoteLogisticsState(accessToken);
+  const mergedState = mergeLogisticsState({ events, deletedEventIds }, remoteState);
 
   const rows = await requestTrainingSync<LogisticsSyncRow[]>(
     `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
@@ -1983,7 +2051,8 @@ async function saveRemoteLogisticsState(events: LogisticsEventRecord[], accessTo
       },
       body: JSON.stringify({
         id: LOGISTICS_SYNC_ID,
-        events: normalizeLogisticsEvents(events),
+        events: normalizeLogisticsEvents(mergedState.events),
+        deleted_event_ids: mergedState.deletedEventIds,
         updated_at: new Date().toISOString(),
       }),
     },
@@ -1997,24 +2066,46 @@ function mergeLogisticsState(
   remoteState: LogisticsCloudState | null,
 ): LogisticsCloudState {
   if (!remoteState) {
-    return localState;
+    const deletedIds = new Set(localState.deletedEventIds);
+    return { ...localState, events: localState.events.filter((event) => !deletedIds.has(event.id)) };
   }
+
+  const deletedEventIds = normalizeLogisticsDeletedEventIds([
+    ...localState.deletedEventIds,
+    ...remoteState.deletedEventIds,
+  ]);
+  const deletedIds = new Set(deletedEventIds);
 
   const byId = new Map<string, LogisticsEventRecord>();
 
   remoteState.events.forEach((event) => {
-    byId.set(event.id, event);
+    if (!deletedIds.has(event.id)) byId.set(event.id, event);
   });
 
   localState.events.forEach((event) => {
+    if (deletedIds.has(event.id)) return;
     const remoteEvent = byId.get(event.id);
-    if (!remoteEvent || getLogisticsEventCompletenessScore(event) > getLogisticsEventCompletenessScore(remoteEvent)) {
+    if (!remoteEvent) {
       byId.set(event.id, event);
+      return;
     }
+
+    const preferredEvent = getLogisticsEventCompletenessScore(event) > getLogisticsEventCompletenessScore(remoteEvent)
+      ? event
+      : remoteEvent;
+    const timelineById = new Map(remoteEvent.timeline.map((item) => [item.id, item]));
+    event.timeline.forEach((item) => timelineById.set(item.id, item));
+
+    byId.set(event.id, {
+      ...preferredEvent,
+      timeline: Array.from(timelineById.values())
+        .sort((left, right) => `${left.date} ${left.time}`.localeCompare(`${right.date} ${right.time}`)),
+    });
   });
 
   return {
     events: Array.from(byId.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+    deletedEventIds,
   };
 }
 
@@ -2239,6 +2330,7 @@ export default function App() {
   const [schedulePracticeExplorerRows, setSchedulePracticeExplorerRows] = useState<PracticeExplorerMatchRow[]>([]);
   const [, setPracticeExplorerAwaitingPaste] = useState(false);
   const [logisticsEvents, setLogisticsEvents] = useState<LogisticsEventRecord[]>(() => loadLogisticsEvents());
+  const [logisticsDeletedEventIds, setLogisticsDeletedEventIds] = useState<string[]>(() => loadLogisticsDeletedEventIds());
   const [logisticsEventForm, setLogisticsEventForm] = useState<LogisticsEventForm>({
     name: '',
     date: '',
@@ -2318,11 +2410,23 @@ export default function App() {
   const logisticsCloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logisticsCloudUpdatedAtRef = useRef('');
   const logisticsApplyingRemoteRef = useRef(false);
+  const logisticsCloudDirtyRef = useRef(false);
+  const logisticsLocalRevisionRef = useRef(0);
+  const logisticsEventsRef = useRef(logisticsEvents);
+  const logisticsDeletedEventIdsRef = useRef(logisticsDeletedEventIds);
   const logisticsFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsDocumentImageInputRef = useRef<HTMLInputElement>(null);
   const logisticsMasterFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsMasterDocumentImageInputRef = useRef<HTMLInputElement>(null);
   const { notifications, showNotification } = useNotification();
+
+  useEffect(() => {
+    logisticsEventsRef.current = logisticsEvents;
+  }, [logisticsEvents]);
+
+  useEffect(() => {
+    logisticsDeletedEventIdsRef.current = logisticsDeletedEventIds;
+  }, [logisticsDeletedEventIds]);
   const { featuredTeams, addTeam, removeTeam, toggleTeam } = useFeaturedTeams();
 
   useEffect(() => {
@@ -2386,7 +2490,11 @@ export default function App() {
       && (!activeLogisticsEventItem || matchesLogisticsEventItem(participant.eventItem, activeLogisticsEventItem)))
     : [];
   const logisticsRollCallNodes = activeLogisticsEvent
-    ? activeLogisticsEvent.timeline.filter((item) => item.rollCallEnabled)
+    ? activeLogisticsEvent.timeline.filter((item) =>
+      item.rollCallEnabled
+      && (activeLogisticsEventItem
+        ? matchesLogisticsTimelineEventItem(item.eventItem, activeLogisticsEventItem)
+        : false))
     : [];
   const logisticsRoomsForSelectedItem = useMemo(() => activeLogisticsEvent
     ? activeLogisticsEvent.rooms.filter((room) =>
@@ -2793,6 +2901,7 @@ export default function App() {
       try {
         const localState: LogisticsCloudState = {
           events: loadLogisticsEvents(),
+          deletedEventIds: loadLogisticsDeletedEventIds(),
         };
         const remoteState = await fetchRemoteLogisticsState(accessToken);
         const mergedState = mergeLogisticsState(localState, remoteState);
@@ -2807,8 +2916,10 @@ export default function App() {
           return mergedState.events;
         });
         saveLogisticsEvents(mergedState.events);
+        setLogisticsDeletedEventIds(mergedState.deletedEventIds);
+        saveLogisticsDeletedEventIds(mergedState.deletedEventIds);
         logisticsCloudUpdatedAtRef.current = remoteState?.updatedAt ?? '';
-        const savedAt = await saveRemoteLogisticsState(mergedState.events, accessToken);
+        const savedAt = await saveRemoteLogisticsState(mergedState.events, mergedState.deletedEventIds, accessToken);
         if (savedAt) logisticsCloudUpdatedAtRef.current = savedAt;
 
         if (!cancelled) {
@@ -2841,6 +2952,10 @@ export default function App() {
       return;
     }
 
+    logisticsCloudDirtyRef.current = true;
+    logisticsLocalRevisionRef.current += 1;
+    const revision = logisticsLocalRevisionRef.current;
+
     const accessToken = getStoredAccessToken();
     if (!accessToken) {
       return;
@@ -2851,9 +2966,13 @@ export default function App() {
     }
 
     logisticsCloudSaveTimerRef.current = setTimeout(() => {
-      void saveRemoteLogisticsState(logisticsEvents, accessToken)
+      void saveRemoteLogisticsState(logisticsEvents, logisticsDeletedEventIds, accessToken)
         .then((savedAt) => {
           if (savedAt) logisticsCloudUpdatedAtRef.current = savedAt;
+          if (revision === logisticsLocalRevisionRef.current) {
+            logisticsCloudDirtyRef.current = false;
+          }
+          return mirrorLogisticsEventsToNormalizedTables(logisticsEvents, logisticsDeletedEventIds);
         })
         .catch((error) => {
           const message = error instanceof Error ? error.message : '未知错误';
@@ -2867,7 +2986,7 @@ export default function App() {
         logisticsCloudSaveTimerRef.current = null;
       }
     };
-  }, [authUser, logisticsCloudReady, logisticsEvents, showNotification]);
+  }, [authUser, logisticsCloudReady, logisticsDeletedEventIds, logisticsEvents, showNotification]);
 
   useEffect(() => {
     if (!authUser || !logisticsCloudReady) return;
@@ -2878,6 +2997,21 @@ export default function App() {
     let cancelled = false;
     const pullLatest = async () => {
       try {
+        if (logisticsCloudDirtyRef.current) {
+          const revision = logisticsLocalRevisionRef.current;
+          const savedAt = await saveRemoteLogisticsState(
+            logisticsEventsRef.current,
+            logisticsDeletedEventIdsRef.current,
+            accessToken,
+          );
+          if (cancelled) return;
+          if (savedAt) logisticsCloudUpdatedAtRef.current = savedAt;
+          if (revision === logisticsLocalRevisionRef.current) {
+            logisticsCloudDirtyRef.current = false;
+          }
+          return;
+        }
+
         const remoteState = await fetchRemoteLogisticsState(accessToken);
         if (
           cancelled
@@ -2885,16 +3019,22 @@ export default function App() {
           || remoteState.updatedAt <= logisticsCloudUpdatedAtRef.current
         ) return;
 
+        const mergedState = mergeLogisticsState(
+          { events: logisticsEventsRef.current, deletedEventIds: logisticsDeletedEventIdsRef.current },
+          remoteState,
+        );
         logisticsCloudUpdatedAtRef.current = remoteState.updatedAt;
         logisticsApplyingRemoteRef.current = true;
         setLogisticsEvents((current) => {
-          if (JSON.stringify(current) === JSON.stringify(remoteState.events)) {
+          if (JSON.stringify(current) === JSON.stringify(mergedState.events)) {
             logisticsApplyingRemoteRef.current = false;
             return current;
           }
-          return remoteState.events;
+          return mergedState.events;
         });
-        saveLogisticsEvents(remoteState.events);
+        setLogisticsDeletedEventIds(mergedState.deletedEventIds);
+        saveLogisticsEvents(mergedState.events);
+        saveLogisticsDeletedEventIds(mergedState.deletedEventIds);
       } catch {
         // Keep the current local state and retry on the next interval.
       }
@@ -3719,6 +3859,11 @@ export default function App() {
         saveLogisticsEvents(next);
         return next;
       });
+      setLogisticsDeletedEventIds((previous) => {
+        const next = normalizeLogisticsDeletedEventIds([...previous, id]);
+        saveLogisticsDeletedEventIds(next);
+        return next;
+      });
       setActiveLogisticsEventId((currentId) => (currentId === id ? null : currentId));
       showNotification('已删除后勤赛事卡片。', 'info');
     },
@@ -4398,6 +4543,9 @@ export default function App() {
 
     const nextItem: LogisticsTimelineItem = {
       id: `timeline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      eventItem: activeLogisticsEventItem === LOGISTICS_UNASSIGNED_EVENT_ITEM
+        ? logisticsTimelineForm.eventItem
+        : (activeLogisticsEventItem || logisticsTimelineForm.eventItem),
       date: logisticsTimelineForm.date,
       time: logisticsTimelineForm.time,
       title,
@@ -4419,11 +4567,12 @@ export default function App() {
     }));
     setLogisticsTimelineForm({
       ...DEFAULT_LOGISTICS_TIMELINE_FORM,
+      eventItem: activeLogisticsEventItem === LOGISTICS_UNASSIGNED_EVENT_ITEM ? '' : (activeLogisticsEventItem || ''),
       date: logisticsTimelineForm.date,
       time: logisticsTimelineForm.time,
     });
     showNotification(`已添加行程节点：${title}`, 'success');
-  }, [canEdit, logisticsTimelineForm, showNotification, updateActiveLogisticsEvent]);
+  }, [activeLogisticsEventItem, canEdit, logisticsTimelineForm, showNotification, updateActiveLogisticsEvent]);
 
   const handleStartEditLogisticsTimelineItem = useCallback((item: LogisticsTimelineItem) => {
     if (!canEdit) {
@@ -4433,6 +4582,7 @@ export default function App() {
 
     setEditingLogisticsTimelineId(item.id);
     setEditingLogisticsTimelineForm({
+      eventItem: item.eventItem,
       date: item.date,
       time: item.time,
       title: item.title,
@@ -4471,6 +4621,7 @@ export default function App() {
           item.id === editingLogisticsTimelineId
             ? {
               ...item,
+              eventItem: editingLogisticsTimelineForm.eventItem,
               date: editingLogisticsTimelineForm.date,
               time: editingLogisticsTimelineForm.time,
               title,
@@ -6593,6 +6744,19 @@ export default function App() {
 
                 <div className={styles.logisticsFormGrid}>
                   <label className={styles.logisticsField}>
+                    <span>所属赛项 / 级别</span>
+                    <select
+                      value={logisticsTimelineForm.eventItem}
+                      onChange={(event) => handleLogisticsTimelineFormChange('eventItem', event.target.value)}
+                      disabled={!canEdit || activeLogisticsEventItem !== LOGISTICS_UNASSIGNED_EVENT_ITEM}
+                    >
+                      <option value="">全赛事 / 待归类</option>
+                      {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.logisticsField}>
                     <span>赛事名称</span>
                     <input
                       value={logisticsEventForm.name}
@@ -8422,10 +8586,11 @@ export default function App() {
 
               {viewMode === 'logistics-event' && (!activeLogisticsEventItem ? (
                 <div className={styles.logisticsItemGrid}>
-                  {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => {
+                  {[...LOGISTICS_EVENT_ITEM_OPTIONS, LOGISTICS_UNASSIGNED_EVENT_ITEM].map((item) => {
                     const itemStudents = activeLogisticsEvent.participants.filter((participant) =>
                       participant.role === '队员' && matchesLogisticsEventItem(participant.eventItem, item));
-                    const itemNodes = activeLogisticsEvent.timeline.filter((node) => node.rollCallEnabled);
+                    const itemNodes = activeLogisticsEvent.timeline.filter((node) =>
+                      node.rollCallEnabled && matchesLogisticsTimelineEventItem(node.eventItem, item));
 
                     return (
                       <button
@@ -8435,7 +8600,11 @@ export default function App() {
                           setActiveLogisticsEventItem(item);
                           setLogisticsParticipantForm((previous) => ({
                             ...previous,
-                            eventItem: item,
+                            eventItem: item === LOGISTICS_UNASSIGNED_EVENT_ITEM ? '' : item,
+                          }));
+                          setLogisticsTimelineForm((previous) => ({
+                            ...previous,
+                            eventItem: item === LOGISTICS_UNASSIGNED_EVENT_ITEM ? '' : item,
                           }));
                         }}
                       >
@@ -8876,16 +9045,33 @@ export default function App() {
                 </button>
 
                 <div className={styles.timelineList}>
-                  {activeLogisticsEvent.timeline.length === 0 ? (
+                  {activeLogisticsEvent.timeline.filter((item) =>
+                    matchesLogisticsTimelineEventItem(item.eventItem, activeLogisticsEventItem)).length === 0 ? (
                     <div className={styles.logisticsEmpty}>暂无行程节点。先添加机场集合、登机口、大巴、酒店等关键节点。</div>
                   ) : (
-                    activeLogisticsEvent.timeline.map((item) => {
+                    activeLogisticsEvent.timeline
+                      .filter((item) => matchesLogisticsTimelineEventItem(item.eventItem, activeLogisticsEventItem))
+                      .map((item) => {
                       const isEditingTimelineItem = editingLogisticsTimelineId === item.id;
 
                       return (
                         <div key={item.id} className={styles.timelineItem}>
                           {isEditingTimelineItem ? (
                             <div className={styles.timelineEditGrid}>
+                              <label>
+                                <span>所属赛项 / 级别</span>
+                                <select
+                                  value={editingLogisticsTimelineForm.eventItem}
+                                  onChange={(event) =>
+                                    handleEditingLogisticsTimelineFormChange('eventItem', event.target.value)}
+                                  disabled={!canEdit}
+                                >
+                                  <option value="">全赛事 / 待归类</option>
+                                  {LOGISTICS_EVENT_ITEM_OPTIONS.map((eventItem) => (
+                                    <option key={eventItem} value={eventItem}>{eventItem}</option>
+                                  ))}
+                                </select>
+                              </label>
                               <label>
                                 <span>日期</span>
                                 <input
@@ -8960,6 +9146,7 @@ export default function App() {
                             <div>
                               <strong>{item.date || '未定日期'} {item.time || ''}</strong>
                               <span>{item.title}</span>
+                              <small>所属：{item.eventItem || LOGISTICS_UNASSIGNED_EVENT_ITEM}</small>
                               <small>{[item.location, item.owner, item.notes].filter(Boolean).join(' · ')}</small>
                             </div>
                           )}
