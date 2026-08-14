@@ -781,24 +781,37 @@ function getExplorerSchoolGroup(value: string): ExplorerSchoolGroup | null {
   return null;
 }
 
+function resolveLogisticsEventItem(value: string): string {
+  const normalized = normalizeLogisticsEventItem(value);
+  if (!normalized) {
+    return '';
+  }
+  const tokens = value.toLowerCase().split(/[^\p{L}\p{N}]+/gu).filter(Boolean);
+
+  const explorerGroup = getExplorerSchoolGroup(value);
+  const candidates = [
+    explorerGroup === 'primary' ? EXPLORER_PRIMARY_GROUP : '',
+    explorerGroup === 'junior' ? EXPLORER_JUNIOR_GROUP : '',
+    normalized.includes('makexinspire') || tokens.includes('inspire') || tokens.includes('ins')
+      ? 'MakeX Inspire'
+      : '',
+    normalized.includes('makexchallenge') || tokens.includes('challenge') || tokens.includes('cha')
+      ? 'MakeX Challenge'
+      : '',
+    normalized === 'frc' || normalized.includes('firstroboticscompetition')
+      ? 'FRC'
+      : '',
+  ].filter(Boolean);
+
+  // A historical combined value such as "INS/EXP" is not a level. Keep it in
+  // the unassigned bucket instead of leaking the same node into several levels.
+  return candidates.length === 1 ? candidates[0] : '';
+}
+
 function matchesLogisticsEventItem(value: string, selectedItem: string): boolean {
-  const normalizedValue = normalizeLogisticsEventItem(value);
-  const normalizedSelected = normalizeLogisticsEventItem(selectedItem);
-
-  if (!normalizedValue) {
-    return false;
-  }
-
-  if (isExplorerEventItem(selectedItem)) {
-    return isExplorerEventItem(value)
-      && getExplorerSchoolGroup(value) === getExplorerSchoolGroup(selectedItem);
-  }
-
-  return normalizedValue.includes(normalizedSelected)
-    || normalizedSelected.includes(normalizedValue)
-    || (normalizedSelected === 'makexinspire' && normalizedValue.includes('ins'))
-    || (normalizedSelected === 'makexchallenge' && normalizedValue.includes('cha'))
-    || (normalizedSelected === 'frc' && normalizedValue.includes('frc'));
+  const resolvedValue = resolveLogisticsEventItem(value);
+  const resolvedSelected = resolveLogisticsEventItem(selectedItem);
+  return Boolean(resolvedValue && resolvedSelected && resolvedValue === resolvedSelected);
 }
 
 function matchesLogisticsTimelineEventItem(value: string, selectedItem: string): boolean {
