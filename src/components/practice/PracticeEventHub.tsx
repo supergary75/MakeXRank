@@ -9,6 +9,7 @@ import {
 import type { PracticeExplorerMatchRow } from '../../utils/practiceExplorerAnalysis';
 import { solveRidgeEpa, type AllianceScoreObservation } from '../../utils/practiceEpa';
 import { getValidAccessToken } from '../../services/authService';
+import { mergePracticeTeams } from '../../utils/practiceTeamMerge';
 
 interface PracticeEventRecord {
   id: string;
@@ -337,19 +338,8 @@ function buildPracticeTeams(source: PracticeLogisticsEvent, selectedEventItem: s
   return Array.from(groups.values());
 }
 
-function mergePracticeTeams(...teamSets: PracticeTeam[][]): PracticeTeam[] {
-  const merged = new Map<string, PracticeTeam>();
-  teamSets.flat().forEach((team) => {
-    const key = `${normalizeEventItem(team.eventItem)}::${team.teamNo.replace(/\s+/g, '').toLowerCase()}`;
-    const current = merged.get(key);
-    if (!current) { merged.set(key, { ...team, id: key, members: [...team.members] }); return; }
-    current.isKClub = Boolean(current.isKClub || team.isKClub);
-    team.members.forEach((member) => {
-      if (!current.members.some((item) => item.name.trim().toLowerCase() === member.name.trim().toLowerCase())) current.members.push(member);
-    });
-    if ((!current.teamName || current.teamName === current.teamNo) && team.teamName) current.teamName = team.teamName;
-  });
-  return Array.from(merged.values());
+function normalizeTeamIdentity(value: string): string {
+  return value.trim().replace(/\s+/g, '').toLowerCase();
 }
 
 function getExplorerScheduleRanking(
@@ -385,7 +375,12 @@ function getExplorerScheduleRanking(
     || a.team.teamNo.localeCompare(b.team.teamNo));
 }
 
-function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplorerMatchRow[] {
+function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams: PracticeTeam[] = []): PracticeExplorerMatchRow[] {
+  const resolveTeam = (team: PracticeTeam) => canonicalTeams.find((candidate) => (
+    normalizeEventItem(candidate.eventItem) === normalizeEventItem(team.eventItem)
+    && ((normalizeTeamIdentity(candidate.teamNo) && normalizeTeamIdentity(candidate.teamNo) === normalizeTeamIdentity(team.teamNo))
+      || (normalizeTeamIdentity(candidate.teamName) && normalizeTeamIdentity(candidate.teamName) === normalizeTeamIdentity(team.teamName)))
+  )) ?? team;
   const teams = new Map<string, PracticeTeam>();
   const appearances = new Map<string, Array<{
     totalScore: number;
@@ -395,8 +390,8 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
   cards.forEach((card) => card.schedule.forEach((match) => {
     const result = card.results[match.id];
     if (!result) return;
-    const redTeams = [match.red1, match.red2];
-    const blueTeams = [match.blue1, match.blue2];
+    const redTeams = [resolveTeam(match.red1), resolveTeam(match.red2)];
+    const blueTeams = [resolveTeam(match.blue1), resolveTeam(match.blue2)];
     [...redTeams, ...blueTeams].forEach((team) => {
       teams.set(team.id, team);
     });
@@ -409,8 +404,8 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[]): PracticeExplo
       { totalScore: result.blueScore, breakdown: result.blueBreakdown ?? {} },
     ]));
     observations.push(
-      { teamIds: [match.red1.id, match.red2.id], total: result.redScore, breakdown: result.redBreakdown ?? {} },
-      { teamIds: [match.blue1.id, match.blue2.id], total: result.blueScore, breakdown: result.blueBreakdown ?? {} },
+      { teamIds: [redTeams[0].id, redTeams[1].id], total: result.redScore, breakdown: result.redBreakdown ?? {} },
+      { teamIds: [blueTeams[0].id, blueTeams[1].id], total: result.blueScore, breakdown: result.blueBreakdown ?? {} },
     );
   }));
   const teamIds = Array.from(teams.keys());
@@ -451,8 +446,9 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
   const [openScheduleCardId, setOpenScheduleCardId] = useState<string | null>(null);
   const scheduleUpdatedAtRef = useRef(scheduleState.updatedAt);
   const { fieldCount, cards } = scheduleState;
-  let teams: PracticeTeam[] = [];
-  try { teams = JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { teams = []; }
+  const [teams] = useState<PracticeTeam[]>(() => {
+    try { return JSON.parse(window.localStorage.getItem(ACTIVE_EXPLORER_TEAMS_KEY) ?? '[]'); } catch { return []; }
+  });
   const isKClubTeam = (team: PracticeTeam) => Boolean(
     team.isKClub || teams.some((candidate) => candidate.isKClub && (
       (candidate.teamNo.trim() && candidate.teamNo.trim().toLowerCase() === team.teamNo.trim().toLowerCase())
@@ -470,8 +466,8 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
   }, [scheduleState]);
 
   useEffect(() => {
-    onAnalysisRowsChange?.(buildScheduleAnalysisRows(cards));
-  }, [cards, onAnalysisRowsChange]);
+    onAnalysisRowsChange?.(buildScheduleAnalysisRows(cards, teams));
+  }, [cards, onAnalysisRowsChange, teams]);
 
   useEffect(() => {
     let cancelled = false;

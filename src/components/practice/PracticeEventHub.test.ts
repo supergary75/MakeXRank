@@ -1,6 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import { generateExplorerSchedule } from '../../utils/practiceScheduleGenerator';
 import { solveRidgeEpa } from '../../utils/practiceEpa';
+import { mergePracticeTeams } from '../../utils/practiceTeamMerge';
+
+describe('mergePracticeTeams', () => {
+  it('keeps the logistics identity when a manual team repeats the same team name with another number', () => {
+    const teams = mergePracticeTeams(
+      [{ id: 'official', eventItem: 'MakeX Explorer', teamNo: '152346', teamName: '原力觉醒', isKClub: true, members: [{ id: 'a', name: 'A' }] }],
+      [{ id: 'manual', eventItem: 'MakeX Explorer', teamNo: '0005', teamName: ' 原力觉醒 ', members: [{ id: 'b', name: 'B' }] }],
+    );
+
+    expect(teams).toHaveLength(1);
+    expect(teams[0].teamNo).toBe('152346');
+    expect(teams[0].isKClub).toBe(true);
+    expect(teams[0].members.map((member) => member.name)).toEqual(['A', 'B']);
+  });
+
+  it('does not merge identical names from different event items', () => {
+    const teams = mergePracticeTeams(
+      [{ id: 'explorer', eventItem: 'MakeX Explorer', teamNo: '1', teamName: '同名队伍', members: [] }],
+      [{ id: 'inspire', eventItem: 'MakeX Inspire', teamNo: '2', teamName: '同名队伍', members: [] }],
+    );
+
+    expect(teams).toHaveLength(2);
+  });
+});
 
 describe('generateExplorerSchedule', () => {
   it('gives every team four matches without duplicating teams in a simultaneous slot', () => {

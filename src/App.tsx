@@ -171,6 +171,7 @@ const TEAM_TAG_SYNC_TABLE = import.meta.env.VITE_SUPABASE_TEAM_TAG_SYNC_TABLE?.t
 const TEAM_TAG_SYNC_ID = 'global';
 const LOGISTICS_SYNC_TABLE = import.meta.env.VITE_SUPABASE_LOGISTICS_SYNC_TABLE?.trim() || 'logistics_sync';
 const LOGISTICS_SYNC_ID = 'global';
+const LOGISTICS_TOMBSTONE_PREFIX = '__makexrank_deleted_logistics__:';
 
 interface PracticeExplorerState {
   sourceText: string;
@@ -1101,7 +1102,8 @@ function normalizeLogisticsEvents(input: unknown): LogisticsEventRecord[] {
   }
 
   return input
-    .filter((item): item is Partial<LogisticsEventRecord> => item && typeof item === 'object')
+    .filter((item): item is Partial<LogisticsEventRecord> => item && typeof item === 'object'
+      && !(typeof item.id === 'string' && item.id.startsWith(LOGISTICS_TOMBSTONE_PREFIX)))
     .map((item) => {
       const participants = Array.isArray(item.participants)
         ? item.participants
@@ -1619,6 +1621,34 @@ function normalizeLogisticsDeletedEventIds(value: unknown): string[] {
   return Array.from(new Set(value.filter((id): id is string => typeof id === 'string' && Boolean(id.trim()))));
 }
 
+function getEmbeddedLogisticsDeletedEventIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return normalizeLogisticsDeletedEventIds(value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const id = (item as { id?: unknown }).id;
+    if (typeof id !== 'string' || !id.startsWith(LOGISTICS_TOMBSTONE_PREFIX)) return [];
+    try {
+      return [decodeURIComponent(id.slice(LOGISTICS_TOMBSTONE_PREFIX.length))];
+    } catch {
+      return [];
+    }
+  }));
+}
+
+function embedLogisticsDeletedEventIds(
+  events: LogisticsEventRecord[],
+  deletedEventIds: string[],
+): Array<LogisticsEventRecord | Record<string, string>> {
+  return [
+    ...events,
+    ...normalizeLogisticsDeletedEventIds(deletedEventIds).map((id) => ({
+      id: `${LOGISTICS_TOMBSTONE_PREFIX}${encodeURIComponent(id)}`,
+      name: '__deleted__',
+      createdAt: new Date(0).toISOString(),
+    })),
+  ];
+}
+
 function loadLogisticsDeletedEventIds(): string[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -2055,7 +2085,10 @@ async function fetchRemoteLogisticsState(accessToken: string): Promise<Logistics
     return null;
   }
 
-  const deletedEventIds = normalizeLogisticsDeletedEventIds(rows[0].deleted_event_ids);
+  const deletedEventIds = normalizeLogisticsDeletedEventIds([
+    ...normalizeLogisticsDeletedEventIds(rows[0].deleted_event_ids),
+    ...getEmbeddedLogisticsDeletedEventIds(rows[0].events),
+  ]);
   const deletedIds = new Set(deletedEventIds);
   return {
     events: normalizeLogisticsEvents(rows[0].events).filter((event) => !deletedIds.has(event.id)),
@@ -2084,7 +2117,7 @@ async function saveRemoteLogisticsState(
         headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify({
           id: LOGISTICS_SYNC_ID,
-          events: normalizeLogisticsEvents(mergedState.events),
+          events: embedLogisticsDeletedEventIds(normalizeLogisticsEvents(mergedState.events), mergedState.deletedEventIds),
           deleted_event_ids: mergedState.deletedEventIds,
           updated_at: updatedAt,
         }),
@@ -2100,7 +2133,7 @@ async function saveRemoteLogisticsState(
         headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify({
           id: LOGISTICS_SYNC_ID,
-          events: normalizeLogisticsEvents(mergedState.events),
+          events: embedLogisticsDeletedEventIds(normalizeLogisticsEvents(mergedState.events), mergedState.deletedEventIds),
           updated_at: updatedAt,
         }),
       },
