@@ -78,4 +78,20 @@ describe('Explorer schedule EPA', () => {
     expect(result.get('team-a')).toBeCloseTo(15, 3);
     expect(result.get('team-b')).toBeCloseTo(15, 3);
   });
+
+  it('decomposes a scored item from changing alliance partners instead of splitting every match in half', () => {
+    const result = solveRidgeEpa(
+      ['team-a', 'team-b', 'team-c'],
+      [
+        { teamIds: ['team-a', 'team-b'], total: 0, breakdown: { yellowBlock: 30 } },
+        { teamIds: ['team-a', 'team-c'], total: 0, breakdown: { yellowBlock: 50 } },
+        { teamIds: ['team-b', 'team-c'], total: 0, breakdown: { yellowBlock: 40 } },
+      ],
+      (observation) => observation.breakdown.yellowBlock,
+    );
+
+    expect(result.get('team-a')).toBeCloseTo(20, 3);
+    expect(result.get('team-b')).toBeCloseTo(10, 3);
+    expect(result.get('team-c')).toBeCloseTo(30, 3);
+  });
 });

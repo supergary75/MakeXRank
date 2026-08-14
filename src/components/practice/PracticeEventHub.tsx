@@ -422,9 +422,20 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams
   }));
   const teamIds = Array.from(teams.keys());
   const totalEpa = solveRidgeEpa(teamIds, observations, (observation) => observation.total);
-  const allianceShare = (breakdown: Record<string, number>, keys: string[]) => (
-    keys.reduce((sum, key) => sum + (Number(breakdown[key]) || 0), 0) / 2
+  const breakdownValue = (observation: AllianceScoreObservation, keys: string[]) => (
+    keys.reduce((sum, key) => sum + (Number(observation.breakdown[key]) || 0), 0)
   );
+  const metricEpa = {
+    bucket: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['cone'])),
+    flag: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['flag'])),
+    yellowBlock: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['yellowBlock'])),
+    redBlueBlock: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['colorBlock'])),
+    yellowBall: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['yellowNet', 'yellowFrame'])),
+    onlineBall: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['ballNet', 'ballFrame'])),
+    fieldBall: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['ball5', 'ball10', 'ball20'])),
+    penalty: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['violation', 'yellow', 'redCard'])),
+    redCard: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['redCard'])),
+  };
   return Array.from(teams.values()).flatMap((team) => {
     if (team.id.startsWith('virtual-team-')) return [];
     const teamAppearances = appearances.get(team.id) ?? [];
@@ -433,15 +444,15 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams
       team: label,
       round: index + 1,
       equity: 0,
-      bucket: Math.max(0, allianceShare(appearance.breakdown, ['cone'])),
-      flag: Math.max(0, allianceShare(appearance.breakdown, ['flag'])),
-      yellowBlock: Math.max(0, allianceShare(appearance.breakdown, ['yellowBlock'])),
-      redBlueBlock: Math.max(0, allianceShare(appearance.breakdown, ['colorBlock'])),
-      yellowBall: Math.max(0, allianceShare(appearance.breakdown, ['yellowNet', 'yellowFrame'])),
-      onlineBall: Math.max(0, allianceShare(appearance.breakdown, ['ballNet', 'ballFrame'])),
-      fieldBall: Math.max(0, allianceShare(appearance.breakdown, ['ball5', 'ball10', 'ball20'])),
-      penalty: Math.min(0, allianceShare(appearance.breakdown, ['violation', 'yellow', 'redCard'])),
-      redCard: Math.min(0, allianceShare(appearance.breakdown, ['redCard'])),
+      bucket: Math.max(0, metricEpa.bucket.get(team.id) ?? 0),
+      flag: Math.max(0, metricEpa.flag.get(team.id) ?? 0),
+      yellowBlock: Math.max(0, metricEpa.yellowBlock.get(team.id) ?? 0),
+      redBlueBlock: Math.max(0, metricEpa.redBlueBlock.get(team.id) ?? 0),
+      yellowBall: Math.max(0, metricEpa.yellowBall.get(team.id) ?? 0),
+      onlineBall: Math.max(0, metricEpa.onlineBall.get(team.id) ?? 0),
+      fieldBall: Math.max(0, metricEpa.fieldBall.get(team.id) ?? 0),
+      penalty: Math.min(0, metricEpa.penalty.get(team.id) ?? 0),
+      redCard: Math.min(0, metricEpa.redCard.get(team.id) ?? 0),
       contributionScore: appearance.totalScore / 2,
       epa: totalEpa.get(team.id) ?? 0,
       totalScore: appearance.totalScore,
