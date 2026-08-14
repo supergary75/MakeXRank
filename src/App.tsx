@@ -2007,6 +2007,11 @@ function getLogisticsEventCompletenessScore(event: LogisticsEventRecord): number
   );
 }
 
+function isMissingLogisticsDeletionColumn(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('deleted_event_ids') && (message.includes('42703') || message.includes('does not exist'));
+}
+
 async function fetchRemoteLogisticsState(accessToken: string): Promise<LogisticsCloudState | null> {
   const params = new URLSearchParams({
     select: 'id,events,deleted_event_ids,updated_at',
@@ -2014,10 +2019,24 @@ async function fetchRemoteLogisticsState(accessToken: string): Promise<Logistics
     limit: '1',
   });
 
-  const rows = await requestTrainingSync<LogisticsSyncRow[]>(
-    `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
-    accessToken,
-  );
+  let rows: LogisticsSyncRow[];
+  try {
+    rows = await requestTrainingSync<LogisticsSyncRow[]>(
+      `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
+      accessToken,
+    );
+  } catch (error) {
+    if (!isMissingLogisticsDeletionColumn(error)) throw error;
+    const legacyParams = new URLSearchParams({
+      select: 'id,events,updated_at',
+      id: `eq.${LOGISTICS_SYNC_ID}`,
+      limit: '1',
+    });
+    rows = await requestTrainingSync<LogisticsSyncRow[]>(
+      `/rest/v1/${LOGISTICS_SYNC_TABLE}?${legacyParams.toString()}`,
+      accessToken,
+    );
+  }
 
   if (!rows.length) {
     return null;
@@ -2041,22 +2060,39 @@ async function saveRemoteLogisticsState(
   const remoteState = await fetchRemoteLogisticsState(accessToken);
   const mergedState = mergeLogisticsState({ events, deletedEventIds }, remoteState);
 
-  const rows = await requestTrainingSync<LogisticsSyncRow[]>(
-    `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
-    accessToken,
-    {
-      method: 'POST',
-      headers: {
-        Prefer: 'resolution=merge-duplicates,return=representation',
+  const updatedAt = new Date().toISOString();
+  let rows: LogisticsSyncRow[];
+  try {
+    rows = await requestTrainingSync<LogisticsSyncRow[]>(
+      `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
+      accessToken,
+      {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify({
+          id: LOGISTICS_SYNC_ID,
+          events: normalizeLogisticsEvents(mergedState.events),
+          deleted_event_ids: mergedState.deletedEventIds,
+          updated_at: updatedAt,
+        }),
       },
-      body: JSON.stringify({
-        id: LOGISTICS_SYNC_ID,
-        events: normalizeLogisticsEvents(mergedState.events),
-        deleted_event_ids: mergedState.deletedEventIds,
-        updated_at: new Date().toISOString(),
-      }),
-    },
-  );
+    );
+  } catch (error) {
+    if (!isMissingLogisticsDeletionColumn(error)) throw error;
+    rows = await requestTrainingSync<LogisticsSyncRow[]>(
+      `/rest/v1/${LOGISTICS_SYNC_TABLE}?${params.toString()}`,
+      accessToken,
+      {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify({
+          id: LOGISTICS_SYNC_ID,
+          events: normalizeLogisticsEvents(mergedState.events),
+          updated_at: updatedAt,
+        }),
+      },
+    );
+  }
 
   return rows[0]?.updated_at ?? null;
 }
