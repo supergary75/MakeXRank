@@ -100,9 +100,25 @@ export function registerPwaFeatures(): void {
 
   if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
-      window.navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
-        // The app remains usable if browser policy blocks service worker registration.
+      let isReloadingForUpdate = false;
+      window.navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (isReloadingForUpdate) return;
+        isReloadingForUpdate = true;
+        window.location.reload();
       });
+
+      window.navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: 'none' })
+        .then((registration) => {
+          const checkForUpdate = () => void registration.update().catch(() => undefined);
+          checkForUpdate();
+          window.setInterval(checkForUpdate, 5 * 60 * 1000);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') checkForUpdate();
+          });
+        })
+        .catch(() => {
+          // The app remains usable if browser policy blocks service worker registration.
+        });
     });
   }
 
