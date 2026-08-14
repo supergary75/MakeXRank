@@ -12,13 +12,12 @@ export function mergePracticeTeams(...teamSets: PracticeTeam[][]): PracticeTeam[
   const merged: PracticeTeam[] = [];
   teamSets.flat().forEach((team) => {
     const eventKey = normalizeEventItem(team.eventItem);
-    const numberKey = normalizeTeamIdentity(team.teamNo);
     const nameKey = normalizeTeamIdentity(team.teamName);
     const current = merged.find((candidate) => normalizeEventItem(candidate.eventItem) === eventKey
-      && ((numberKey && normalizeTeamIdentity(candidate.teamNo) === numberKey)
-        || (nameKey && normalizeTeamIdentity(candidate.teamName) === nameKey)));
+      && nameKey
+      && normalizeTeamIdentity(candidate.teamName) === nameKey);
     if (!current) {
-      const key = `${eventKey}::${numberKey || nameKey}`;
+      const key = `${eventKey}::${nameKey || `unnamed-${merged.length + 1}`}`;
       merged.push({ ...team, id: key, members: [...team.members] });
       return;
     }

@@ -24,6 +24,15 @@ describe('mergePracticeTeams', () => {
 
     expect(teams).toHaveLength(2);
   });
+
+  it('does not merge different names merely because their team numbers match', () => {
+    const teams = mergePracticeTeams(
+      [{ id: 'first', eventItem: 'MakeX Explorer', teamNo: '152346', teamName: '原力觉醒', members: [] }],
+      [{ id: 'second', eventItem: 'MakeX Explorer', teamNo: '152346', teamName: '另一支赛队', members: [] }],
+    );
+
+    expect(teams).toHaveLength(2);
+  });
 });
 
 describe('generateExplorerSchedule', () => {

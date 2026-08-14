@@ -329,10 +329,8 @@ function buildPracticeTeams(source: PracticeLogisticsEvent, selectedEventItem: s
     && matchesEventItem(participant.eventItem, selectedEventItem)).forEach((participant) => {
     const teamNo = participant.teamNo.trim() || '未填写编号';
     const teamName = participant.teamName.trim() || teamNo;
-    const normalizedTeamNo = teamNo.replace(/\s+/g, '').toLowerCase();
     const normalizedTeamName = teamName.replace(/\s+/g, '').toLowerCase();
-    const teamIdentity = normalizedTeamNo && !teamNo.includes('未填写') ? normalizedTeamNo : normalizedTeamName;
-    const key = `${normalizeEventItem(selectedEventItem)}::${teamIdentity}`;
+    const key = `${normalizeEventItem(selectedEventItem)}::${normalizedTeamName}`;
     const team = groups.get(key) ?? { id: key, eventItem: selectedEventItem, teamNo, teamName, isKClub: true, members: [] };
     if (!team.members.some((member) => member.id === participant.id)) {
       team.members.push({ id: participant.id, name: participant.name });
@@ -349,18 +347,28 @@ function normalizeTeamIdentity(value: string): string {
 function getExplorerScheduleRanking(
   schedule: PracticeMatch[],
   results: Record<string, ScoreCalculatorResult>,
+  canonicalTeams: PracticeTeam[] = [],
 ) {
+  const resolveTeam = (team: PracticeTeam) => canonicalTeams.find((candidate) => (
+    normalizeEventItem(candidate.eventItem) === normalizeEventItem(team.eventItem)
+    && normalizeTeamIdentity(candidate.teamName)
+    && normalizeTeamIdentity(candidate.teamName) === normalizeTeamIdentity(team.teamName)
+  )) ?? team;
   return Array.from(new Map(
     schedule.flatMap((match) => [match.red1, match.red2, match.blue1, match.blue2])
-      .map((team) => [team.id, team]),
+      .map(resolveTeam)
+      .map((team) => [`${normalizeEventItem(team.eventItem)}::${normalizeTeamIdentity(team.teamName)}`, team]),
   ).values()).map((team) => {
     let played = 0; let wins = 0; let draws = 0; let losses = 0;
     let rankingPoints = 0; let totalScore = 0; let netScore = 0;
     schedule.forEach((match) => {
       const result = results[match.id];
       if (!result) return;
-      const isRed = match.red1.id === team.id || match.red2.id === team.id;
-      const isBlue = match.blue1.id === team.id || match.blue2.id === team.id;
+      const teamName = normalizeTeamIdentity(team.teamName);
+      const isRed = normalizeTeamIdentity(match.red1.teamName) === teamName
+        || normalizeTeamIdentity(match.red2.teamName) === teamName;
+      const isBlue = normalizeTeamIdentity(match.blue1.teamName) === teamName
+        || normalizeTeamIdentity(match.blue2.teamName) === teamName;
       if (!isRed && !isBlue) return;
       played += 1;
       const own = isRed ? result.redScore : result.blueScore;
@@ -382,8 +390,8 @@ function getExplorerScheduleRanking(
 function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams: PracticeTeam[] = []): PracticeExplorerMatchRow[] {
   const resolveTeam = (team: PracticeTeam) => canonicalTeams.find((candidate) => (
     normalizeEventItem(candidate.eventItem) === normalizeEventItem(team.eventItem)
-    && ((normalizeTeamIdentity(candidate.teamNo) && normalizeTeamIdentity(candidate.teamNo) === normalizeTeamIdentity(team.teamNo))
-      || (normalizeTeamIdentity(candidate.teamName) && normalizeTeamIdentity(candidate.teamName) === normalizeTeamIdentity(team.teamName)))
+    && normalizeTeamIdentity(candidate.teamName)
+    && normalizeTeamIdentity(candidate.teamName) === normalizeTeamIdentity(team.teamName)
   )) ?? team;
   const teams = new Map<string, PracticeTeam>();
   const appearances = new Map<string, Array<{
@@ -455,8 +463,8 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
   });
   const isKClubTeam = (team: PracticeTeam) => Boolean(
     team.isKClub || teams.some((candidate) => candidate.isKClub && (
-      (candidate.teamNo.trim() && candidate.teamNo.trim().toLowerCase() === team.teamNo.trim().toLowerCase())
-      || (candidate.teamName.trim() && candidate.teamName.trim().toLowerCase() === team.teamName.trim().toLowerCase())
+      candidate.teamName.trim()
+      && normalizeTeamIdentity(candidate.teamName) === normalizeTeamIdentity(team.teamName)
     )),
   );
   const renderTeamName = (team: PracticeTeam) => (
@@ -587,7 +595,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
     {cards.length === 0 && <div className={styles.scheduleEmpty}>尚未生成赛程。点击“生成随机赛程”后，会在这里新增第一张赛程卡。</div>}
     <div className={styles.scheduleCardList}>{cards.map((card, cardIndex) => {
       const isOpen = openScheduleCardId === card.id;
-      const ranking = isOpen ? getExplorerScheduleRanking(card.schedule, card.results) : [];
+      const ranking = isOpen ? getExplorerScheduleRanking(card.schedule, card.results, teams) : [];
       const cardAnalysisRows = isOpen ? buildScheduleAnalysisRows([card], teams) : [];
       const cardInsights = isOpen ? buildPracticeExplorerInsights(cardAnalysisRows) : [];
       const cardMetricRankings = isOpen ? getPracticeExplorerMetricRankings(cardAnalysisRows) : [];
