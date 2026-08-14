@@ -6,7 +6,11 @@ import {
   type PracticeMatch,
   type PracticeTeam,
 } from '../../utils/practiceScheduleGenerator';
-import type { PracticeExplorerMatchRow } from '../../utils/practiceExplorerAnalysis';
+import {
+  buildPracticeExplorerInsights,
+  getPracticeExplorerMetricRankings,
+  type PracticeExplorerMatchRow,
+} from '../../utils/practiceExplorerAnalysis';
 import { solveRidgeEpa, type AllianceScoreObservation } from '../../utils/practiceEpa';
 import { getValidAccessToken } from '../../services/authService';
 import { mergePracticeTeams } from '../../utils/practiceTeamMerge';
@@ -584,6 +588,9 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
     <div className={styles.scheduleCardList}>{cards.map((card, cardIndex) => {
       const isOpen = openScheduleCardId === card.id;
       const ranking = isOpen ? getExplorerScheduleRanking(card.schedule, card.results) : [];
+      const cardAnalysisRows = isOpen ? buildScheduleAnalysisRows([card], teams) : [];
+      const cardInsights = isOpen ? buildPracticeExplorerInsights(cardAnalysisRows) : [];
+      const cardMetricRankings = isOpen ? getPracticeExplorerMetricRankings(cardAnalysisRows) : [];
       const completedMatches = Object.keys(card.results).length;
       return <article className={styles.scheduleCard} key={card.id}>
         <div className={styles.scheduleCardHeader}><div><small>赛程卡 {cardIndex + 1}</small><h3>Explorer 资格排位赛 · 赛程与成绩</h3><span>{card.fieldCount} 个场地 · {card.schedule.length} 场 · 已计分 {completedMatches} 场{card.createdAt ? ` · ${new Date(card.createdAt).toLocaleString('zh-CN')}` : ''}</span></div><div className={styles.scheduleCardActions}><button type="button" onClick={() => setOpenScheduleCardId(isOpen ? null : card.id)}>{isOpen ? '收起赛程卡' : '进入赛程卡'}</button><button type="button" className={styles.deleteScheduleCardButton} onClick={() => deleteScheduleCard(card, cardIndex)}>删除赛程卡</button></div></div>
@@ -616,7 +623,23 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
             </article>;
           })}
         </div>
-        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>联盟总得分</th><th>平均贡献分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{renderTeamName(row.team)}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{Math.round(row.averageContribution)}</td><td>{row.netScore}</td></tr>)}</tbody></table></div></>}
+        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>联盟总得分</th><th>平均贡献分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{renderTeamName(row.team)}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{Math.round(row.averageContribution)}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>
+        <section className={styles.cardAnalysis}>
+          <div className={styles.schedulePublicTitle}>赛程卡 {cardIndex + 1} · 单卡能力分析</div>
+          <p>这里只统计当前赛程卡的已计分比赛；回归 EPA 也仅使用本卡的红蓝联盟组合重新估算，不与其他赛程卡混合。</p>
+          {cardAnalysisRows.length === 0 ? <div className={styles.scheduleEmpty}>本赛程卡暂无已计分比赛。</div> : <>
+            <div className={styles.cardInsightGrid}>{cardInsights.map((insight) => <article key={insight.team}>
+              <strong>{insight.team}</strong>
+              <span>本卡场次 {insight.matches}</span>
+              <span>本卡平均贡献 {Math.round(insight.averageContribution)}</span>
+              <span>本卡回归 EPA {Math.round(insight.averageEpa)}</span>
+            </article>)}</div>
+            <div className={styles.cardMetricGrid}>{cardMetricRankings.map((metric) => <article key={metric.key}>
+              <h4>{metric.label}</h4>
+              {metric.teams.map((team, index) => <div key={`${metric.key}-${team.team}`}><span>{index + 1}. {team.team}</span><strong>{Math.round(team.best)}</strong></div>)}
+            </article>)}</div>
+          </>}
+        </section></>}
       </article>;
     })}</div>
     {activeScoreMatch && <ScoreCalculator

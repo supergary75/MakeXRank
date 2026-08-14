@@ -63,7 +63,7 @@
   .mobileMatchList,
   .mobileMatchCard,
   .mobileAlliance,
-  .rankingWrap {
+.rankingWrap {
     min-width:0;
     width:100%;
     max-width:100%;
@@ -119,6 +119,60 @@
   .mobileAlliance p { overflow-wrap:anywhere; word-break:break-word; }
   .rankingWrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .rankingTable { min-width:680px; }
+}
+
+.cardAnalysis {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(76, 125, 230, 0.22);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 255, 0.92));
+}
+
+.cardAnalysis > p {
+  margin: 0.75rem 0 1rem;
+  color: #617392;
+}
+
+.cardInsightGrid,
+.cardMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.cardInsightGrid article,
+.cardMetricGrid article {
+  padding: 1rem;
+  border: 1px solid rgba(76, 125, 230, 0.16);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.cardInsightGrid article {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cardInsightGrid span,
+.cardMetricGrid span {
+  color: #607390;
+}
+
+.cardMetricGrid {
+  margin-top: 0.8rem;
+}
+
+.cardMetricGrid h4 {
+  margin: 0 0 0.65rem;
+}
+
+.cardMetricGrid article > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid rgba(76, 125, 230, 0.1);
 }
 @media (max-width:420px) {
   .scheduleCardActions { grid-template-columns:1fr; }
