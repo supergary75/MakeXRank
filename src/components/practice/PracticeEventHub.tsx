@@ -384,7 +384,7 @@ function getExplorerScheduleRanking(
   }).sort((a, b) => b.rankingPoints - a.rankingPoints
     || b.totalScore - a.totalScore
     || b.netScore - a.netScore
-    || a.team.teamNo.localeCompare(b.team.teamNo));
+    || a.team.teamName.localeCompare(b.team.teamName, 'zh-CN'));
 }
 
 function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams: PracticeTeam[] = []): PracticeExplorerMatchRow[] {
@@ -439,7 +439,7 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams
   return Array.from(teams.values()).flatMap((team) => {
     if (team.id.startsWith('virtual-team-')) return [];
     const teamAppearances = appearances.get(team.id) ?? [];
-    const label = `${team.teamNo} · ${team.teamName}`;
+    const label = team.teamName;
     return teamAppearances.map((appearance, index): PracticeExplorerMatchRow => ({
       team: label,
       round: index + 1,
@@ -617,7 +617,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
           <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
           <table className={styles.scheduleTable}>
             <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
-            <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><strong>{team.teamNo}</strong><span>{renderTeamName(team)}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
+            <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><span>{renderTeamName(team)}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
           </table>
         </div>
         <div className={styles.mobileMatchList}>
@@ -631,18 +631,18 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
               </div>
               <div className={`${styles.mobileAlliance} ${styles.mobileRedAlliance}`}>
                 <div><b>红方</b><strong>{result ? result.redScore : '待计分'}</strong></div>
-                <p><span>{match.red1.teamNo}</span>{renderTeamName(match.red1)}</p>
-                <p><span>{match.red2.teamNo}</span>{renderTeamName(match.red2)}</p>
+                <p>{renderTeamName(match.red1)}</p>
+                <p>{renderTeamName(match.red2)}</p>
               </div>
               <div className={`${styles.mobileAlliance} ${styles.mobileBlueAlliance}`}>
                 <div><b>蓝方</b><strong>{result ? result.blueScore : '待计分'}</strong></div>
-                <p><span>{match.blue1.teamNo}</span>{renderTeamName(match.blue1)}</p>
-                <p><span>{match.blue2.teamNo}</span>{renderTeamName(match.blue2)}</p>
+                <p>{renderTeamName(match.blue1)}</p>
+                <p>{renderTeamName(match.blue2)}</p>
               </div>
             </article>;
           })}
         </div>
-        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>队号</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>联盟总得分</th><th>平均贡献分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{row.team.teamNo}</td><td>{renderTeamName(row.team)}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{Math.round(row.averageContribution)}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>
+        <div className={styles.rankingWrap}><div className={styles.schedulePublicTitle}>Explorer 资格赛实时排名</div><table className={styles.rankingTable}><thead><tr><th>排名</th><th>赛队名称</th><th>已赛</th><th>胜-平-负</th><th>排名积分</th><th>联盟总得分</th><th>平均贡献分</th><th>净胜分</th></tr></thead><tbody>{ranking.map((row, index) => <tr key={row.team.id}><td><strong>{index + 1}</strong></td><td>{renderTeamName(row.team)}</td><td>{row.played}</td><td>{row.wins}-{row.draws}-{row.losses}</td><td><strong>{row.rankingPoints}</strong></td><td>{row.totalScore}</td><td>{Math.round(row.averageContribution)}</td><td>{row.netScore}</td></tr>)}</tbody></table></div>
         <section className={styles.cardAnalysis}>
           <div className={styles.schedulePublicTitle}>赛程卡 {cardIndex + 1} · 单卡能力分析</div>
           <p>这里只统计当前赛程卡的已计分比赛；回归 EPA 也仅使用本卡的红蓝联盟组合重新估算，不与其他赛程卡混合。</p>
@@ -679,7 +679,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
         if (!validAccessToken) throw new Error('登录状态已失效，请重新登录后再保存。');
         await saveRemoteExplorerScheduleState(nextState, validAccessToken);
       }}
-      matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: `${activeScoreMatch.match.red1.teamNo} ${formatTeamName(activeScoreMatch.match.red1)}`, red2: `${activeScoreMatch.match.red2.teamNo} ${formatTeamName(activeScoreMatch.match.red2)}`, blue1: `${activeScoreMatch.match.blue1.teamNo} ${formatTeamName(activeScoreMatch.match.blue1)}`, blue2: `${activeScoreMatch.match.blue2.teamNo} ${formatTeamName(activeScoreMatch.match.blue2)}` }}
+      matchInfo={{ field: `场地${activeScoreMatch.match.field}`, matchNo: String(activeScoreMatch.match.slot), red1: formatTeamName(activeScoreMatch.match.red1), red2: formatTeamName(activeScoreMatch.match.red2), blue1: formatTeamName(activeScoreMatch.match.blue1), blue2: formatTeamName(activeScoreMatch.match.blue2) }}
     />}
   </section>;
 }
