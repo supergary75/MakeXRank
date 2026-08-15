@@ -50,10 +50,12 @@ export interface PracticeExplorerMetricLeader {
 export interface PracticeExplorerMetricRanking {
   key: keyof PracticeExplorerMatchRow;
   label: string;
+  aggregation: 'best' | 'average';
   teams: Array<{
     team: string;
     best: number;
     average: number;
+    value: number;
     matches: number;
   }>;
 }
@@ -89,16 +91,16 @@ const COLUMN_ALIASES: Record<PracticeColumnKey, string[]> = {
   totalScore: ['总分'],
 };
 
-const METRICS: Array<{ key: keyof PracticeExplorerMatchRow; label: string }> = [
-  { key: 'totalScore', label: '单场总分' },
-  { key: 'contributionScore', label: '平均贡献分' },
-  { key: 'epa', label: '回归 EPA' },
-  { key: 'onlineBall', label: '红蓝球（网上）' },
-  { key: 'fieldBall', label: '红蓝球（绿地）' },
-  { key: 'yellowBall', label: '黄球' },
-  { key: 'bucket', label: '桶' },
-  { key: 'yellowBlock', label: '黄方块' },
-  { key: 'redBlueBlock', label: '红蓝方块' },
+const METRICS: Array<{ key: keyof PracticeExplorerMatchRow; label: string; aggregation: 'best' | 'average' }> = [
+  { key: 'totalScore', label: '单场最高总分', aggregation: 'best' },
+  { key: 'contributionScore', label: '平均贡献分', aggregation: 'average' },
+  { key: 'epa', label: '回归 EPA', aggregation: 'average' },
+  { key: 'onlineBall', label: '红蓝球（网上）', aggregation: 'best' },
+  { key: 'fieldBall', label: '红蓝球（绿地）', aggregation: 'best' },
+  { key: 'yellowBall', label: '黄球', aggregation: 'best' },
+  { key: 'bucket', label: '桶', aggregation: 'best' },
+  { key: 'yellowBlock', label: '黄方块', aggregation: 'best' },
+  { key: 'redBlueBlock', label: '红蓝方块', aggregation: 'best' },
 ];
 
 function normalizeCell(value: string): string {
@@ -463,22 +465,26 @@ export function getPracticeExplorerMetricRankings(rows: PracticeExplorerMatchRow
     grouped.set(row.team, [...(grouped.get(row.team) ?? []), row]);
   });
 
-  return METRICS.map(({ key, label }) => ({
+  return METRICS.map(({ key, label, aggregation }) => ({
     key,
     label,
+    aggregation,
     teams: Array.from(grouped.entries())
       .map(([team, teamRows]) => {
         const values = teamRows.map((row) => Number(row[key]) || 0);
+        const best = Math.max(...values);
+        const mean = average(values);
         return {
           team,
-          best: Math.max(...values),
-          average: average(values),
+          best,
+          average: mean,
+          value: aggregation === 'average' ? mean : best,
           matches: teamRows.length,
         };
       })
       .sort((left, right) => {
-        if (right.best !== left.best) {
-          return right.best - left.best;
+        if (right.value !== left.value) {
+          return right.value - left.value;
         }
 
         if (right.average !== left.average) {

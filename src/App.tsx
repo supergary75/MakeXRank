@@ -2755,6 +2755,23 @@ export default function App() {
     () => getPracticeExplorerMetricRankings(practiceExplorerAnalysisRows),
     [practiceExplorerAnalysisRows],
   );
+  const historicalExplorerEpaValues = useMemo(() => {
+    const valuesByTeam = new Map<string, number[]>();
+    competitions
+      .filter((competition) => competition.eventType === 'MakeX Explorer')
+      .forEach((competition) => {
+        calculateRanking(competition.teamsData, competition.eventType).forEach((team) => {
+          const value = Number.parseFloat(team.epa);
+          if (!team.totalMatches || !Number.isFinite(value)) return;
+          const key = team.team.trim().replace(/\s+/g, '').toLowerCase();
+          if (!key) return;
+          valuesByTeam.set(key, [...(valuesByTeam.get(key) ?? []), value]);
+        });
+      });
+    return Array.from(valuesByTeam.values())
+      .map((values) => values.reduce((sum, value) => sum + value, 0) / values.length)
+      .sort((left, right) => right - left);
+  }, [competitions]);
   const filteredPracticeExplorerInsights = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
     return keyword
@@ -10150,6 +10167,7 @@ export default function App() {
               <ExplorerScheduleGenerator
                 accessToken={getStoredAccessToken() ?? undefined}
                 onAnalysisRowsChange={setSchedulePracticeExplorerRows}
+                historicalExplorerEpaValues={historicalExplorerEpaValues}
               />
 
               <section className={styles.diagnosticPanel}>
@@ -10254,7 +10272,7 @@ export default function App() {
                       <article key={ranking.key} className={styles.metricRankingCard}>
                         <div className={styles.metricRankingTitle}>
                           <span>{ranking.label}</span>
-                          <strong>{Math.round(ranking.teams[0]?.best ?? 0)}</strong>
+                          <strong>{Math.round(ranking.teams[0]?.value ?? 0)}</strong>
                           <small>{ranking.teams[0]?.team ?? '暂无数据'}</small>
                         </div>
                         <div className={styles.metricRankingList}>
@@ -10262,7 +10280,7 @@ export default function App() {
                             <div key={`${ranking.key}-${team.team}`} className={styles.metricRankingRow}>
                               <span className={styles.metricRankingOrder}>{index + 1}</span>
                               <span className={styles.metricRankingTeam}>{team.team}{isKClubTeamLabel(team.team) && <span className={styles.kcTeamBadge}>KC</span>}</span>
-                              <strong>{Math.round(team.best)}</strong>
+                              <strong>{Math.round(team.value)}</strong>
                               <small>均值 {Math.round(team.average)}</small>
                             </div>
                           ))}

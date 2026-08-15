@@ -56,6 +56,7 @@ interface PracticeEventHubProps {
 interface ExplorerScheduleGeneratorProps {
   accessToken?: string;
   onAnalysisRowsChange?: (rows: PracticeExplorerMatchRow[]) => void;
+  historicalExplorerEpaValues?: number[];
 }
 
 interface ExplorerScheduleCard {
@@ -462,7 +463,7 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams
   });
 }
 
-export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }: ExplorerScheduleGeneratorProps) {
+export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, historicalExplorerEpaValues = [] }: ExplorerScheduleGeneratorProps) {
   const roundsPerTeam = 4;
   const [scheduleState, setScheduleState] = useState<ExplorerScheduleState>(loadExplorerScheduleState);
   const [scheduleCloudReady, setScheduleCloudReady] = useState(false);
@@ -665,15 +666,26 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
           <div className={styles.schedulePublicTitle}>赛程卡 {cardIndex + 1} · 单卡能力分析</div>
           <p>这里只统计当前赛程卡的已计分比赛；回归 EPA 也仅使用本卡的红蓝联盟组合重新估算，不与其他赛程卡混合。</p>
           {cardAnalysisRows.length === 0 ? <div className={styles.scheduleEmpty}>本赛程卡暂无已计分比赛。</div> : <>
-            <div className={styles.cardInsightGrid}>{cardInsights.map((insight) => <article key={insight.team}>
+            <div className={styles.cardInsightGrid}>{cardInsights.map((insight) => {
+              const historicalRank = historicalExplorerEpaValues.length
+                ? 1 + historicalExplorerEpaValues.filter((value) => value > insight.averageEpa).length
+                : null;
+              const historicalPercentile = historicalRank == null
+                ? null
+                : Math.max(1, Math.ceil(historicalRank / historicalExplorerEpaValues.length * 100));
+              return <article key={insight.team}>
               <strong>{insight.team}</strong>
               <span>本卡场次 {insight.matches}</span>
               <span>本卡平均贡献 {Math.round(insight.averageContribution)}</span>
-              <span>本卡回归 EPA {Math.round(insight.averageEpa)}</span>
-            </article>)}</div>
+              <span>本卡平均 EPA {Math.round(insight.averageEpa)}</span>
+              <span>{historicalRank == null
+                ? 'Explorer 历史参考：暂无正式赛事数据'
+                : `Explorer 历史参考：第 ${historicalRank} / ${historicalExplorerEpaValues.length} · 前 ${historicalPercentile}%`}</span>
+            </article>;
+            })}</div>
             <div className={styles.cardMetricGrid}>{cardMetricRankings.map((metric) => <article key={metric.key}>
               <h4>{metric.label}</h4>
-              {metric.teams.map((team, index) => <div key={`${metric.key}-${team.team}`}><span>{index + 1}. {team.team}</span><strong>{Math.round(team.best)}</strong></div>)}
+              {metric.teams.map((team, index) => <div key={`${metric.key}-${team.team}`}><span>{index + 1}. {team.team}</span><strong>{Math.round(team.value)}</strong></div>)}
             </article>)}</div>
           </>}
         </section></>}
