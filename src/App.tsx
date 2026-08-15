@@ -172,6 +172,41 @@ const TEAM_TAG_SYNC_ID = 'global';
 const LOGISTICS_SYNC_TABLE = import.meta.env.VITE_SUPABASE_LOGISTICS_SYNC_TABLE?.trim() || 'logistics_sync';
 const LOGISTICS_SYNC_ID = 'global';
 const LOGISTICS_TOMBSTONE_PREFIX = '__makexrank_deleted_logistics__:';
+const VIEW_MODES: ViewMode[] = [
+  'home', 'login', 'my-tasks', 'event-types', 'logistics', 'logistics-roster',
+  'logistics-event', 'logistics-event-roster', 'logistics-event-rooms',
+  'training-plan', 'training-event', 'simulation-system', 'score-calculator',
+  'practice-analysis', 'practice-explorer', 'lobby', 'competition',
+];
+
+interface NavigationSnapshot {
+  viewMode: ViewMode;
+  activeCompetitionId: string | null;
+  activeLogisticsEventId: string | null;
+  activeLogisticsEventItem: string | null;
+  activeTrainingEventId: string | null;
+  activeLogisticsRosterSourceId: string | null;
+  selectedEventType: EventType | null;
+  activeTab: TabName;
+}
+
+function readNavigationSnapshot(): NavigationSnapshot {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const requestedView = params.get('view') as ViewMode | null;
+  const requestedEventType = params.get('event') as EventType | null;
+  const requestedTab = params.get('tab') as TabName | null;
+
+  return {
+    viewMode: requestedView && VIEW_MODES.includes(requestedView) ? requestedView : 'home',
+    activeCompetitionId: params.get('competition'),
+    activeLogisticsEventId: params.get('logisticsEvent'),
+    activeLogisticsEventItem: params.get('logisticsItem'),
+    activeTrainingEventId: params.get('trainingEvent'),
+    activeLogisticsRosterSourceId: params.get('rosterSource'),
+    selectedEventType: requestedEventType && EVENT_TYPES.includes(requestedEventType) ? requestedEventType : null,
+    activeTab: requestedTab === 'playoff' || requestedTab === 'focusSchedule' ? requestedTab : 'ranking',
+  };
+}
 
 interface PracticeExplorerState {
   sourceText: string;
@@ -2386,15 +2421,20 @@ function mergeCompetitionsForSync(
 }
 
 export default function App() {
+  const initialNavigationRef = useRef<NavigationSnapshot | null>(null);
+  if (!initialNavigationRef.current) {
+    initialNavigationRef.current = readNavigationSnapshot();
+  }
+  const initialNavigation = initialNavigationRef.current;
   const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCachedCompetitions());
-  const [viewMode, setViewMode] = useState<ViewMode>('home');
-  const [activeCompetitionId, setActiveCompetitionId] = useState<string | null>(null);
-  const [activeLogisticsEventId, setActiveLogisticsEventId] = useState<string | null>(null);
-  const [activeLogisticsEventItem, setActiveLogisticsEventItem] = useState<string | null>(null);
-  const [selectedEventType, setSelectedEventType] = useState<EventType | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>(initialNavigation.viewMode);
+  const [activeCompetitionId, setActiveCompetitionId] = useState<string | null>(initialNavigation.activeCompetitionId);
+  const [activeLogisticsEventId, setActiveLogisticsEventId] = useState<string | null>(initialNavigation.activeLogisticsEventId);
+  const [activeLogisticsEventItem, setActiveLogisticsEventItem] = useState<string | null>(initialNavigation.activeLogisticsEventItem);
+  const [selectedEventType, setSelectedEventType] = useState<EventType | null>(initialNavigation.selectedEventType);
   const [sortField, setSortField] = useState<SortField>('totalWinLossScore');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [activeTab, setActiveTab] = useState<TabName>('ranking');
+  const [activeTab, setActiveTab] = useState<TabName>(initialNavigation.activeTab);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [awaitingPaste, setAwaitingPaste] = useState(false);
   const [storageMode, setStorageMode] = useState<StorageMode>(() => getPreferredStorageMode());
@@ -2448,7 +2488,7 @@ export default function App() {
   const [logisticsMasterInputOpen, setLogisticsMasterInputOpen] = useState(false);
   const [logisticsRosterPassword, setLogisticsRosterPassword] = useState('');
   const [logisticsRosterUnlocked, setLogisticsRosterUnlocked] = useState(false);
-  const [activeLogisticsRosterSourceId, setActiveLogisticsRosterSourceId] = useState<string | null>(null);
+  const [activeLogisticsRosterSourceId, setActiveLogisticsRosterSourceId] = useState<string | null>(initialNavigation.activeLogisticsRosterSourceId);
   const [logisticsAlertNow, setLogisticsAlertNow] = useState(() => new Date());
   const [trainingEvents, setTrainingEvents] = useState<TrainingEventRecord[]>(() => loadTrainingEvents());
   const [selectedTrainingLogisticsEventId, setSelectedTrainingLogisticsEventId] = useState('');
@@ -2470,7 +2510,7 @@ export default function App() {
     notes: '',
     createdAt: '',
   });
-  const [activeTrainingEventId, setActiveTrainingEventId] = useState<string | null>(null);
+  const [activeTrainingEventId, setActiveTrainingEventId] = useState<string | null>(initialNavigation.activeTrainingEventId);
   const [trainingOverviewMonth, setTrainingOverviewMonth] = useState(() => {
     const firstDatedEvent = loadTrainingEvents().find((event) => event.date);
     return getMonthKey(firstDatedEvent?.date || getTodayKey());
@@ -2498,6 +2538,28 @@ export default function App() {
   const logisticsDeletedEventIdsRef = useRef(logisticsDeletedEventIds);
   const logisticsFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsDocumentImageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('view', viewMode);
+    if (activeCompetitionId) params.set('competition', activeCompetitionId);
+    if (activeLogisticsEventId) params.set('logisticsEvent', activeLogisticsEventId);
+    if (activeLogisticsEventItem) params.set('logisticsItem', activeLogisticsEventItem);
+    if (activeTrainingEventId) params.set('trainingEvent', activeTrainingEventId);
+    if (activeLogisticsRosterSourceId) params.set('rosterSource', activeLogisticsRosterSourceId);
+    if (selectedEventType) params.set('event', selectedEventType);
+    if (activeTab !== 'ranking') params.set('tab', activeTab);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${params.toString()}`);
+  }, [
+    activeCompetitionId,
+    activeLogisticsEventId,
+    activeLogisticsEventItem,
+    activeLogisticsRosterSourceId,
+    activeTab,
+    activeTrainingEventId,
+    selectedEventType,
+    viewMode,
+  ]);
   const logisticsMasterFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsMasterDocumentImageInputRef = useRef<HTMLInputElement>(null);
   const { notifications, showNotification } = useNotification();

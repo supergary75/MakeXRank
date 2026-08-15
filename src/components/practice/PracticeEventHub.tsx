@@ -85,6 +85,8 @@ const PRACTICE_SYNC_TABLE = import.meta.env.VITE_SUPABASE_PRACTICE_SYNC_TABLE?.t
 const PRACTICE_SYNC_ID = 'shared-practice-state';
 const EXPLORER_SCHEDULE_STORAGE_KEY = 'makexrank::explorer-schedule-state';
 const EXPLORER_SCHEDULE_SYNC_ID = 'shared-explorer-schedule-state';
+const ACTIVE_PRACTICE_EVENT_KEY = 'makexrank::active-practice-event';
+const OPEN_SCHEDULE_CARD_KEY = 'makexrank::open-explorer-schedule-card';
 
 const EMPTY_EXPLORER_SCHEDULE_STATE: ExplorerScheduleState = {
   fieldCount: 1,
@@ -466,7 +468,9 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
   const [scheduleCloudReady, setScheduleCloudReady] = useState(false);
   const [message, setMessage] = useState('');
   const [activeScoreMatch, setActiveScoreMatch] = useState<{ cardId: string; match: PracticeMatch } | null>(null);
-  const [openScheduleCardId, setOpenScheduleCardId] = useState<string | null>(null);
+  const [openScheduleCardId, setOpenScheduleCardId] = useState<string | null>(() =>
+    window.sessionStorage.getItem(OPEN_SCHEDULE_CARD_KEY),
+  );
   const scheduleUpdatedAtRef = useRef(scheduleState.updatedAt);
   const { fieldCount, cards } = scheduleState;
   const [teams] = useState<PracticeTeam[]>(() => {
@@ -487,6 +491,20 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange }:
     saveExplorerScheduleState(scheduleState);
     scheduleUpdatedAtRef.current = scheduleState.updatedAt;
   }, [scheduleState]);
+
+  useEffect(() => {
+    if (openScheduleCardId) {
+      window.sessionStorage.setItem(OPEN_SCHEDULE_CARD_KEY, openScheduleCardId);
+    } else {
+      window.sessionStorage.removeItem(OPEN_SCHEDULE_CARD_KEY);
+    }
+  }, [openScheduleCardId]);
+
+  useEffect(() => {
+    if (openScheduleCardId && cards.length > 0 && !cards.some((card) => card.id === openScheduleCardId)) {
+      setOpenScheduleCardId(null);
+    }
+  }, [cards, openScheduleCardId]);
 
   useEffect(() => {
     onAnalysisRowsChange?.(buildScheduleAnalysisRows(cards, teams));
@@ -688,7 +706,9 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
   const [events, setEvents] = useState<PracticeEventRecord[]>(loadEvents);
   const [deletedEventIds, setDeletedEventIds] = useState<string[]>(loadDeletedEventIds);
   const [cloudReady, setCloudReady] = useState(false);
-  const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const [activeEventId, setActiveEventId] = useState<string | null>(() =>
+    window.sessionStorage.getItem(ACTIVE_PRACTICE_EVENT_KEY),
+  );
   const [form, setForm] = useState({
     sourceLogisticsEventId: '',
     eventItem: 'MakeX Explorer',
@@ -706,6 +726,20 @@ export function PracticeEventHub({ logisticsEvents, accessToken, onOpenInspire, 
   useEffect(() => {
     window.localStorage.setItem(DELETED_EVENT_IDS_KEY, JSON.stringify(deletedEventIds));
   }, [deletedEventIds]);
+
+  useEffect(() => {
+    if (activeEventId) {
+      window.sessionStorage.setItem(ACTIVE_PRACTICE_EVENT_KEY, activeEventId);
+    } else {
+      window.sessionStorage.removeItem(ACTIVE_PRACTICE_EVENT_KEY);
+    }
+  }, [activeEventId]);
+
+  useEffect(() => {
+    if (activeEventId && events.length > 0 && !events.some((event) => event.id === activeEventId)) {
+      setActiveEventId(null);
+    }
+  }, [activeEventId, events]);
 
   useEffect(() => {
     let cancelled = false;
