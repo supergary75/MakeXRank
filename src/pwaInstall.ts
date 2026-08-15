@@ -100,6 +100,7 @@ export function registerPwaFeatures(): void {
 
   if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
+      const buildId = import.meta.env.VITE_BUILD_ID || 'production';
       let isReloadingForUpdate = false;
       window.navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (isReloadingForUpdate) return;
@@ -107,7 +108,10 @@ export function registerPwaFeatures(): void {
         window.location.reload();
       });
 
-      window.navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: 'none' })
+      window.navigator.serviceWorker.register(
+        `${import.meta.env.BASE_URL}sw.js?v=${encodeURIComponent(buildId)}`,
+        { updateViaCache: 'none' },
+      )
         .then((registration) => {
           const checkForUpdate = () => void registration.update().catch(() => undefined);
           checkForUpdate();
