@@ -17,6 +17,10 @@ export interface ScoreCalculatorResult {
   blueScore: number;
   redBreakdown?: Record<string, number>;
   blueBreakdown?: Record<string, number>;
+  /** Raw scorer control values. Kept separately from scored breakdowns so an
+   * existing match can be reopened without trying to infer slider positions. */
+  redInputs?: Record<string, number>;
+  blueInputs?: Record<string, number>;
 }
 const tasks = [
   ["flag", "战队旗帜", 30, 2],
@@ -42,25 +46,96 @@ const blank = () =>
     number
   >;
 
+type ScoreInputData = Record<Side, Record<string, number>>;
+type RestoreSource = "inputs" | "breakdown" | "empty" | "total-only";
+
+const controlDefinitions = new Map<string, { points: number; max: number }>([
+  ...tasks.map((task) => [task[0], { points: task[2], max: task[3] }] as const),
+  ...penalties.map((penalty) => [penalty[0], { points: penalty[2], max: 99 }] as const),
+]);
+
+function sanitizeInputs(value: unknown): Record<string, number> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const source = value as Record<string, unknown>;
+  const restored = blank();
+  let found = false;
+  controlDefinitions.forEach((definition, key) => {
+    const numeric = Number(source[key]);
+    if (!Number.isFinite(numeric)) return;
+    restored[key] = Math.max(0, Math.min(definition.max, Math.round(numeric)));
+    found = true;
+  });
+  return found ? restored : null;
+}
+
+function restoreLegacyBreakdown(value: unknown): Record<string, number> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const source = value as Record<string, unknown>;
+  const restored = blank();
+  let found = false;
+  controlDefinitions.forEach((definition, key) => {
+    const numeric = Number(source[key]);
+    if (!Number.isFinite(numeric)) return;
+    // A zero-point yellow card could not be represented by the legacy scored
+    // breakdown. Keep it at zero rather than inventing a count.
+    if (definition.points === 0) {
+      restored[key] = 0;
+      found = true;
+      return;
+    }
+    restored[key] = Math.max(
+      0,
+      Math.min(definition.max, Math.round(Math.abs(numeric) / definition.points)),
+    );
+    found = true;
+  });
+  return found ? restored : null;
+}
+
+export function restoreScoreCalculatorData(result?: ScoreCalculatorResult): {
+  data: ScoreInputData;
+  source: RestoreSource;
+} {
+  if (!result) return { data: { red: blank(), blue: blank() }, source: "empty" };
+  const redInputs = sanitizeInputs(result.redInputs);
+  const blueInputs = sanitizeInputs(result.blueInputs);
+  if (redInputs && blueInputs) {
+    return { data: { red: redInputs, blue: blueInputs }, source: "inputs" };
+  }
+  const redBreakdown = restoreLegacyBreakdown(result.redBreakdown);
+  const blueBreakdown = restoreLegacyBreakdown(result.blueBreakdown);
+  if (redBreakdown && blueBreakdown) {
+    return { data: { red: redBreakdown, blue: blueBreakdown }, source: "breakdown" };
+  }
+  return { data: { red: blank(), blue: blank() }, source: "total-only" };
+}
+
 export function ScoreCalculator({
   onBack,
   onSave,
   matchInfo,
   draftKey,
+  initialResult,
 }: {
   onBack: () => void;
   onSave?: (result: ScoreCalculatorResult) => void | Promise<void>;
   matchInfo?: ScoreCalculatorMatchInfo;
   draftKey?: string;
+  initialResult?: ScoreCalculatorResult;
 }) {
   const [side, setSide] = useState<Side>("red"),
     [page, setPage] = useState<Page>("entry"),
     [confirm, setConfirm] = useState(false),
     [saved, setSaved] = useState(false),
     [saving, setSaving] = useState(false),
-    [saveError, setSaveError] = useState("");
+    [saveError, setSaveError] = useState(""),
+    [manualRecoveryAccepted, setManualRecoveryAccepted] = useState(false);
   const draftStorageKey = draftKey ? `makexrank::score-draft::${draftKey}` : "";
+  const restoredResult = useMemo(() => restoreScoreCalculatorData(initialResult), [initialResult]);
   const [data, setData] = useState<Record<Side, Record<string, number>>>(() => {
+    // A persisted cloud result is authoritative. A stale local zero draft must
+    // never hide itemized values already saved by another device.
+    if (initialResult) return restoredResult.data;
     if (draftStorageKey) {
       try {
         const draft = JSON.parse(window.localStorage.getItem(draftStorageKey) ?? "null") as Partial<Record<Side, Record<string, number>>> | null;
@@ -73,6 +148,7 @@ export function ScoreCalculator({
     if (!draftStorageKey) return;
     try { window.localStorage.setItem(draftStorageKey, JSON.stringify(data)); } catch { /* Storage may be unavailable in private mode. */ }
   }, [data, draftStorageKey]);
+  const totalOnlyResult = restoredResult.source === "total-only";
   const total = useMemo(() => {
     const calc = (x: Side) =>
       Math.max(
@@ -126,6 +202,16 @@ export function ScoreCalculator({
         </button>
       </nav>
       <section className={s.panel}>
+        {restoredResult.source === "breakdown" && (
+          <p className={s.restoreNotice}>已从旧版计分明细恢复滑块；旧记录中的零分黄牌次数无法反推。</p>
+        )}
+        {totalOnlyResult && !manualRecoveryAccepted && (
+          <div className={s.restoreWarning}>
+            <strong>这场比赛仅保存了最终总分，无法自动反推各计分项目。</strong>
+            <span>当前不会用零值覆盖旧成绩。如需补录，请确认后完整填写红蓝双方明细。</span>
+            <button type="button" onClick={() => setManualRecoveryAccepted(true)}>开始人工补录</button>
+          </div>
+        )}
         {tasks.map((t) => {
           const v = data[side][t[0]];
           return (
@@ -179,7 +265,7 @@ export function ScoreCalculator({
           <span>蓝方</span>
           <b>{total.blue}</b>
         </div>
-        <button onClick={() => setPage("score")}>完成</button>
+        <button disabled={totalOnlyResult && !manualRecoveryAccepted} onClick={() => setPage("score")}>完成</button>
       </footer>
     </main>
   );
@@ -284,6 +370,8 @@ export function ScoreCalculator({
                       blueScore: total.blue,
                       redBreakdown: breakdown('red'),
                       blueBreakdown: breakdown('blue'),
+                      redInputs: { ...data.red },
+                      blueInputs: { ...data.blue },
                     });
                     if (draftStorageKey) window.localStorage.removeItem(draftStorageKey);
                     setConfirm(false);

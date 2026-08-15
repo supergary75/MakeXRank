@@ -14,6 +14,7 @@ import {
 import { solveRidgeEpa, type AllianceScoreObservation } from '../../utils/practiceEpa';
 import { getValidAccessToken } from '../../services/authService';
 import { mergePracticeTeams } from '../../utils/practiceTeamMerge';
+import { getExplorerHistoricalContributionRank } from '../../utils/explorerHistoricalRanking';
 
 interface PracticeEventRecord {
   id: string;
@@ -57,7 +58,7 @@ interface ExplorerScheduleGeneratorProps {
   accessToken?: string;
   onAnalysisRowsChange?: (rows: PracticeExplorerMatchRow[]) => void;
   onTrendRowsChange?: (rows: PracticeExplorerMatchRow[]) => void;
-  historicalExplorerEpaValues?: number[];
+  historicalExplorerAverageContributionValues?: number[];
 }
 
 export interface ExplorerScheduleCard {
@@ -487,42 +488,36 @@ export function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonic
   }));
   const teamIds = Array.from(teams.keys());
   const totalEpa = solveRidgeEpa(teamIds, observations, (observation) => observation.total);
-  const detailedObservations = observations.filter((observation) => calculateBreakdownTotal(observation.breakdown) !== null);
-  const detailedTeamIds = Array.from(new Set(detailedObservations.flatMap((observation) => observation.teamIds)));
-  const breakdownValue = (observation: AllianceScoreObservation, keys: string[]) => (
-    keys.reduce((sum, key) => sum + (Number(observation.breakdown[key]) || 0), 0)
+  const breakdownValue = (breakdown: Record<string, number>, keys: string[]) => (
+    keys.reduce((sum, key) => sum + (Number(breakdown[key]) || 0), 0)
   );
-  const metricEpa = {
-    bucket: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['cone'])),
-    flag: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['flag'])),
-    yellowBlock: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['yellowBlock'])),
-    redBlueBlock: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['colorBlock'])),
-    yellowBall: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['yellowNet', 'yellowFrame'])),
-    onlineBall: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['ballNet', 'ballFrame'])),
-    fieldBall: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['ball5', 'ball10', 'ball20'])),
-    penalty: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['violation', 'yellow', 'redCard'])),
-    redCard: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['redCard'])),
-  };
+  // These are earned scoring items. Legacy/corrupt score payloads may contain
+  // negative component values, but deductions belong exclusively to penalty
+  // fields and must never leak into an earned-item ranking.
+  const earnedBreakdownValue = (breakdown: Record<string, number>, keys: string[]) => (
+    Math.max(0, breakdownValue(breakdown, keys)) / 2
+  );
   return Array.from(teams.entries()).flatMap(([teamKey, team]) => {
     if (team.id.startsWith('virtual-')) return [];
     const teamAppearances = appearances.get(teamKey) ?? [];
     const label = team.teamName;
     return teamAppearances.map((appearance, index): PracticeExplorerMatchRow => ({
+      source: 'schedule-card',
       team: label,
       round: index + 1,
       equity: 0,
-      // Keep the signed regression estimates intact. Clamping each metric
-      // independently would make the item decomposition stop reconciling with
-      // the alliance score and silently overstate sparse-card performance.
-      bucket: metricEpa.bucket.get(teamKey) ?? 0,
-      flag: metricEpa.flag.get(teamKey) ?? 0,
-      yellowBlock: metricEpa.yellowBlock.get(teamKey) ?? 0,
-      redBlueBlock: metricEpa.redBlueBlock.get(teamKey) ?? 0,
-      yellowBall: metricEpa.yellowBall.get(teamKey) ?? 0,
-      onlineBall: metricEpa.onlineBall.get(teamKey) ?? 0,
-      fieldBall: metricEpa.fieldBall.get(teamKey) ?? 0,
-      penalty: metricEpa.penalty.get(teamKey) ?? 0,
-      redCard: metricEpa.redCard.get(teamKey) ?? 0,
+      // Only EPA uses alliance-combination regression. Scoring items use the
+      // straightforward per-team share of the recorded alliance value, while
+      // penalties retain the alliance's actual signed deduction for the match.
+      bucket: earnedBreakdownValue(appearance.breakdown, ['cone']),
+      flag: earnedBreakdownValue(appearance.breakdown, ['flag']),
+      yellowBlock: earnedBreakdownValue(appearance.breakdown, ['yellowBlock']),
+      redBlueBlock: earnedBreakdownValue(appearance.breakdown, ['colorBlock']),
+      yellowBall: earnedBreakdownValue(appearance.breakdown, ['yellowNet', 'yellowFrame']),
+      onlineBall: earnedBreakdownValue(appearance.breakdown, ['ballNet', 'ballFrame']),
+      fieldBall: earnedBreakdownValue(appearance.breakdown, ['ball5', 'ball10', 'ball20']),
+      penalty: breakdownValue(appearance.breakdown, ['violation', 'yellow', 'redCard']),
+      redCard: breakdownValue(appearance.breakdown, ['redCard']),
       contributionScore: appearance.totalScore / 2,
       epa: totalEpa.get(teamKey) ?? 0,
       totalScore: appearance.totalScore,
@@ -531,7 +526,7 @@ export function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonic
   });
 }
 
-export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, onTrendRowsChange, historicalExplorerEpaValues = [] }: ExplorerScheduleGeneratorProps) {
+export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, onTrendRowsChange, historicalExplorerAverageContributionValues = [] }: ExplorerScheduleGeneratorProps) {
   const roundsPerTeam = 4;
   const localMultiCardTestMode = window.location.hostname === '127.0.0.1'
     && new URLSearchParams(window.location.hash.slice(1)).get('scheduleTest') === 'multi';
@@ -771,16 +766,17 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, o
           <p>这里只统计当前赛程卡的已计分比赛；回归 EPA 也仅使用本卡的红蓝联盟组合重新估算，不与其他赛程卡混合。</p>
           {cardAnalysisRows.length === 0 ? <div className={styles.scheduleEmpty}>本赛程卡暂无已计分比赛。</div> : <>
             <div className={styles.cardInsightGrid}>{cardInsights.map((insight) => {
-              const historicalRank = historicalExplorerEpaValues.length
-                ? 1 + historicalExplorerEpaValues.filter((value) => value > insight.averageEpa).length
-                : null;
+              const historicalRank = getExplorerHistoricalContributionRank(
+                insight.averageContribution,
+                historicalExplorerAverageContributionValues,
+              );
               return <article key={insight.team}>
               <strong>{insight.team}</strong>
               <span>本卡场次 {insight.matches}</span>
               <span>本卡平均贡献 {Math.round(insight.averageContribution)}</span>
               <span>{historicalRank == null
                 ? 'Explorer 历史参考：暂无正式赛事数据'
-                : `Explorer 历史排名：第 ${historicalRank} 名`}</span>
+                : `Explorer 历史平均贡献排名：第 ${historicalRank} 名`}</span>
             </article>;
             })}</div>
             <div className={styles.cardMetricGrid}>{cardMetricRankings.map((metric) => <article key={metric.key}>
@@ -795,6 +791,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, o
     {activeScoreMatch && <ScoreCalculator
       onBack={() => setActiveScoreMatch(null)}
       draftKey={`${activeScoreMatch.cardId}::${activeScoreMatch.match.id}`}
+      initialResult={scheduleState.cards.find((card) => card.id === activeScoreMatch.cardId)?.results[activeScoreMatch.match.id]}
       onSave={async (result) => {
         const nextState: ExplorerScheduleState = {
           ...scheduleState,

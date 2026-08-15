@@ -42,6 +42,8 @@ import {
   updateManagedUser,
 } from './services/authService';
 import { calculateRanking, sortTeams } from './utils/rankingAlgorithm';
+import { isExplorerEventType } from './utils/explorerHistoricalRanking';
+import { analyzePracticeTrend } from './utils/practiceTrendAnalysis';
 import {
   DEFAULT_TEAM_TAG_OPTIONS,
   getTeamNumberFromName,
@@ -54,9 +56,12 @@ import {
   type TeamTagMap,
 } from './utils/teamTags';
 import {
+  aggregatePracticeExplorerTrendMetric,
+  getScheduleCardOnlyRows,
   buildPracticeExplorerInsights,
   getPracticeExplorerMetricRankings,
   type PracticeExplorerMatchRow,
+  type PracticeExplorerTrendMetricKey,
 } from './utils/practiceExplorerAnalysis';
 import { useNotification } from './hooks/useNotification';
 import { useFeaturedTeams } from './hooks/useFeaturedTeams';
@@ -93,21 +98,20 @@ import styles from './App.module.css';
 
 type TrainingDateMode = 'training' | 'self';
 
-type PracticeTrendMetricKey = 'totalScore' | 'contributionScore' | 'epa' | 'flag' | 'onlineBall' | 'fieldBall' | 'yellowBall' | 'bucket' | 'yellowBlock' | 'redBlueBlock' | 'penalty';
-
 interface PracticeTeamTrendPoint {
   cardId: string;
   cardLabel: string;
   cardOrder: number;
-  values: Record<PracticeTrendMetricKey, number>;
+  values: Record<PracticeExplorerTrendMetricKey, number>;
 }
 
 interface PracticeTeamTrend {
   team: string;
   points: PracticeTeamTrendPoint[];
+  summaryValues: Record<PracticeExplorerTrendMetricKey, number>;
 }
 
-const PRACTICE_TREND_METRICS: Array<{ key: PracticeTrendMetricKey; label: string; color: string }> = [
+const PRACTICE_TREND_METRICS: Array<{ key: PracticeExplorerTrendMetricKey; label: string; color: string }> = [
   { key: 'totalScore', label: '单场最高总分', color: '#3465cd' },
   { key: 'contributionScore', label: '平均贡献分', color: '#1f8f73' },
   { key: 'epa', label: '回归 EPA', color: '#9a7215' },
@@ -120,6 +124,10 @@ const PRACTICE_TREND_METRICS: Array<{ key: PracticeTrendMetricKey; label: string
   { key: 'redBlueBlock', label: '红蓝方块', color: '#d45667' },
   { key: 'penalty', label: '判罚扣分', color: '#b13a3a' },
 ];
+
+function formatPracticeTrendValue(value: number) {
+  return (Number.isFinite(value) ? value : 0).toFixed(1);
+}
 
 function PracticeTrendSparkline({ values, labels, color }: { values: number[]; labels: string[]; color: string }) {
   const width = 260;
@@ -137,7 +145,7 @@ function PracticeTrendSparkline({ values, labels, color }: { values: number[]; l
   const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
 
   return (
-    <svg className={styles.practiceTrendSparkline} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${labels.join('、')}：${values.map((value) => Math.round(value)).join('、')}`}>
+    <svg className={styles.practiceTrendSparkline} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${labels.join('、')}：${values.map(formatPracticeTrendValue).join('、')}`}>
       <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} className={styles.practiceTrendBaseline} />
       {points.length > 1 && <path d={path} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
       {points.length === 1 && (
@@ -150,7 +158,7 @@ function PracticeTrendSparkline({ values, labels, color }: { values: number[]; l
         const textAnchor = index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle';
         return <g key={`${point.label}-${point.x}`}>
           <circle cx={point.x} cy={point.y} r="4.5" fill={color} stroke="#fff" strokeWidth="2">
-            <title>{point.label}：{Math.round(point.value)}</title>
+            <title>{point.label}：{formatPracticeTrendValue(point.value)}</title>
           </circle>
           <text
             x={point.x}
@@ -159,7 +167,7 @@ function PracticeTrendSparkline({ values, labels, color }: { values: number[]; l
             className={styles.practiceTrendPointValue}
             style={{ fill: color }}
           >
-            {Math.round(point.value)}
+            {formatPracticeTrendValue(point.value)}
           </text>
         </g>;
       })}
@@ -2815,7 +2823,7 @@ export default function App() {
     activeEventType,
   );
   const practiceExplorerAnalysisRows = useMemo(
-    () => schedulePracticeExplorerRows,
+    () => getScheduleCardOnlyRows(schedulePracticeExplorerRows),
     [schedulePracticeExplorerRows],
   );
   const practiceExplorerInsights = useMemo(
@@ -2828,46 +2836,56 @@ export default function App() {
   );
   const practiceExplorerTeamTrends = useMemo<PracticeTeamTrend[]>(() => {
     const rowsByTeamAndCard = new Map<string, Map<string, PracticeExplorerMatchRow[]>>();
-    schedulePracticeExplorerTrendRows.forEach((row) => {
+    getScheduleCardOnlyRows(schedulePracticeExplorerTrendRows).forEach((row) => {
       if (!row.scheduleCardId) return;
       const cardsByTeam = rowsByTeamAndCard.get(row.team) ?? new Map<string, PracticeExplorerMatchRow[]>();
       cardsByTeam.set(row.scheduleCardId, [...(cardsByTeam.get(row.scheduleCardId) ?? []), row]);
       rowsByTeamAndCard.set(row.team, cardsByTeam);
     });
 
-    return Array.from(rowsByTeamAndCard.entries()).map(([team, cardsById]) => ({
-      team,
-      points: Array.from(cardsById.entries()).map(([cardId, rows]) => {
-        const averageMetric = (key: PracticeTrendMetricKey) => rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0) / rows.length;
+    return Array.from(rowsByTeamAndCard.entries()).map(([team, cardsById]) => {
+      const allRows = Array.from(cardsById.values()).flat();
+      return {
+        team,
+        summaryValues: Object.fromEntries(
+          PRACTICE_TREND_METRICS.map((metric) => [
+            metric.key,
+            aggregatePracticeExplorerTrendMetric(allRows, metric.key),
+          ]),
+        ) as Record<PracticeExplorerTrendMetricKey, number>,
+        points: Array.from(cardsById.entries()).map(([cardId, rows]) => {
         return {
           cardId,
           cardLabel: rows[0]?.scheduleCardLabel ?? '赛程卡',
           cardOrder: rows[0]?.scheduleCardOrder ?? 0,
           values: {
-            totalScore: Math.max(...rows.map((row) => Number(row.totalScore) || 0)),
-            contributionScore: averageMetric('contributionScore'),
-            epa: averageMetric('epa'),
-            flag: averageMetric('flag'),
-            onlineBall: averageMetric('onlineBall'),
-            fieldBall: averageMetric('fieldBall'),
-            yellowBall: averageMetric('yellowBall'),
-            bucket: averageMetric('bucket'),
-            yellowBlock: averageMetric('yellowBlock'),
-            redBlueBlock: averageMetric('redBlueBlock'),
-            penalty: averageMetric('penalty'),
+            totalScore: aggregatePracticeExplorerTrendMetric(rows, 'totalScore'),
+            contributionScore: aggregatePracticeExplorerTrendMetric(rows, 'contributionScore'),
+            epa: aggregatePracticeExplorerTrendMetric(rows, 'epa'),
+            flag: aggregatePracticeExplorerTrendMetric(rows, 'flag'),
+            onlineBall: aggregatePracticeExplorerTrendMetric(rows, 'onlineBall'),
+            fieldBall: aggregatePracticeExplorerTrendMetric(rows, 'fieldBall'),
+            yellowBall: aggregatePracticeExplorerTrendMetric(rows, 'yellowBall'),
+            bucket: aggregatePracticeExplorerTrendMetric(rows, 'bucket'),
+            yellowBlock: aggregatePracticeExplorerTrendMetric(rows, 'yellowBlock'),
+            redBlueBlock: aggregatePracticeExplorerTrendMetric(rows, 'redBlueBlock'),
+            penalty: aggregatePracticeExplorerTrendMetric(rows, 'penalty'),
           },
         };
-      }).sort((left, right) => left.cardOrder - right.cardOrder),
-    })).sort((left, right) => left.team.localeCompare(right.team, 'zh-CN'));
+        }).sort((left, right) => left.cardOrder - right.cardOrder),
+      };
+    }).sort((left, right) => left.team.localeCompare(right.team, 'zh-CN'));
   }, [schedulePracticeExplorerTrendRows]);
-  const historicalExplorerEpaValues = useMemo(() => {
+  const historicalExplorerAverageContributionValues = useMemo(() => {
     const valuesByTeam = new Map<string, number[]>();
     competitions
-      .filter((competition) => competition.eventType === 'MakeX Explorer')
+      .filter((competition) => isExplorerEventType(competition.eventType))
       .forEach((competition) => {
         calculateRanking(competition.teamsData, competition.eventType).forEach((team) => {
-          const value = Number.parseFloat(team.epa);
-          if (!team.totalMatches || !Number.isFinite(value)) return;
+          const value = team.totalMatches > 0
+            ? team.totalScore / team.totalMatches / 2
+            : Number.NaN;
+          if (!Number.isFinite(value)) return;
           const key = team.team.trim().replace(/\s+/g, '').toLowerCase();
           if (!key) return;
           valuesByTeam.set(key, [...(valuesByTeam.get(key) ?? []), value]);
@@ -3102,7 +3120,6 @@ export default function App() {
 
         if (!cancelled) {
           setTrainingCloudReady(true);
-          showNotification('已连接 Supabase 集训安排云端同步，登录设备会共享同一份集训日历。', 'success');
         }
       } catch (error) {
         if (cancelled) {
@@ -3110,8 +3127,7 @@ export default function App() {
         }
 
         setTrainingCloudReady(false);
-        const message = error instanceof Error ? error.message : '未知错误';
-        showNotification(`集训安排云同步失败，暂时使用本地数据。原因：${message}`, 'error');
+        console.warn('集训安排云同步失败，已暂时回退到本地数据。', error);
       }
     })();
 
@@ -3190,7 +3206,6 @@ export default function App() {
 
         if (!cancelled) {
           setLogisticsCloudReady(true);
-          showNotification('赛事后勤数据已连接 Supabase，登录设备会共享同一份后勤卡片。', 'success');
         }
       } catch (error) {
         if (cancelled) {
@@ -3198,8 +3213,7 @@ export default function App() {
         }
 
         setLogisticsCloudReady(false);
-        const message = error instanceof Error ? error.message : '未知错误';
-        showNotification(`赛事后勤云端同步失败，暂时使用本地数据。原因：${message}`, 'error');
+        console.warn('赛事后勤云端同步失败，已暂时回退到本地数据。', error);
       }
     })();
 
@@ -3355,7 +3369,6 @@ export default function App() {
 
         if (!cancelled) {
           setTeamTagCloudReady(true);
-          showNotification('赛队标注已连接 Supabase，同一账号体系下的设备会共享标签。', 'success');
         }
       } catch (error) {
         if (cancelled) {
@@ -3363,8 +3376,7 @@ export default function App() {
         }
 
         setTeamTagCloudReady(false);
-        const message = error instanceof Error ? error.message : '未知错误';
-        showNotification(`赛队标注云同步失败，暂时只使用本地标签。原因：${message}`, 'error');
+        console.warn('赛队标注云同步失败，已暂时回退到本地标签。', error);
       }
     })();
 
@@ -3477,20 +3489,13 @@ export default function App() {
 
         setCompetitions(sortCompetitionsByCreatedAt(syncedCompetitions));
         setStorageMode('supabase');
-        showNotification(
-          competitionsToUpload.length > 0
-            ? `已将当前设备的 ${competitionsToUpload.length} 场本地比赛同步到 Supabase，其他设备刷新后即可看到。`
-            : '已连接 Supabase 云端数据，当前设备会与共享比赛库同步。',
-          'success',
-        );
       } catch (error) {
         if (cancelled) {
           return;
         }
 
-        const message = error instanceof Error ? error.message : '未知错误';
         setStorageMode('local');
-        showNotification(`Supabase 连接失败，已回退到本地存储。原因：${message}`, 'error');
+        console.warn('Supabase 比赛数据连接失败，已回退到本地存储。', error);
       }
     })();
 
@@ -10273,7 +10278,7 @@ export default function App() {
                 accessToken={getStoredAccessToken() ?? undefined}
                 onAnalysisRowsChange={setSchedulePracticeExplorerRows}
                 onTrendRowsChange={setSchedulePracticeExplorerTrendRows}
-                historicalExplorerEpaValues={historicalExplorerEpaValues}
+                historicalExplorerAverageContributionValues={historicalExplorerAverageContributionValues}
               />
 
               <section className={styles.diagnosticPanel}>
@@ -10302,12 +10307,28 @@ export default function App() {
                             const values = trend.points.map((point) => point.values[metric.key]);
                             const first = values[0] ?? 0;
                             const latest = values.at(-1) ?? 0;
-                            const delta = latest - first;
+                            const summaryValue = trend.summaryValues[metric.key] ?? 0;
+                            const assessment = analyzePracticeTrend(values);
+                            const assessmentClass = assessment.status === 'insufficient' || assessment.status === 'stable'
+                              ? styles.practiceTrendFlat
+                              : assessment.status.includes('decline')
+                                ? styles.practiceTrendDown
+                                : assessment.status.includes('volatile')
+                                  ? styles.practiceTrendVolatile
+                                  : styles.practiceTrendUp;
                             return (
                               <section key={`${trend.team}-${metric.key}`} className={styles.practiceTrendMetricCard}>
                                 <div className={styles.practiceTrendMetricHeader}>
                                   <strong>{metric.label}</strong>
-                                  <span>{Math.round(latest)}</span>
+                                  <span className={styles.practiceTrendMetricSummary}>
+                                    <small>
+                                      {metric.key === 'totalScore'
+                                        ? '统计最高'
+                                        : `${values.length}卡`}
+                                    </small>
+                                    {metric.key !== 'totalScore' && <em>平均</em>}
+                                    <b>{formatPracticeTrendValue(summaryValue)}</b>
+                                  </span>
                                 </div>
                                 <PracticeTrendSparkline
                                   values={values}
@@ -10315,11 +10336,14 @@ export default function App() {
                                   color={metric.color}
                                 />
                                 <div className={styles.practiceTrendMetricFooter}>
-                                  <span>{trend.points[0]?.cardLabel ?? '赛程卡'} {Math.round(first)}</span>
-                                  <em className={delta > 0 ? styles.practiceTrendUp : delta < 0 ? styles.practiceTrendDown : styles.practiceTrendFlat}>
-                                    {delta > 0 ? '↑' : delta < 0 ? '↓' : '—'} {Math.abs(Math.round(delta))}
-                                  </em>
-                                  <span>{trend.points.at(-1)?.cardLabel ?? '赛程卡'} {Math.round(latest)}</span>
+                                  <span>{trend.points[0]?.cardLabel ?? '赛程卡'} {formatPracticeTrendValue(first)}</span>
+                                  <details className={styles.practiceTrendAssessment}>
+                                    <summary className={assessmentClass} title={assessment.detail}>
+                                      {assessment.label}
+                                    </summary>
+                                    <p>{assessment.detail}</p>
+                                  </details>
+                                  <span>{trend.points.at(-1)?.cardLabel ?? '赛程卡'} {formatPracticeTrendValue(latest)}</span>
                                 </div>
                               </section>
                             );
@@ -10373,7 +10397,7 @@ export default function App() {
                   <div>
                     <p className={styles.portalEyebrow}>Metric Rankings</p>
                     <h2>单项能力排名</h2>
-                    <p>汇总本次集训全部赛程卡中的已计分比赛；“平均贡献分”按联盟得分÷2统计，“回归 EPA”及黄球、方块等单项能力均通过全部红蓝联盟组合回归分解，避免把联盟分项得分简单平分给两支赛队。</p>
+                    <p>汇总本次集训全部赛程卡中的已计分比赛；只有“回归 EPA”使用红蓝联盟组合回归分解。平均贡献分和各得分单项均按每场联盟记录÷2后取普通平均，判罚扣分则直接按每场实际扣分取平均。</p>
                   </div>
                 </div>
 

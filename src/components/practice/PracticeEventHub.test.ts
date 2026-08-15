@@ -130,6 +130,42 @@ describe('Explorer schedule EPA', () => {
     expect(affectedRows[0].contributionScore).toBe(50);
   });
 
+  it('uses simple per-team averages for scoring items and the actual alliance penalty', () => {
+    const card = scheduleCard();
+    card.results['match-1'].redBreakdown = completeBreakdown({
+      cone: 20,
+      ballNet: 50,
+      violation: -20,
+      redCard: -120,
+    });
+    const row = buildScheduleAnalysisRows([card])[0];
+
+    expect(row?.bucket).toBe(10);
+    expect(row?.onlineBall).toBe(25);
+    expect(row?.penalty).toBe(-140);
+    expect(row?.redCard).toBe(-120);
+  });
+
+  it('never turns earned scoring items into negative team scores', () => {
+    const card = scheduleCard();
+    card.results['match-1'].redBreakdown = completeBreakdown({
+      flag: -20,
+      cone: -10,
+      yellowNet: -30,
+      ballNet: -40,
+      ball5: -50,
+      violation: -15,
+    });
+    const row = buildScheduleAnalysisRows([card])[0];
+
+    expect(row?.flag).toBe(0);
+    expect(row?.bucket).toBe(0);
+    expect(row?.yellowBall).toBe(0);
+    expect(row?.onlineBall).toBe(0);
+    expect(row?.fieldBall).toBe(0);
+    expect(row?.penalty).toBe(-15);
+  });
+
   it('marks legacy partial score details unavailable instead of silently filling missing items with zero', () => {
     const card = scheduleCard();
     card.results['match-1'].redBreakdown = { flag: 30 };

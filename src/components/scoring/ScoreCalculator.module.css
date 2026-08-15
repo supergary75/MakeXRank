@@ -56,3 +56,9 @@ button{user-select:none;-webkit-user-select:none}
 .item input::-moz-range-thumb{box-shadow:0 3px 9px rgba(35,59,82,.28)}
 .item output{text-shadow:none}
 @media (min-width:521px){.phone{border-color:rgba(22,104,232,.14);box-shadow:0 0 54px rgba(45,92,143,.16)}}
+.restoreNotice,.restoreWarning{margin:12px 0 18px;padding:14px 16px;border-radius:12px;line-height:1.55}
+.restoreNotice{background:#eef6ff;border:1px solid #bcd7fa;color:#315b87}
+.restoreWarning{display:grid;gap:8px;background:#fff8e7;border:1px solid #e8c96f;color:#684f12}
+.restoreWarning span{font-size:14px}
+.restoreWarning button{width:max-content;min-height:42px;padding:0 16px;border:1px solid #c9a642;border-radius:10px;background:#fff;color:#684f12;font-size:15px}
+.foot button:disabled{cursor:not-allowed;opacity:.45}

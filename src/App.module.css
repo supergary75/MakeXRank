@@ -2712,8 +2712,29 @@
   font-size: 0.9rem;
 }
 
-.practiceTrendMetricHeader > span {
+.practiceTrendMetricSummary {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
   color: #3465cd;
+  white-space: nowrap;
+}
+
+.practiceTrendMetricSummary small {
+  color: #7186a2;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.practiceTrendMetricSummary em {
+  color: #315b91;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.practiceTrendMetricSummary b {
   font-size: 1.35rem;
   font-weight: 900;
 }
@@ -2752,16 +2773,66 @@
   font-size: 0.72rem;
 }
 
-.practiceTrendMetricFooter em {
-  min-width: 48px;
-  text-align: center;
-  font-style: normal;
-  font-weight: 900;
-}
-
 .practiceTrendUp { color: #16845f; }
 .practiceTrendDown { color: #c54855; }
 .practiceTrendFlat { color: #6c819b; }
+.practiceTrendVolatile { color: #a46b08; }
+
+.practiceTrendAssessment {
+  position: relative;
+  min-width: 132px;
+  text-align: center;
+}
+
+.practiceTrendAssessment summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.practiceTrendAssessment summary::-webkit-details-marker { display: none; }
+
+.practiceTrendAssessment p {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: min(300px, 78vw);
+  margin: 0;
+  padding: 9px 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(83, 126, 191, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 10px 24px rgba(41, 72, 119, 0.16);
+  color: #405a7e;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.practiceTrendAssessment:not([open]) p { display: none; }
+
+@media (hover: hover) {
+  .practiceTrendAssessment:hover p { display: block; }
+}
+
+@media (max-width: 560px) {
+  .practiceTrendMetricFooter {
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .practiceTrendAssessment {
+    min-width: 104px;
+  }
+
+  .practiceTrendAssessment summary {
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
 
 .metricLeaderGrid {
   display: grid;

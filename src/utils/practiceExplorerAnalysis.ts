@@ -1,6 +1,8 @@
 import type { TeamRaw } from '../types';
 
 export interface PracticeExplorerMatchRow {
+  /** Data provenance. Practice dashboards must only aggregate saved schedule-card scores. */
+  source?: 'schedule-card' | 'imported-table';
   scheduleCardId?: string;
   scheduleCardLabel?: string;
   scheduleCardOrder?: number;
@@ -69,6 +71,54 @@ export interface PracticeExplorerMetricRanking {
   }>;
 }
 
+export function getScheduleCardOnlyRows(rows: PracticeExplorerMatchRow[]): PracticeExplorerMatchRow[] {
+  return rows.filter((row) => row.source === 'schedule-card');
+}
+
+export type PracticeExplorerTrendMetricKey =
+  | 'totalScore'
+  | 'contributionScore'
+  | 'epa'
+  | 'flag'
+  | 'onlineBall'
+  | 'fieldBall'
+  | 'yellowBall'
+  | 'bucket'
+  | 'yellowBlock'
+  | 'redBlueBlock'
+  | 'penalty';
+
+const EARNED_TREND_METRICS = new Set<PracticeExplorerTrendMetricKey>([
+  'flag', 'onlineBall', 'fieldBall', 'yellowBall', 'bucket', 'yellowBlock', 'redBlueBlock',
+]);
+
+const DETAILED_TREND_METRICS = new Set<PracticeExplorerTrendMetricKey>([
+  ...EARNED_TREND_METRICS,
+  'penalty',
+]);
+
+/**
+ * One canonical aggregation rule for schedule-card summaries and trend charts.
+ * Old cards without a complete scoring breakdown are valid for alliance total,
+ * contribution and EPA, but must not inject artificial zeroes into item metrics.
+ */
+export function aggregatePracticeExplorerTrendMetric(
+  rows: PracticeExplorerMatchRow[],
+  key: PracticeExplorerTrendMetricKey,
+): number {
+  const eligibleRows = DETAILED_TREND_METRICS.has(key)
+    ? rows.filter((row) => row.hasDetailedScore !== false)
+    : rows;
+  if (!eligibleRows.length) return 0;
+
+  const values = eligibleRows.map((row) => {
+    const value = Number(row[key]) || 0;
+    return EARNED_TREND_METRICS.has(key) ? Math.max(0, value) : value;
+  });
+
+  return key === 'totalScore' ? Math.max(...values) : average(values);
+}
+
 type PracticeColumnKey =
   | 'round'
   | 'equity'
@@ -104,14 +154,14 @@ const METRICS: Array<{ key: keyof PracticeExplorerMatchRow; label: string; descr
   { key: 'totalScore', label: '单场最高总分', description: '赛队参加的已计分比赛中，所在联盟取得的最高一场总分；这是联盟实际总分，不是该队独立得分。', aggregation: 'best' },
   { key: 'contributionScore', label: '平均贡献分', description: '每场所在联盟总分除以 2 后再取平均，假设两支联盟队伍平均贡献，用于快速直观比较。', aggregation: 'average' },
   { key: 'epa', label: '回归 EPA', description: '根据不同联盟搭档组合进行回归分解，估算赛队对联盟总分的独立平均贡献；数据不足时会进行稳定化处理。', aggregation: 'average' },
-  { key: 'flag', label: '战队旗帜', description: '根据战队旗帜任务的联盟得分明细，通过联盟组合回归估算赛队在该项目上的贡献。', aggregation: 'best' },
-  { key: 'onlineBall', label: '红蓝球（网上）', description: '根据红蓝球在网上及方框区域的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
-  { key: 'fieldBall', label: '红蓝球（绿地）', description: '根据红蓝球在绿地区域各档位的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
-  { key: 'yellowBall', label: '黄球', description: '根据黄球在二层铁网和三层方框的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
-  { key: 'bucket', label: '桶', description: '根据锥桶任务的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
-  { key: 'yellowBlock', label: '黄方块', description: '根据黄色方块任务的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
-  { key: 'redBlueBlock', label: '红蓝方块', description: '根据红方或蓝方方块任务的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
-  { key: 'penalty', label: '判罚扣分', description: '根据违例、黄牌和红牌产生的联盟扣分记录，通过联盟组合回归估算赛队对应的扣分影响；负数表示被扣分。', aggregation: 'best' },
+  { key: 'flag', label: '战队旗帜', description: '每场所在联盟的战队旗帜得分除以 2，再按参赛场次取普通平均。', aggregation: 'average' },
+  { key: 'onlineBall', label: '红蓝球（网上）', description: '每场所在联盟的红蓝球网上及方框区域得分除以 2，再按参赛场次取普通平均。', aggregation: 'average' },
+  { key: 'fieldBall', label: '红蓝球（绿地）', description: '每场所在联盟的红蓝球绿地区域各档位得分除以 2，再按参赛场次取普通平均。', aggregation: 'average' },
+  { key: 'yellowBall', label: '黄球', description: '每场所在联盟的黄球得分除以 2，再按参赛场次取普通平均。', aggregation: 'average' },
+  { key: 'bucket', label: '桶', description: '每场所在联盟的锥桶任务得分除以 2，再按参赛场次取普通平均。', aggregation: 'average' },
+  { key: 'yellowBlock', label: '黄方块', description: '每场所在联盟的黄色方块任务得分除以 2，再按参赛场次取普通平均。', aggregation: 'average' },
+  { key: 'redBlueBlock', label: '红蓝方块', description: '每场所在联盟的红方或蓝方方块任务得分除以 2，再按参赛场次取普通平均。', aggregation: 'average' },
+  { key: 'penalty', label: '判罚扣分', description: '直接读取每场计分记录中该赛队所在联盟因违例、黄牌和红牌产生的实际扣分，再按参赛场次取普通平均；不使用回归估算。', aggregation: 'average' },
 ];
 
 function normalizeCell(value: string): string {
@@ -530,6 +580,9 @@ export function getPracticeExplorerMetricLeaders(rows: PracticeExplorerMatchRow[
 }
 
 export function getPracticeExplorerMetricRankings(rows: PracticeExplorerMatchRow[]): PracticeExplorerMetricRanking[] {
+  const earnedMetricKeys = new Set<keyof PracticeExplorerMatchRow>([
+    'bucket', 'flag', 'yellowBlock', 'redBlueBlock', 'yellowBall', 'onlineBall', 'fieldBall',
+  ]);
   const grouped = new Map<string, PracticeExplorerMatchRow[]>();
   rows.forEach((row) => {
     grouped.set(row.team, [...(grouped.get(row.team) ?? []), row]);
@@ -546,7 +599,13 @@ export function getPracticeExplorerMetricRankings(rows: PracticeExplorerMatchRow
         const eligibleRows = isDetailedMetric
           ? teamRows.filter((row) => row.hasDetailedScore !== false)
           : teamRows;
-        const values = eligibleRows.map((row) => Number(row[key]) || 0);
+        // Clamp legacy negative earned-item values at the aggregation boundary
+        // as well, so previously cached rows cannot reintroduce impossible
+        // negative scores after the source calculation has been corrected.
+        const values = eligibleRows.map((row) => {
+          const value = Number(row[key]) || 0;
+          return earnedMetricKeys.has(key) ? Math.max(0, value) : value;
+        });
         if (!values.length) return null;
         const best = Math.max(...values);
         const mean = average(values);
