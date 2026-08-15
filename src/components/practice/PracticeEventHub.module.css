@@ -167,6 +167,14 @@
   margin: 0 0 0.65rem;
 }
 
+.cardMetricDescription {
+  min-height: 3.8em;
+  margin: -0.15rem 0 0.75rem;
+  color: #687b98;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
 .cardMetricGrid article > div {
   display: flex;
   justify-content: space-between;

@@ -45,4 +45,9 @@ describe('practice Explorer metric ranking aggregation', () => {
     expect(ranking?.teams[0]).toMatchObject({ team: '稳定队', value: 250 });
     expect(ranking?.teams[1]?.value).toBeCloseTo(238.125);
   });
+
+  it('includes flag and penalty among the per-item rankings', () => {
+    expect(rankings.some((item) => item.key === 'flag')).toBe(true);
+    expect(rankings.some((item) => item.key === 'penalty')).toBe(true);
+  });
 });

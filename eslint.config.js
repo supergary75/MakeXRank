@@ -37,6 +37,14 @@ export default tseslint.config(
         },
       ],
       'react-hooks/set-state-in-effect': 'off',
+      // This application intentionally keeps stable callbacks around mutable
+      // records loaded from local/cloud storage. React Compiler's optional
+      // preservation check cannot prove those records are immutable, while
+      // React itself supports this memoization pattern.
+      'react-hooks/preserve-manual-memoization': 'off',
+      // PracticeEventHub exports pure analysis helpers so the same production
+      // calculations can be covered directly by tests.
+      'react-refresh/only-export-components': 'off',
     },
   },
   {

@@ -1,6 +1,9 @@
 import type { TeamRaw } from '../types';
 
 export interface PracticeExplorerMatchRow {
+  scheduleCardId?: string;
+  scheduleCardLabel?: string;
+  scheduleCardOrder?: number;
   team: string;
   round: number;
   equity: number;
@@ -16,6 +19,8 @@ export interface PracticeExplorerMatchRow {
   contributionScore: number;
   epa: number;
   totalScore: number;
+  /** Whether every scoring item was present in the saved alliance result. */
+  hasDetailedScore?: boolean;
 }
 
 export interface PracticeExplorerInsight {
@@ -30,6 +35,9 @@ export interface PracticeExplorerInsight {
   averageEpa: number;
   bestEpa: number;
   stabilityGap: number;
+  scoreStdDev: number;
+  recentMatchCount: number;
+  recentTrendDelta: number;
   consistencyScore: number;
   trainingType: string;
   strength: string;
@@ -50,6 +58,7 @@ export interface PracticeExplorerMetricLeader {
 export interface PracticeExplorerMetricRanking {
   key: keyof PracticeExplorerMatchRow;
   label: string;
+  description: string;
   aggregation: 'best' | 'average';
   teams: Array<{
     team: string;
@@ -91,16 +100,18 @@ const COLUMN_ALIASES: Record<PracticeColumnKey, string[]> = {
   totalScore: ['总分'],
 };
 
-const METRICS: Array<{ key: keyof PracticeExplorerMatchRow; label: string; aggregation: 'best' | 'average' }> = [
-  { key: 'totalScore', label: '单场最高总分', aggregation: 'best' },
-  { key: 'contributionScore', label: '平均贡献分', aggregation: 'average' },
-  { key: 'epa', label: '回归 EPA', aggregation: 'average' },
-  { key: 'onlineBall', label: '红蓝球（网上）', aggregation: 'best' },
-  { key: 'fieldBall', label: '红蓝球（绿地）', aggregation: 'best' },
-  { key: 'yellowBall', label: '黄球', aggregation: 'best' },
-  { key: 'bucket', label: '桶', aggregation: 'best' },
-  { key: 'yellowBlock', label: '黄方块', aggregation: 'best' },
-  { key: 'redBlueBlock', label: '红蓝方块', aggregation: 'best' },
+const METRICS: Array<{ key: keyof PracticeExplorerMatchRow; label: string; description: string; aggregation: 'best' | 'average' }> = [
+  { key: 'totalScore', label: '单场最高总分', description: '赛队参加的已计分比赛中，所在联盟取得的最高一场总分；这是联盟实际总分，不是该队独立得分。', aggregation: 'best' },
+  { key: 'contributionScore', label: '平均贡献分', description: '每场所在联盟总分除以 2 后再取平均，假设两支联盟队伍平均贡献，用于快速直观比较。', aggregation: 'average' },
+  { key: 'epa', label: '回归 EPA', description: '根据不同联盟搭档组合进行回归分解，估算赛队对联盟总分的独立平均贡献；数据不足时会进行稳定化处理。', aggregation: 'average' },
+  { key: 'flag', label: '战队旗帜', description: '根据战队旗帜任务的联盟得分明细，通过联盟组合回归估算赛队在该项目上的贡献。', aggregation: 'best' },
+  { key: 'onlineBall', label: '红蓝球（网上）', description: '根据红蓝球在网上及方框区域的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
+  { key: 'fieldBall', label: '红蓝球（绿地）', description: '根据红蓝球在绿地区域各档位的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
+  { key: 'yellowBall', label: '黄球', description: '根据黄球在二层铁网和三层方框的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
+  { key: 'bucket', label: '桶', description: '根据锥桶任务的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
+  { key: 'yellowBlock', label: '黄方块', description: '根据黄色方块任务的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
+  { key: 'redBlueBlock', label: '红蓝方块', description: '根据红方或蓝方方块任务的得分记录，通过联盟组合回归估算出的赛队贡献。', aggregation: 'best' },
+  { key: 'penalty', label: '判罚扣分', description: '根据违例、黄牌和红牌产生的联盟扣分记录，通过联盟组合回归估算赛队对应的扣分影响；负数表示被扣分。', aggregation: 'best' },
 ];
 
 function normalizeCell(value: string): string {
@@ -306,6 +317,53 @@ function getTrainingType(averageScore: number, highestScore: number, stabilityGa
   return '提升型';
 }
 
+function getStandardDeviation(values: number[]): number {
+  if (values.length <= 1) {
+    return 0;
+  }
+
+  const mean = average(values);
+  return Math.sqrt(average(values.map((value) => (value - mean) ** 2)));
+}
+
+function buildPersonalizedSuggestion(
+  rows: PracticeExplorerMatchRow[],
+  strength: string,
+  weakness: string,
+  averageScore: number,
+  recentAverageScore: number,
+  scoreStdDev: number,
+): string {
+  const trendDelta = recentAverageScore - averageScore;
+  const penaltyTotal = rows.reduce((sum, row) => sum + Math.min(row.penalty, 0), 0);
+  const parts: string[] = [];
+
+  if (rows.length < 3) {
+    parts.push(`目前只有 ${rows.length} 场有效数据，结论可信度较低，建议至少完成 3 场后再判断趋势`);
+  } else if (trendDelta >= 25) {
+    parts.push(`最近状态明显上升，最近 ${Math.min(3, rows.length)} 场联盟均分比全部场次均分高 ${formatNumber(trendDelta)} 分`);
+  } else if (trendDelta <= -25) {
+    parts.push(`最近状态有所回落，最近 ${Math.min(3, rows.length)} 场联盟均分比全部场次均分低 ${formatNumber(Math.abs(trendDelta))} 分`);
+  } else {
+    parts.push(`最近状态基本持平，与全部场次均分相差 ${formatNumber(Math.abs(trendDelta))} 分`);
+  }
+
+  if (scoreStdDev >= 150) {
+    parts.push(`单场波动较大（标准差 ${formatNumber(scoreStdDev)} 分），下一轮应先固定路线和启动流程`);
+  } else if (scoreStdDev <= 80 && rows.length >= 3) {
+    parts.push(`发挥较稳定（标准差 ${formatNumber(scoreStdDev)} 分），可以尝试增加一个高收益动作`);
+  } else {
+    parts.push(`单场波动中等（标准差 ${formatNumber(scoreStdDev)} 分），重点复现高分场的动作顺序`);
+  }
+
+  parts.push(`${strength}是当前相对强项，${weakness}`);
+  if (penaltyTotal < 0) {
+    parts.push(`本阶段累计判罚 ${formatNumber(Math.abs(penaltyTotal))} 分，先做零判罚完整路线测试`);
+  }
+
+  return `${parts.join('；')}。`;
+}
+
 function getMetricAverageMap(rows: PracticeExplorerMatchRow[]) {
   return {
     onlineBall: getAverageMetric(rows, 'onlineBall'),
@@ -401,7 +459,9 @@ export function buildPracticeExplorerInsights(rows: PracticeExplorerMatchRow[]):
       const highestScore = Math.max(...scores);
       const lowestScore = Math.min(...scores);
       const stabilityGap = highestScore - lowestScore;
-      const recentAverageScore = average(sortedRows.slice(-3).map((row) => row.totalScore));
+      const recentRows = sortedRows.slice(-3);
+      const recentAverageScore = average(recentRows.map((row) => row.totalScore));
+      const scoreStdDev = getStandardDeviation(scores);
       const weakness = getWeakness(sortedRows);
       const strength = getStrength(sortedRows);
       const trainingType = getTrainingType(averageScore, highestScore, stabilityGap, recentAverageScore);
@@ -428,11 +488,21 @@ export function buildPracticeExplorerInsights(rows: PracticeExplorerMatchRow[]):
         averageEpa: average(epas),
         bestEpa: Math.max(...epas),
         stabilityGap,
+        scoreStdDev,
+        recentMatchCount: recentRows.length,
+        recentTrendDelta: recentAverageScore - averageScore,
         consistencyScore: Math.max(0, 100 - stabilityGap / 4),
         trainingType,
         strength,
         weakness,
-        suggestion: `${strength}是当前强项，${weakness}；近三场均分 ${formatNumber(recentAverageScore)}，建议下一轮训练优先验证稳定路线。`,
+        suggestion: buildPersonalizedSuggestion(
+          sortedRows,
+          strength,
+          weakness,
+          averageScore,
+          recentAverageScore,
+          scoreStdDev,
+        ),
         ...practicePlan,
       };
     })
@@ -465,13 +535,19 @@ export function getPracticeExplorerMetricRankings(rows: PracticeExplorerMatchRow
     grouped.set(row.team, [...(grouped.get(row.team) ?? []), row]);
   });
 
-  return METRICS.map(({ key, label, aggregation }) => ({
+  return METRICS.map(({ key, label, description, aggregation }) => ({
     key,
     label,
+    description,
     aggregation,
     teams: Array.from(grouped.entries())
       .map(([team, teamRows]) => {
-        const values = teamRows.map((row) => Number(row[key]) || 0);
+        const isDetailedMetric = !['totalScore', 'contributionScore', 'epa'].includes(String(key));
+        const eligibleRows = isDetailedMetric
+          ? teamRows.filter((row) => row.hasDetailedScore !== false)
+          : teamRows;
+        const values = eligibleRows.map((row) => Number(row[key]) || 0);
+        if (!values.length) return null;
         const best = Math.max(...values);
         const mean = average(values);
         return {
@@ -479,9 +555,10 @@ export function getPracticeExplorerMetricRankings(rows: PracticeExplorerMatchRow
           best,
           average: mean,
           value: aggregation === 'average' ? mean : best,
-          matches: teamRows.length,
+          matches: eligibleRows.length,
         };
       })
+      .filter((team): team is NonNullable<typeof team> => team !== null)
       .sort((left, right) => {
         if (right.value !== left.value) {
           return right.value - left.value;

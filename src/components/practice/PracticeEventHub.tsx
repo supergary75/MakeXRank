@@ -56,10 +56,11 @@ interface PracticeEventHubProps {
 interface ExplorerScheduleGeneratorProps {
   accessToken?: string;
   onAnalysisRowsChange?: (rows: PracticeExplorerMatchRow[]) => void;
+  onTrendRowsChange?: (rows: PracticeExplorerMatchRow[]) => void;
   historicalExplorerEpaValues?: number[];
 }
 
-interface ExplorerScheduleCard {
+export interface ExplorerScheduleCard {
   id: string;
   createdAt: string;
   fieldCount: number;
@@ -71,6 +72,16 @@ interface ExplorerScheduleState {
   fieldCount: number;
   cards: ExplorerScheduleCard[];
   updatedAt: string;
+}
+
+export interface ScheduleScoreAudit {
+  cardId: string;
+  matchId: string;
+  alliance: 'red' | 'blue';
+  savedTotal: number;
+  calculatedTotal: number | null;
+  difference: number | null;
+  hasCompleteBreakdown: boolean;
 }
 
 function createExplorerScheduleCardId(): string {
@@ -374,8 +385,10 @@ function getExplorerScheduleRanking(
         || normalizeTeamIdentity(match.blue2.teamName) === teamName;
       if (!isRed && !isBlue) return;
       played += 1;
-      const own = isRed ? result.redScore : result.blueScore;
-      const other = isRed ? result.blueScore : result.redScore;
+      const redTotal = getVerifiedAllianceTotal(result, 'red');
+      const blueTotal = getVerifiedAllianceTotal(result, 'blue');
+      const own = isRed ? redTotal : blueTotal;
+      const other = isRed ? blueTotal : redTotal;
       totalScore += own;
       netScore += own - other;
       if (own > other) { wins += 1; rankingPoints += 3; }
@@ -385,21 +398,67 @@ function getExplorerScheduleRanking(
     const averageContribution = played > 0 ? totalScore / played / 2 : 0;
     return { team, played, wins, draws, losses, rankingPoints, totalScore, netScore, averageContribution };
   }).sort((a, b) => b.rankingPoints - a.rankingPoints
-    || b.totalScore - a.totalScore
     || b.netScore - a.netScore
+    || b.totalScore - a.totalScore
     || a.team.teamName.localeCompare(b.team.teamName, 'zh-CN'));
 }
 
-function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams: PracticeTeam[] = []): PracticeExplorerMatchRow[] {
+const SCORE_TASK_KEYS = [
+  'flag', 'cone', 'yellowBlock', 'colorBlock', 'yellowNet', 'yellowFrame',
+  'ball5', 'ball10', 'ball20', 'ballNet', 'ballFrame',
+] as const;
+const SCORE_PENALTY_KEYS = ['violation', 'yellow', 'redCard'] as const;
+
+function calculateBreakdownTotal(breakdown: Record<string, number>): number | null {
+  const knownKeys = [...SCORE_TASK_KEYS, ...SCORE_PENALTY_KEYS];
+  if (!knownKeys.every((key) => Object.prototype.hasOwnProperty.call(breakdown, key))) return null;
+  const positive = SCORE_TASK_KEYS.reduce((sum, key) => sum + (Number(breakdown[key]) || 0), 0);
+  const penalties = SCORE_PENALTY_KEYS.reduce((sum, key) => sum + (Number(breakdown[key]) || 0), 0);
+  return Math.max(0, positive + penalties);
+}
+
+function getVerifiedAllianceTotal(result: ScoreCalculatorResult, alliance: 'red' | 'blue'): number {
+  const savedTotal = alliance === 'red' ? result.redScore : result.blueScore;
+  const breakdown = alliance === 'red' ? result.redBreakdown ?? {} : result.blueBreakdown ?? {};
+  return calculateBreakdownTotal(breakdown) ?? savedTotal;
+}
+
+export function auditExplorerScheduleScores(cards: ExplorerScheduleCard[]): ScheduleScoreAudit[] {
+  return cards.flatMap((card) => card.schedule.flatMap((match) => {
+    const result = card.results[match.id];
+    if (!result) return [];
+    return (['red', 'blue'] as const).map((alliance) => {
+      const savedTotal = alliance === 'red' ? result.redScore : result.blueScore;
+      const breakdown = alliance === 'red' ? result.redBreakdown ?? {} : result.blueBreakdown ?? {};
+      const calculatedTotal = calculateBreakdownTotal(breakdown);
+      return {
+        cardId: card.id,
+        matchId: match.id,
+        alliance,
+        savedTotal,
+        calculatedTotal,
+        difference: calculatedTotal === null ? null : savedTotal - calculatedTotal,
+        hasCompleteBreakdown: calculatedTotal !== null,
+      };
+    });
+  }));
+}
+
+export function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams: PracticeTeam[] = []): PracticeExplorerMatchRow[] {
   const resolveTeam = (team: PracticeTeam) => canonicalTeams.find((candidate) => (
     normalizeEventItem(candidate.eventItem) === normalizeEventItem(team.eventItem)
     && normalizeTeamIdentity(candidate.teamName)
     && normalizeTeamIdentity(candidate.teamName) === normalizeTeamIdentity(team.teamName)
   )) ?? team;
+  // Analysis identity deliberately follows the displayed team name. Logistics
+  // and manually entered copies can have different internal ids, but the user
+  // treats the same Explorer team name as one team across all schedule cards.
+  const getTeamKey = (team: PracticeTeam) => normalizeTeamIdentity(team.teamName);
   const teams = new Map<string, PracticeTeam>();
   const appearances = new Map<string, Array<{
     totalScore: number;
     breakdown: Record<string, number>;
+    hasDetailedScore: boolean;
   }>>();
   const observations: AllianceScoreObservation[] = [];
   cards.forEach((card) => card.schedule.forEach((match) => {
@@ -408,64 +467,95 @@ function buildScheduleAnalysisRows(cards: ExplorerScheduleCard[], canonicalTeams
     const redTeams = [resolveTeam(match.red1), resolveTeam(match.red2)];
     const blueTeams = [resolveTeam(match.blue1), resolveTeam(match.blue2)];
     [...redTeams, ...blueTeams].forEach((team) => {
-      teams.set(team.id, team);
+      const teamKey = getTeamKey(team);
+      if (teamKey) teams.set(teamKey, teams.get(teamKey) ?? team);
     });
-    redTeams.forEach((team) => appearances.set(team.id, [
-      ...(appearances.get(team.id) ?? []),
-      { totalScore: result.redScore, breakdown: result.redBreakdown ?? {} },
+    const redTotal = getVerifiedAllianceTotal(result, 'red');
+    const blueTotal = getVerifiedAllianceTotal(result, 'blue');
+    redTeams.forEach((team) => appearances.set(getTeamKey(team), [
+      ...(appearances.get(getTeamKey(team)) ?? []),
+      { totalScore: redTotal, breakdown: result.redBreakdown ?? {}, hasDetailedScore: calculateBreakdownTotal(result.redBreakdown ?? {}) !== null },
     ]));
-    blueTeams.forEach((team) => appearances.set(team.id, [
-      ...(appearances.get(team.id) ?? []),
-      { totalScore: result.blueScore, breakdown: result.blueBreakdown ?? {} },
+    blueTeams.forEach((team) => appearances.set(getTeamKey(team), [
+      ...(appearances.get(getTeamKey(team)) ?? []),
+      { totalScore: blueTotal, breakdown: result.blueBreakdown ?? {}, hasDetailedScore: calculateBreakdownTotal(result.blueBreakdown ?? {}) !== null },
     ]));
     observations.push(
-      { teamIds: [redTeams[0].id, redTeams[1].id], total: result.redScore, breakdown: result.redBreakdown ?? {} },
-      { teamIds: [blueTeams[0].id, blueTeams[1].id], total: result.blueScore, breakdown: result.blueBreakdown ?? {} },
+      { teamIds: [getTeamKey(redTeams[0]), getTeamKey(redTeams[1])], total: redTotal, breakdown: result.redBreakdown ?? {} },
+      { teamIds: [getTeamKey(blueTeams[0]), getTeamKey(blueTeams[1])], total: blueTotal, breakdown: result.blueBreakdown ?? {} },
     );
   }));
   const teamIds = Array.from(teams.keys());
   const totalEpa = solveRidgeEpa(teamIds, observations, (observation) => observation.total);
+  const detailedObservations = observations.filter((observation) => calculateBreakdownTotal(observation.breakdown) !== null);
+  const detailedTeamIds = Array.from(new Set(detailedObservations.flatMap((observation) => observation.teamIds)));
   const breakdownValue = (observation: AllianceScoreObservation, keys: string[]) => (
     keys.reduce((sum, key) => sum + (Number(observation.breakdown[key]) || 0), 0)
   );
   const metricEpa = {
-    bucket: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['cone'])),
-    flag: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['flag'])),
-    yellowBlock: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['yellowBlock'])),
-    redBlueBlock: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['colorBlock'])),
-    yellowBall: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['yellowNet', 'yellowFrame'])),
-    onlineBall: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['ballNet', 'ballFrame'])),
-    fieldBall: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['ball5', 'ball10', 'ball20'])),
-    penalty: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['violation', 'yellow', 'redCard'])),
-    redCard: solveRidgeEpa(teamIds, observations, (observation) => breakdownValue(observation, ['redCard'])),
+    bucket: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['cone'])),
+    flag: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['flag'])),
+    yellowBlock: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['yellowBlock'])),
+    redBlueBlock: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['colorBlock'])),
+    yellowBall: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['yellowNet', 'yellowFrame'])),
+    onlineBall: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['ballNet', 'ballFrame'])),
+    fieldBall: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['ball5', 'ball10', 'ball20'])),
+    penalty: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['violation', 'yellow', 'redCard'])),
+    redCard: solveRidgeEpa(detailedTeamIds, detailedObservations, (observation) => breakdownValue(observation, ['redCard'])),
   };
-  return Array.from(teams.values()).flatMap((team) => {
-    if (team.id.startsWith('virtual-team-')) return [];
-    const teamAppearances = appearances.get(team.id) ?? [];
+  return Array.from(teams.entries()).flatMap(([teamKey, team]) => {
+    if (team.id.startsWith('virtual-')) return [];
+    const teamAppearances = appearances.get(teamKey) ?? [];
     const label = team.teamName;
     return teamAppearances.map((appearance, index): PracticeExplorerMatchRow => ({
       team: label,
       round: index + 1,
       equity: 0,
-      bucket: Math.max(0, metricEpa.bucket.get(team.id) ?? 0),
-      flag: Math.max(0, metricEpa.flag.get(team.id) ?? 0),
-      yellowBlock: Math.max(0, metricEpa.yellowBlock.get(team.id) ?? 0),
-      redBlueBlock: Math.max(0, metricEpa.redBlueBlock.get(team.id) ?? 0),
-      yellowBall: Math.max(0, metricEpa.yellowBall.get(team.id) ?? 0),
-      onlineBall: Math.max(0, metricEpa.onlineBall.get(team.id) ?? 0),
-      fieldBall: Math.max(0, metricEpa.fieldBall.get(team.id) ?? 0),
-      penalty: Math.min(0, metricEpa.penalty.get(team.id) ?? 0),
-      redCard: Math.min(0, metricEpa.redCard.get(team.id) ?? 0),
+      // Keep the signed regression estimates intact. Clamping each metric
+      // independently would make the item decomposition stop reconciling with
+      // the alliance score and silently overstate sparse-card performance.
+      bucket: metricEpa.bucket.get(teamKey) ?? 0,
+      flag: metricEpa.flag.get(teamKey) ?? 0,
+      yellowBlock: metricEpa.yellowBlock.get(teamKey) ?? 0,
+      redBlueBlock: metricEpa.redBlueBlock.get(teamKey) ?? 0,
+      yellowBall: metricEpa.yellowBall.get(teamKey) ?? 0,
+      onlineBall: metricEpa.onlineBall.get(teamKey) ?? 0,
+      fieldBall: metricEpa.fieldBall.get(teamKey) ?? 0,
+      penalty: metricEpa.penalty.get(teamKey) ?? 0,
+      redCard: metricEpa.redCard.get(teamKey) ?? 0,
       contributionScore: appearance.totalScore / 2,
-      epa: totalEpa.get(team.id) ?? 0,
+      epa: totalEpa.get(teamKey) ?? 0,
       totalScore: appearance.totalScore,
+      hasDetailedScore: appearance.hasDetailedScore,
     }));
   });
 }
 
-export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, historicalExplorerEpaValues = [] }: ExplorerScheduleGeneratorProps) {
+export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, onTrendRowsChange, historicalExplorerEpaValues = [] }: ExplorerScheduleGeneratorProps) {
   const roundsPerTeam = 4;
-  const [scheduleState, setScheduleState] = useState<ExplorerScheduleState>(loadExplorerScheduleState);
+  const localMultiCardTestMode = window.location.hostname === '127.0.0.1'
+    && new URLSearchParams(window.location.hash.slice(1)).get('scheduleTest') === 'multi';
+  const [scheduleState, setScheduleState] = useState<ExplorerScheduleState>(() => {
+    const initialState = loadExplorerScheduleState();
+    if (!localMultiCardTestMode || initialState.cards.length !== 1) return initialState;
+    const sourceCard = initialState.cards[0];
+    return {
+      ...initialState,
+      cards: Array.from({ length: 4 }, (_, index) => ({
+        ...sourceCard,
+        id: index === 0 ? sourceCard.id : `${sourceCard.id}-local-test-${index + 1}`,
+        createdAt: index === 0
+          ? sourceCard.createdAt
+          : new Date(Date.now() - index * 60_000).toISOString(),
+        // Local-only multi-card testing must preserve the complete score
+        // breakdown. Empty results make the cloned cards look valid while
+        // excluding them from every aggregate/EPA calculation.
+        results: index === 0
+          ? sourceCard.results
+          : structuredClone(sourceCard.results),
+      })),
+    };
+  });
   const [scheduleCloudReady, setScheduleCloudReady] = useState(false);
   const [message, setMessage] = useState('');
   const [activeScoreMatch, setActiveScoreMatch] = useState<{ cardId: string; match: PracticeMatch } | null>(null);
@@ -489,9 +579,10 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, h
   const formatTeamName = (team: PracticeTeam) => `${team.teamName}${isKClubTeam(team) ? ' KC' : ''}`;
 
   useEffect(() => {
+    if (localMultiCardTestMode) return;
     saveExplorerScheduleState(scheduleState);
     scheduleUpdatedAtRef.current = scheduleState.updatedAt;
-  }, [scheduleState]);
+  }, [localMultiCardTestMode, scheduleState]);
 
   useEffect(() => {
     if (openScheduleCardId) {
@@ -512,8 +603,19 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, h
   }, [cards, onAnalysisRowsChange, teams]);
 
   useEffect(() => {
+    onTrendRowsChange?.(cards.flatMap((card, cardIndex) =>
+      buildScheduleAnalysisRows([card], teams).map((row) => ({
+        ...row,
+        scheduleCardId: card.id,
+        scheduleCardLabel: `赛程卡 ${cardIndex + 1}`,
+        scheduleCardOrder: cardIndex,
+      })),
+    ));
+  }, [cards, onTrendRowsChange, teams]);
+
+  useEffect(() => {
     let cancelled = false;
-    if (!accessToken) {
+    if (!accessToken || localMultiCardTestMode) {
       setScheduleCloudReady(false);
       return;
     }
@@ -535,18 +637,18 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, h
     });
 
     return () => { cancelled = true; };
-  }, [accessToken]);
+  }, [accessToken, localMultiCardTestMode]);
 
   useEffect(() => {
-    if (!accessToken || !scheduleCloudReady) return;
+    if (!accessToken || !scheduleCloudReady || localMultiCardTestMode) return;
     const timer = window.setTimeout(() => {
       void saveRemoteExplorerScheduleState(scheduleState, accessToken);
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [accessToken, scheduleCloudReady, scheduleState]);
+  }, [accessToken, localMultiCardTestMode, scheduleCloudReady, scheduleState]);
 
   useEffect(() => {
-    if (!accessToken || !scheduleCloudReady) return;
+    if (!accessToken || !scheduleCloudReady || localMultiCardTestMode) return;
     let cancelled = false;
     const pullLatest = () => {
       void fetchRemoteExplorerScheduleUpdatedAt(accessToken).then(async (remoteUpdatedAt) => {
@@ -569,7 +671,7 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, h
       window.removeEventListener('online', pullLatest);
       document.removeEventListener('visibilitychange', pullWhenVisible);
     };
-  }, [accessToken, scheduleCloudReady]);
+  }, [accessToken, localMultiCardTestMode, scheduleCloudReady]);
 
   const updateScheduleState = (
     updater: (current: ExplorerScheduleState) => Omit<ExplorerScheduleState, 'updatedAt'>,
@@ -636,25 +738,27 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, h
           <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程表及成绩公示</div>
           <table className={styles.scheduleTable}>
             <thead><tr><th>场地</th><th>场次</th><th className={styles.redHead}>红方战队1</th><th className={styles.redHead}>红方战队2</th><th className={styles.blueHead}>蓝方战队1</th><th className={styles.blueHead}>蓝方战队2</th><th>红方胜负分</th><th className={styles.redScoreHead}>红方总分</th><th>红方净胜分</th><th>蓝方胜负分</th><th className={styles.blueScoreHead}>蓝方总分</th><th>蓝方净胜分</th></tr></thead>
-            <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redWin = result ? (result.redScore > result.blueScore ? 3 : result.redScore === result.blueScore ? 1 : 0) : null; const blueWin = result ? (result.blueScore > result.redScore ? 3 : result.blueScore === result.redScore ? 1 : 0) : null; const redNet = result ? result.redScore - result.blueScore : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><span>{renderTeamName(team)}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{result?.redScore ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{result?.blueScore ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
+            <tbody>{card.schedule.map((match) => { const result = card.results[match.id]; const redTotal = result ? getVerifiedAllianceTotal(result, 'red') : null; const blueTotal = result ? getVerifiedAllianceTotal(result, 'blue') : null; const redWin = redTotal !== null && blueTotal !== null ? (redTotal > blueTotal ? 3 : redTotal === blueTotal ? 1 : 0) : null; const blueWin = redTotal !== null && blueTotal !== null ? (blueTotal > redTotal ? 3 : blueTotal === redTotal ? 1 : 0) : null; const redNet = redTotal !== null && blueTotal !== null ? redTotal - blueTotal : null; return <tr key={match.id} onClick={() => setActiveScoreMatch({ cardId: card.id, match })} className={styles.clickableMatch}><td><strong>场地 {match.field}</strong><button type="button">进入计分</button></td><td>{match.slot}</td>{[match.red1, match.red2, match.blue1, match.blue2].map((team, teamIndex) => <td key={`${match.id}-${teamIndex}`}><span>{renderTeamName(team)}</span></td>)}<td className={styles.pendingScore}>{redWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.redScoreCell}`}>{redTotal ?? '—'}</td><td className={styles.pendingScore}>{redNet ?? '—'}</td><td className={styles.pendingScore}>{blueWin ?? '—'}</td><td className={`${styles.pendingScore} ${styles.blueScoreCell}`}>{blueTotal ?? '—'}</td><td className={styles.pendingScore}>{redNet === null ? '—' : -redNet}</td></tr>; })}</tbody>
           </table>
         </div>
         <div className={styles.mobileMatchList}>
           <div className={styles.schedulePublicTitle}>Explorer 资格排位赛 · 赛程与成绩</div>
           {card.schedule.map((match) => {
             const result = card.results[match.id];
+            const redTotal = result ? getVerifiedAllianceTotal(result, 'red') : null;
+            const blueTotal = result ? getVerifiedAllianceTotal(result, 'blue') : null;
             return <article className={styles.mobileMatchCard} key={`mobile-${match.id}`}>
               <div className={styles.mobileMatchHeader}>
                 <div><strong>场次 {match.slot}</strong><span>场地 {match.field}</span></div>
                 <button type="button" onClick={() => setActiveScoreMatch({ cardId: card.id, match })}>进入计分</button>
               </div>
               <div className={`${styles.mobileAlliance} ${styles.mobileRedAlliance}`}>
-                <div><b>红方</b><strong>{result ? result.redScore : '待计分'}</strong></div>
+                <div><b>红方</b><strong>{redTotal ?? '待计分'}</strong></div>
                 <p>{renderTeamName(match.red1)}</p>
                 <p>{renderTeamName(match.red2)}</p>
               </div>
               <div className={`${styles.mobileAlliance} ${styles.mobileBlueAlliance}`}>
-                <div><b>蓝方</b><strong>{result ? result.blueScore : '待计分'}</strong></div>
+                <div><b>蓝方</b><strong>{blueTotal ?? '待计分'}</strong></div>
                 <p>{renderTeamName(match.blue1)}</p>
                 <p>{renderTeamName(match.blue2)}</p>
               </div>
@@ -670,21 +774,18 @@ export function ExplorerScheduleGenerator({ accessToken, onAnalysisRowsChange, h
               const historicalRank = historicalExplorerEpaValues.length
                 ? 1 + historicalExplorerEpaValues.filter((value) => value > insight.averageEpa).length
                 : null;
-              const historicalPercentile = historicalRank == null
-                ? null
-                : Math.max(1, Math.ceil(historicalRank / historicalExplorerEpaValues.length * 100));
               return <article key={insight.team}>
               <strong>{insight.team}</strong>
               <span>本卡场次 {insight.matches}</span>
               <span>本卡平均贡献 {Math.round(insight.averageContribution)}</span>
-              <span>本卡平均 EPA {Math.round(insight.averageEpa)}</span>
               <span>{historicalRank == null
                 ? 'Explorer 历史参考：暂无正式赛事数据'
-                : `Explorer 历史参考：第 ${historicalRank} / ${historicalExplorerEpaValues.length} · 前 ${historicalPercentile}%`}</span>
+                : `Explorer 历史排名：第 ${historicalRank} 名`}</span>
             </article>;
             })}</div>
             <div className={styles.cardMetricGrid}>{cardMetricRankings.map((metric) => <article key={metric.key}>
               <h4>{metric.label}</h4>
+              <p className={styles.cardMetricDescription}>{metric.description}</p>
               {metric.teams.map((team, index) => <div key={`${metric.key}-${team.team}`}><span>{index + 1}. {team.team}</span><strong>{Math.round(team.value)}</strong></div>)}
             </article>)}</div>
           </>}

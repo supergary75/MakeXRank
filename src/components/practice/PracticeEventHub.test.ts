@@ -2,6 +2,41 @@ import { describe, expect, it } from 'vitest';
 import { generateExplorerSchedule } from '../../utils/practiceScheduleGenerator';
 import { solveRidgeEpa } from '../../utils/practiceEpa';
 import { mergePracticeTeams } from '../../utils/practiceTeamMerge';
+import { auditExplorerScheduleScores, buildScheduleAnalysisRows, type ExplorerScheduleCard } from './PracticeEventHub';
+
+const completeBreakdown = (overrides: Record<string, number> = {}) => ({
+  flag: 0, cone: 0, yellowBlock: 0, colorBlock: 0, yellowNet: 0,
+  yellowFrame: 0, ball5: 0, ball10: 0, ball20: 0, ballNet: 0,
+  ballFrame: 0, violation: 0, yellow: 0, redCard: 0, ...overrides,
+});
+
+function scheduleCard(): ExplorerScheduleCard {
+  const team = (id: string, teamName: string) => ({ id, teamName, eventItem: 'MakeX Explorer', teamNo: id, members: [] });
+  return {
+    id: 'card-1', createdAt: '2026-08-15T00:00:00.000Z', fieldCount: 1,
+    schedule: [{
+      id: 'match-1', slot: 1, field: 1,
+      red1: team('official-a', '原力觉醒'), red2: team('b', '烈焰梦魇'),
+      blue1: team('c', '星辰主宰'), blue2: team('d', '永远的国王'),
+    }, {
+      id: 'match-2', slot: 2, field: 1,
+      red1: team('manual-a', ' 原力觉醒 '), red2: team('c', '星辰主宰'),
+      blue1: team('b', '烈焰梦魇'), blue2: team('d', '永远的国王'),
+    }],
+    results: {
+      'match-1': {
+        redScore: 100, blueScore: 80,
+        redBreakdown: completeBreakdown({ flag: 30, cone: 20, ballNet: 50 }),
+        blueBreakdown: completeBreakdown({ flag: 30, cone: 20, ballNet: 30 }),
+      },
+      'match-2': {
+        redScore: 120, blueScore: 90,
+        redBreakdown: completeBreakdown({ flag: 30, cone: 20, ballNet: 70 }),
+        blueBreakdown: completeBreakdown({ flag: 30, cone: 20, ballNet: 40 }),
+      },
+    },
+  };
+}
 
 describe('mergePracticeTeams', () => {
   it('keeps the logistics identity when a manual team repeats the same team name with another number', () => {
@@ -68,6 +103,41 @@ describe('generateExplorerSchedule', () => {
 });
 
 describe('Explorer schedule EPA', () => {
+  it('merges appearances by displayed team name even when saved ids differ', () => {
+    const rows = buildScheduleAnalysisRows([scheduleCard()]);
+    expect(rows.filter((row) => row.team.trim() === '原力觉醒')).toHaveLength(2);
+  });
+
+  it('audits every saved alliance total against its complete scoring breakdown', () => {
+    const audits = auditExplorerScheduleScores([scheduleCard()]);
+    expect(audits).toHaveLength(4);
+    expect(audits.every((audit) => audit.hasCompleteBreakdown && audit.difference === 0)).toBe(true);
+
+    const card = scheduleCard();
+    card.results['match-1'].redScore = 101;
+    expect(auditExplorerScheduleScores([card]).find((audit) => audit.matchId === 'match-1' && audit.alliance === 'red')?.difference).toBe(1);
+  });
+
+  it('uses the recomputed breakdown total in analysis when the saved total is inconsistent', () => {
+    const card = scheduleCard();
+    card.results['match-1'].redScore = 999;
+    const affectedRows = buildScheduleAnalysisRows([card]).filter((row) => (
+      row.team === '原力觉醒' && row.round === 1
+    ));
+
+    expect(affectedRows).toHaveLength(1);
+    expect(affectedRows[0].totalScore).toBe(100);
+    expect(affectedRows[0].contributionScore).toBe(50);
+  });
+
+  it('marks legacy partial score details unavailable instead of silently filling missing items with zero', () => {
+    const card = scheduleCard();
+    card.results['match-1'].redBreakdown = { flag: 30 };
+    const audit = auditExplorerScheduleScores([card]).find((item) => item.matchId === 'match-1' && item.alliance === 'red');
+    expect(audit).toMatchObject({ hasCompleteBreakdown: false, calculatedTotal: null, difference: null });
+    expect(buildScheduleAnalysisRows([card]).filter((row) => row.team === '原力觉醒')[0].hasDetailedScore).toBe(false);
+  });
+
   it('splits a single alliance score evenly between its two teams', () => {
     const result = solveRidgeEpa(
       ['team-a', 'team-b'],
@@ -90,8 +160,61 @@ describe('Explorer schedule EPA', () => {
       (observation) => observation.breakdown.yellowBlock,
     );
 
+    // A modest ridge penalty deliberately shrinks the sparse three-match
+    // solution toward the component baseline instead of over-fitting it.
     expect(result.get('team-a')).toBeCloseTo(20, 3);
-    expect(result.get('team-b')).toBeCloseTo(10, 3);
-    expect(result.get('team-c')).toBeCloseTo(30, 3);
+    expect(result.get('team-b')).toBeCloseTo(15, 3);
+    expect(result.get('team-c')).toBeCloseTo(25, 3);
+    expect((result.get('team-c') ?? 0) > (result.get('team-a') ?? 0)).toBe(true);
+    expect((result.get('team-a') ?? 0) > (result.get('team-b') ?? 0)).toBe(true);
+  });
+
+  it('keeps an underdetermined partial schedule near the observed contribution instead of exploding', () => {
+    const result = solveRidgeEpa(
+      ['team-a', 'team-b', 'team-c', 'team-d'],
+      [
+        { teamIds: ['team-a', 'team-b'], total: 480, breakdown: {} },
+        { teamIds: ['team-a', 'team-c'], total: 500, breakdown: {} },
+      ],
+      (observation) => observation.total,
+    );
+
+    expect(result.get('team-a')).toBeGreaterThan(240);
+    expect(result.get('team-a')).toBeLessThan(300);
+    expect(result.get('team-b')).toBeGreaterThan(200);
+    expect(result.get('team-c')).toBeGreaterThan(200);
+    expect(result.get('team-d')).toBeCloseTo(245, 3);
+  });
+
+  it('does not pull disconnected low- and high-scoring alliance groups toward one global mean', () => {
+    const result = solveRidgeEpa(
+      ['team-a', 'team-b', 'team-c', 'team-d'],
+      [
+        { teamIds: ['team-a', 'team-b'], total: 100, breakdown: {} },
+        { teamIds: ['team-c', 'team-d'], total: 500, breakdown: {} },
+      ],
+      (observation) => observation.total,
+    );
+
+    expect(result.get('team-a')).toBeCloseTo(50, 3);
+    expect(result.get('team-b')).toBeCloseTo(50, 3);
+    expect(result.get('team-c')).toBeCloseTo(250, 3);
+    expect(result.get('team-d')).toBeCloseTo(250, 3);
+  });
+
+  it('keeps the sum of independently regressed score components equal to the regressed total', () => {
+    const observations = [
+      { teamIds: ['team-a', 'team-b'] as [string, string], total: 100, breakdown: { first: 60, second: 40 } },
+      { teamIds: ['team-a', 'team-c'] as [string, string], total: 140, breakdown: { first: 80, second: 60 } },
+      { teamIds: ['team-b', 'team-c'] as [string, string], total: 120, breakdown: { first: 50, second: 70 } },
+    ];
+    const ids = ['team-a', 'team-b', 'team-c'];
+    const total = solveRidgeEpa(ids, observations, (observation) => observation.total);
+    const first = solveRidgeEpa(ids, observations, (observation) => observation.breakdown.first);
+    const second = solveRidgeEpa(ids, observations, (observation) => observation.breakdown.second);
+
+    ids.forEach((id) => {
+      expect((first.get(id) ?? 0) + (second.get(id) ?? 0)).toBeCloseTo(total.get(id) ?? 0, 5);
+    });
   });
 });

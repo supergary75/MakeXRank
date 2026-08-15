@@ -93,6 +93,80 @@ import styles from './App.module.css';
 
 type TrainingDateMode = 'training' | 'self';
 
+type PracticeTrendMetricKey = 'totalScore' | 'contributionScore' | 'epa' | 'flag' | 'onlineBall' | 'fieldBall' | 'yellowBall' | 'bucket' | 'yellowBlock' | 'redBlueBlock' | 'penalty';
+
+interface PracticeTeamTrendPoint {
+  cardId: string;
+  cardLabel: string;
+  cardOrder: number;
+  values: Record<PracticeTrendMetricKey, number>;
+}
+
+interface PracticeTeamTrend {
+  team: string;
+  points: PracticeTeamTrendPoint[];
+}
+
+const PRACTICE_TREND_METRICS: Array<{ key: PracticeTrendMetricKey; label: string; color: string }> = [
+  { key: 'totalScore', label: '单场最高总分', color: '#3465cd' },
+  { key: 'contributionScore', label: '平均贡献分', color: '#1f8f73' },
+  { key: 'epa', label: '回归 EPA', color: '#9a7215' },
+  { key: 'flag', label: '战队旗帜', color: '#8b6f47' },
+  { key: 'onlineBall', label: '红蓝球（网上）', color: '#406bd8' },
+  { key: 'fieldBall', label: '红蓝球（绿地）', color: '#38a169' },
+  { key: 'yellowBall', label: '黄球', color: '#c58b00' },
+  { key: 'bucket', label: '桶', color: '#7a5fb5' },
+  { key: 'yellowBlock', label: '黄方块', color: '#d09b22' },
+  { key: 'redBlueBlock', label: '红蓝方块', color: '#d45667' },
+  { key: 'penalty', label: '判罚扣分', color: '#b13a3a' },
+];
+
+function PracticeTrendSparkline({ values, labels, color }: { values: number[]; labels: string[]; color: string }) {
+  const width = 260;
+  const height = 86;
+  const paddingX = 18;
+  const paddingY = 18;
+  const min = Math.min(...values, 0);
+  const max = Math.max(...values, 0);
+  const range = Math.max(1, max - min);
+  const points = values.map((value, index) => {
+    const x = values.length === 1 ? width / 2 : paddingX + index * (width - paddingX * 2) / (values.length - 1);
+    const y = height - paddingY - (value - min) / range * (height - paddingY * 2);
+    return { x, y, value, label: labels[index] ?? `赛程卡 ${index + 1}` };
+  });
+  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+
+  return (
+    <svg className={styles.practiceTrendSparkline} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${labels.join('、')}：${values.map((value) => Math.round(value)).join('、')}`}>
+      <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} className={styles.practiceTrendBaseline} />
+      {points.length > 1 && <path d={path} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+      {points.length === 1 && (
+        <text x={width / 2} y={height - 2} textAnchor="middle" className={styles.practiceTrendSinglePointHint}>
+          至少 2 张已计分赛程卡后生成折线
+        </text>
+      )}
+      {points.map((point, index) => {
+        const labelY = point.y <= paddingY + 5 ? point.y + 15 : point.y - 9;
+        const textAnchor = index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle';
+        return <g key={`${point.label}-${point.x}`}>
+          <circle cx={point.x} cy={point.y} r="4.5" fill={color} stroke="#fff" strokeWidth="2">
+            <title>{point.label}：{Math.round(point.value)}</title>
+          </circle>
+          <text
+            x={point.x}
+            y={labelY}
+            textAnchor={textAnchor}
+            className={styles.practiceTrendPointValue}
+            style={{ fill: color }}
+          >
+            {Math.round(point.value)}
+          </text>
+        </g>;
+      })}
+    </svg>
+  );
+}
+
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
 const EVENT_TYPES: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
 const EXPLORER_PRIMARY_GROUP = 'MakeX Explorer小学组';
@@ -2421,11 +2495,7 @@ function mergeCompetitionsForSync(
 }
 
 export default function App() {
-  const initialNavigationRef = useRef<NavigationSnapshot | null>(null);
-  if (!initialNavigationRef.current) {
-    initialNavigationRef.current = readNavigationSnapshot();
-  }
-  const initialNavigation = initialNavigationRef.current;
+  const [initialNavigation] = useState<NavigationSnapshot>(() => readNavigationSnapshot());
   const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCachedCompetitions());
   const [viewMode, setViewMode] = useState<ViewMode>(initialNavigation.viewMode);
   const [activeCompetitionId, setActiveCompetitionId] = useState<string | null>(initialNavigation.activeCompetitionId);
@@ -2450,6 +2520,7 @@ export default function App() {
   const [teamTagCloudReady, setTeamTagCloudReady] = useState(false);
   const [practiceExplorer] = useState<PracticeExplorerState>(() => loadPracticeExplorerState());
   const [schedulePracticeExplorerRows, setSchedulePracticeExplorerRows] = useState<PracticeExplorerMatchRow[]>([]);
+  const [schedulePracticeExplorerTrendRows, setSchedulePracticeExplorerTrendRows] = useState<PracticeExplorerMatchRow[]>([]);
   const [, setPracticeExplorerAwaitingPaste] = useState(false);
   const [logisticsEvents, setLogisticsEvents] = useState<LogisticsEventRecord[]>(() => loadLogisticsEvents());
   const [logisticsDeletedEventIds, setLogisticsDeletedEventIds] = useState<string[]>(() => loadLogisticsDeletedEventIds());
@@ -2755,6 +2826,40 @@ export default function App() {
     () => getPracticeExplorerMetricRankings(practiceExplorerAnalysisRows),
     [practiceExplorerAnalysisRows],
   );
+  const practiceExplorerTeamTrends = useMemo<PracticeTeamTrend[]>(() => {
+    const rowsByTeamAndCard = new Map<string, Map<string, PracticeExplorerMatchRow[]>>();
+    schedulePracticeExplorerTrendRows.forEach((row) => {
+      if (!row.scheduleCardId) return;
+      const cardsByTeam = rowsByTeamAndCard.get(row.team) ?? new Map<string, PracticeExplorerMatchRow[]>();
+      cardsByTeam.set(row.scheduleCardId, [...(cardsByTeam.get(row.scheduleCardId) ?? []), row]);
+      rowsByTeamAndCard.set(row.team, cardsByTeam);
+    });
+
+    return Array.from(rowsByTeamAndCard.entries()).map(([team, cardsById]) => ({
+      team,
+      points: Array.from(cardsById.entries()).map(([cardId, rows]) => {
+        const averageMetric = (key: PracticeTrendMetricKey) => rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0) / rows.length;
+        return {
+          cardId,
+          cardLabel: rows[0]?.scheduleCardLabel ?? '赛程卡',
+          cardOrder: rows[0]?.scheduleCardOrder ?? 0,
+          values: {
+            totalScore: Math.max(...rows.map((row) => Number(row.totalScore) || 0)),
+            contributionScore: averageMetric('contributionScore'),
+            epa: averageMetric('epa'),
+            flag: averageMetric('flag'),
+            onlineBall: averageMetric('onlineBall'),
+            fieldBall: averageMetric('fieldBall'),
+            yellowBall: averageMetric('yellowBall'),
+            bucket: averageMetric('bucket'),
+            yellowBlock: averageMetric('yellowBlock'),
+            redBlueBlock: averageMetric('redBlueBlock'),
+            penalty: averageMetric('penalty'),
+          },
+        };
+      }).sort((left, right) => left.cardOrder - right.cardOrder),
+    })).sort((left, right) => left.team.localeCompare(right.team, 'zh-CN'));
+  }, [schedulePracticeExplorerTrendRows]);
   const historicalExplorerEpaValues = useMemo(() => {
     const valuesByTeam = new Map<string, number[]>();
     competitions
@@ -10167,53 +10272,59 @@ export default function App() {
               <ExplorerScheduleGenerator
                 accessToken={getStoredAccessToken() ?? undefined}
                 onAnalysisRowsChange={setSchedulePracticeExplorerRows}
+                onTrendRowsChange={setSchedulePracticeExplorerTrendRows}
                 historicalExplorerEpaValues={historicalExplorerEpaValues}
               />
 
               <section className={styles.diagnosticPanel}>
                 <div className={styles.diagnosticHeader}>
                   <div>
-                    <p className={styles.portalEyebrow}>Personal Practice Plan</p>
-                    <h2>个性化练习规划</h2>
-                    <p>针对每支队的问题自动生成下一轮训练目标、专项练习安排和复盘重点。</p>
+                    <p className={styles.portalEyebrow}>Team Parameter Trends</p>
+                    <h2>赛队关键参数走势</h2>
+                    <p>按赛程卡顺序展示每支赛队的关键参数变化。每个点代表该赛队在对应赛程卡中的已计分比赛汇总，便于观察提升、回落和稳定性。</p>
                   </div>
                 </div>
 
-                {practiceExplorerInsights.length === 0 ? (
+                {practiceExplorerTeamTrends.length === 0 ? (
                   <div className={styles.logisticsEmpty}>
-                    暂无练习规划。请先导入 Explorer 练习赛数据。
+                    暂无走势数据。请先在至少一张 Explorer 赛程卡中完成比赛计分。
                   </div>
                 ) : (
-                  <div className={styles.practicePlanGrid}>
-                    {practiceExplorerInsights.map((insight) => (
-                      <article key={`${insight.team}-plan`} className={styles.practicePlanCard}>
-                        <div className={styles.practicePlanTitle}>
-                          <div>
-                            <span>{insight.trainingType}</span>
-                            <h3>{insight.team}{isKClubTeamLabel(insight.team) && <span className={styles.kcTeamBadge}>KC</span>}</h3>
-                          </div>
-                          <strong>{Math.round(insight.averageScore)}</strong>
+                  <div className={styles.practiceTrendTeamGrid}>
+                    {practiceExplorerTeamTrends.map((trend) => (
+                      <article key={`${trend.team}-trend`} className={styles.practiceTrendTeamCard}>
+                        <div className={styles.practiceTrendTeamHeader}>
+                          <h3>{trend.team}{isKClubTeamLabel(trend.team) && <span className={styles.kcTeamBadge}>KC</span>}</h3>
+                          <span>{trend.points.length} 张已计分赛程卡</span>
                         </div>
-
-                        <div className={styles.practicePlanBlock}>
-                          <h4>本轮目标</h4>
-                          <ul>
-                            {insight.practiceGoals.map((goal) => (
-                              <li key={goal}>{goal}</li>
-                            ))}
-                          </ul>
+                        <div className={styles.practiceTrendMetricGrid}>
+                          {PRACTICE_TREND_METRICS.map((metric) => {
+                            const values = trend.points.map((point) => point.values[metric.key]);
+                            const first = values[0] ?? 0;
+                            const latest = values.at(-1) ?? 0;
+                            const delta = latest - first;
+                            return (
+                              <section key={`${trend.team}-${metric.key}`} className={styles.practiceTrendMetricCard}>
+                                <div className={styles.practiceTrendMetricHeader}>
+                                  <strong>{metric.label}</strong>
+                                  <span>{Math.round(latest)}</span>
+                                </div>
+                                <PracticeTrendSparkline
+                                  values={values}
+                                  labels={trend.points.map((point) => point.cardLabel)}
+                                  color={metric.color}
+                                />
+                                <div className={styles.practiceTrendMetricFooter}>
+                                  <span>{trend.points[0]?.cardLabel ?? '赛程卡'} {Math.round(first)}</span>
+                                  <em className={delta > 0 ? styles.practiceTrendUp : delta < 0 ? styles.practiceTrendDown : styles.practiceTrendFlat}>
+                                    {delta > 0 ? '↑' : delta < 0 ? '↓' : '—'} {Math.abs(Math.round(delta))}
+                                  </em>
+                                  <span>{trend.points.at(-1)?.cardLabel ?? '赛程卡'} {Math.round(latest)}</span>
+                                </div>
+                              </section>
+                            );
+                          })}
                         </div>
-
-                        <div className={styles.practicePlanBlock}>
-                          <h4>练习安排</h4>
-                          <ol>
-                            {insight.practicePlan.map((step) => (
-                              <li key={step}>{step}</li>
-                            ))}
-                          </ol>
-                        </div>
-
-                        <p className={styles.reviewPoint}>{insight.reviewPoint}</p>
                       </article>
                     ))}
                   </div>
@@ -10225,7 +10336,7 @@ export default function App() {
                   <div>
                     <p className={styles.portalEyebrow}>Training Diagnosis</p>
                     <h2>训练诊断总览</h2>
-                    <p>集中汇总本次集训所有赛程卡中的已计分比赛。平均贡献分按联盟总分平均分配，回归 EPA 根据全部联盟组合估算队伍的独立贡献，两种指标分开呈现。</p>
+                    <p>集中汇总本次集训所有赛程卡中的已计分比赛。诊断会分别比较近期趋势、单场波动、强项、短板与判罚情况；不同赛队会得到不同结论。“联盟总分”均指该赛队出场时红方或蓝方联盟的整队得分，不是赛队独立贡献，也不是 EPA。</p>
                   </div>
                 </div>
 
@@ -10243,10 +10354,12 @@ export default function App() {
                           <em>{insight.trainingType}</em>
                         </div>
                         <div className={styles.diagnosticStats}>
-                          <span>均分 {Math.round(insight.averageScore)}</span>
-                          <span>最高 {Math.round(insight.highestScore)}</span>
-                          <span>稳定差 {insight.stabilityGap}</span>
-                          <span>近三场 {Math.round(insight.recentAverageScore)}</span>
+                          <span title="该赛队每次出场时所在联盟总分的平均值，不是 EPA">平均联盟总分 {Math.round(insight.averageScore)}</span>
+                          <span title="该赛队本次集训所有出场中，所在联盟取得的最高单场总分">最高联盟总分 {Math.round(insight.highestScore)}</span>
+                          <span title="全部已计分场次中，最高联盟总分减去最低联盟总分；数值越小通常越稳定">最高最低分差 {Math.round(insight.stabilityGap)}</span>
+                          <span title={`按场次顺序取最近 ${insight.recentMatchCount} 场的联盟总分平均值`}>最近{insight.recentMatchCount}场联盟均分 {Math.round(insight.recentAverageScore)}</span>
+                          <span title="全部已计分场次联盟总分的标准差；越小代表每场发挥越接近">单场波动 {Math.round(insight.scoreStdDev)}</span>
+                          <span title="最近最多3场联盟均分减去全部场次联盟均分；正数表示近期提升，负数表示近期回落">近期变化 {insight.recentTrendDelta >= 0 ? '+' : ''}{Math.round(insight.recentTrendDelta)}</span>
                         </div>
                         <p>{insight.suggestion}</p>
                       </article>
@@ -10275,6 +10388,7 @@ export default function App() {
                           <strong>{Math.round(ranking.teams[0]?.value ?? 0)}</strong>
                           <small>{ranking.teams[0]?.team ?? '暂无数据'}</small>
                         </div>
+                        <p className={styles.metricRankingDescription}>{ranking.description}</p>
                         <div className={styles.metricRankingList}>
                           {ranking.teams.map((team, index) => (
                             <div key={`${ranking.key}-${team.team}`} className={styles.metricRankingRow}>

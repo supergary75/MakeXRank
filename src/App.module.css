@@ -2647,6 +2647,122 @@
   line-height: 1.7;
 }
 
+.practiceTrendTeamGrid {
+  display: grid;
+  gap: 18px;
+}
+
+.practiceTrendTeamCard {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(22, 104, 232, 0.15);
+  border-left: 2px solid rgba(213, 173, 56, 0.76);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(22, 104, 232, 0.09), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 244, 255, 0.76));
+  box-shadow: 0 18px 42px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.practiceTrendTeamHeader,
+.practiceTrendMetricHeader,
+.practiceTrendMetricFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.practiceTrendTeamHeader h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  color: #102f5c;
+}
+
+.practiceTrendTeamHeader > span {
+  padding: 7px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(234, 243, 255, 0.9);
+  color: #315b91;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.practiceTrendMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.practiceTrendMetricCard {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(22, 104, 232, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.practiceTrendMetricHeader strong {
+  color: #17355f;
+  font-size: 0.9rem;
+}
+
+.practiceTrendMetricHeader > span {
+  color: #3465cd;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.practiceTrendSparkline {
+  display: block;
+  width: 100%;
+  height: 88px;
+  margin: 6px 0 2px;
+  overflow: visible;
+}
+
+.practiceTrendBaseline {
+  stroke: rgba(49, 91, 145, 0.18);
+  stroke-width: 1;
+}
+
+.practiceTrendSinglePointHint {
+  fill: #6c819b;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.practiceTrendPointValue {
+  font-size: 8px;
+  font-weight: 900;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.96);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.practiceTrendMetricFooter {
+  color: #6c819b;
+  font-size: 0.72rem;
+}
+
+.practiceTrendMetricFooter em {
+  min-width: 48px;
+  text-align: center;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.practiceTrendUp { color: #16845f; }
+.practiceTrendDown { color: #c54855; }
+.practiceTrendFlat { color: #6c819b; }
+
 .metricLeaderGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2712,6 +2828,13 @@
 .metricRankingTitle small {
   grid-column: 1 / -1;
   color: var(--gray-400);
+}
+
+.metricRankingDescription {
+  margin: 0;
+  color: #687b98;
+  font-size: 0.86rem;
+  line-height: 1.6;
 }
 
 .metricRankingList {
@@ -2968,9 +3091,25 @@
   .metricLeaderGrid,
   .metricRankingGrid,
   .practicePlanGrid,
+  .practiceTrendMetricGrid,
   .roomPicker,
   .roomGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .practiceTrendTeamCard {
+    padding: 14px;
+  }
+
+  .practiceTrendTeamHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .practiceTrendMetricGrid {
+    grid-template-columns: 1fr;
   }
 }
 
