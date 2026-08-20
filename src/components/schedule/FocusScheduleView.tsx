@@ -82,14 +82,6 @@ function formatTeam(number: string, name: string): string {
   return number || name || '未识别';
 }
 
-function formatSeatTeam(seatLabel: string, name: string): string {
-  if (seatLabel && name) {
-    return `${seatLabel} ${name}`;
-  }
-
-  return seatLabel || name || '未识别';
-}
-
 function getMatchCountClass(matchCount: number): string {
   if (matchCount === 4) {
     return styles.complete;
@@ -313,7 +305,10 @@ export function FocusScheduleView({
                 setActiveTagKey((previous) => (previous === tagKey ? '' : tagKey));
               }}
             >
-              {formatSeatTeam(seatLabel, team.name)}
+              <span className={`${styles.seatBadge} ${side === 'red' ? styles.redSeatBadge : styles.blueSeatBadge}`}>
+                {seatLabel}
+              </span>
+              <span className={styles.teamName}>{team.name || '未识别'}</span>
               {teamTag && <span className={styles.inlineTag}>{teamTag}</span>}
             </button>
             {activeTagKey === tagKey && renderTagPicker(team.number, team.name)}

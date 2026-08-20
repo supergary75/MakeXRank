@@ -376,6 +376,34 @@
   filter: brightness(1.12);
 }
 
+.seatBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 950;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.redSeatBadge {
+  background: #b83232;
+}
+
+.blueSeatBadge {
+  background: #245f9e;
+}
+
+.teamName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .inlineTag {
   display: inline-flex;
   padding: 2px 7px;
