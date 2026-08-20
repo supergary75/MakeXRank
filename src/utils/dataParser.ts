@@ -55,6 +55,10 @@ function parseNumber(value: string): number {
   return Number(match[0]) || 0;
 }
 
+function hasRecordedNumber(value: string): boolean {
+  return /-?\d+(?:\.\d+)?/.test(normalizeCell(value).replace(/,/g, ''));
+}
+
 function splitRow(row: string): string[] {
   if (row.includes('\t')) {
     return row.split('\t').map(normalizeCell);
@@ -177,6 +181,20 @@ function parseAllianceTableData(rows: string[]): TeamRaw[] {
     const blueTeam2Name = parts[indexes.blueTeam2Name] ?? '';
 
     if (![redTeam1Name, redTeam2Name, blueTeam1Name, blueTeam2Name].some((value) => normalizeCell(value))) {
+      continue;
+    }
+
+    const resultCells = [
+      parts[indexes.redWinLossScore] ?? '',
+      parts[indexes.redTotalScore] ?? '',
+      parts[indexes.blueWinLossScore] ?? '',
+      parts[indexes.blueTotalScore] ?? '',
+    ];
+    // Scheduled but unplayed rows often contain team names while every result
+    // cell is blank. Treating those blanks as zero creates a fake 0:0 draw.
+    // A genuine scoreless draw remains valid because its recorded cells are
+    // numeric (normally 1, 0, 1, 0).
+    if (!resultCells.every(hasRecordedNumber)) {
       continue;
     }
 
