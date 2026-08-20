@@ -1,4 +1,5 @@
 import type { CompetitionRecord, EventType, StorageMode, TeamRaw } from '../types';
+import { parseTableData } from '../utils/dataParser';
 
 const STORAGE_KEY = 'competitive-ranking-board::competitions';
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
@@ -40,15 +41,23 @@ function normalizeCompetitionRecord(input: unknown): CompetitionRecord | null {
     return null;
   }
 
+  const eventType = isEventType(item.eventType) ? item.eventType : DEFAULT_EVENT_TYPE;
+  const sourceText = item.sourceText;
+  const reparsedTeams = eventType === 'MakeX Explorer' && sourceText.trim()
+    ? parseTableData(sourceText, eventType)
+    : [];
+
   return {
     id: item.id,
-    eventType: isEventType(item.eventType) ? item.eventType : DEFAULT_EVENT_TYPE,
+    eventType,
     name: item.name,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     lastUpdate: item.lastUpdate,
-    sourceText: item.sourceText,
-    teamsData: item.teamsData as TeamRaw[],
+    sourceText,
+    // Rebuild Explorer standings from the original table so previously cached
+    // blank-result rows are corrected immediately after an app update.
+    teamsData: reparsedTeams.length > 0 ? reparsedTeams : item.teamsData as TeamRaw[],
   };
 }
 
