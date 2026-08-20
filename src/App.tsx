@@ -2823,7 +2823,12 @@ export default function App() {
     activeEventType,
   );
   const focusScheduleAverageEpaTeams = useMemo(() => {
-    const totals = new Map<string, { team: string; totalScore: number; matches: number }>();
+    const totals = new Map<string, {
+      team: string;
+      totalScore: number;
+      matches: number;
+      sourceCompetitions: Set<string>;
+    }>();
 
     competitions
       .filter((competition) => (
@@ -2835,9 +2840,15 @@ export default function App() {
           if (team.matches <= 0) return;
           const key = team.team.trim().replace(/\s+/g, '').toLowerCase();
           if (!key) return;
-          const current = totals.get(key) ?? { team: team.team, totalScore: 0, matches: 0 };
+          const current = totals.get(key) ?? {
+            team: team.team,
+            totalScore: 0,
+            matches: 0,
+            sourceCompetitions: new Set<string>(),
+          };
           current.totalScore += team.totalScore;
           current.matches += team.matches;
+          current.sourceCompetitions.add(competition.name);
           totals.set(key, current);
         });
       });
@@ -2846,6 +2857,7 @@ export default function App() {
       team: team.team,
       matches: team.matches,
       epa: (team.totalScore / team.matches / 2).toFixed(2),
+      sourceCompetitions: Array.from(team.sourceCompetitions),
     }));
   }, [authUser, competitions]);
   const practiceExplorerAnalysisRows = useMemo(

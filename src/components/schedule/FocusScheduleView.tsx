@@ -7,7 +7,12 @@ import styles from './FocusScheduleView.module.css';
 
 interface Props {
   competitionId: string;
-  averageEpaTeams?: Array<{ team: string; epa: string; matches: number }>;
+  averageEpaTeams?: Array<{
+    team: string;
+    epa: string;
+    matches: number;
+    sourceCompetitions: string[];
+  }>;
   showNotification: (msg: string, type: NotificationType) => void;
   teamTags?: Record<string, string>;
   tagOptions?: string[];
@@ -25,10 +30,15 @@ function normalizeTeamIdentity(value: string): string {
 }
 
 function getTeamEpa(
-  averageEpaTeams: Array<{ team: string; epa: string; matches: number }>,
+  averageEpaTeams: Array<{
+    team: string;
+    epa: string;
+    matches: number;
+    sourceCompetitions: string[];
+  }>,
   teamNumber: string,
   teamName: string,
-): string | null {
+): { value: string; matches: number; sourceCompetitions: string[] } | null {
   const normalizedNumber = normalizeTeamIdentity(teamNumber);
   const normalizedName = normalizeTeamIdentity(teamName);
   const rankedTeam = averageEpaTeams.find((team) => {
@@ -44,7 +54,13 @@ function getTeamEpa(
   }
 
   const value = Number.parseFloat(rankedTeam.epa);
-  return Number.isFinite(value) && value > 0 ? value.toFixed(2) : null;
+  return Number.isFinite(value) && value > 0
+    ? {
+        value: value.toFixed(2),
+        matches: rankedTeam.matches,
+        sourceCompetitions: rankedTeam.sourceCompetitions,
+      }
+    : null;
 }
 
 interface FocusScheduleCache {
@@ -340,8 +356,14 @@ export function FocusScheduleView({
               </span>
               <span className={styles.teamName}>{team.name || '未识别'}</span>
               {teamEpa && (
-                <span className={styles.epaBadge} title="历史 Explorer 比赛按参赛场次加权的平均 EPA">
-                  EPA {teamEpa}
+                <span
+                  className={styles.epaBadge}
+                  title={`按 ${teamEpa.matches} 场参赛记录加权计算；来源：${teamEpa.sourceCompetitions.join('、')}`}
+                >
+                  <strong>EPA {teamEpa.value}</strong>
+                  <span className={styles.epaSource}>
+                    来源：{teamEpa.sourceCompetitions.join('、')}
+                  </span>
                 </span>
               )}
               {teamTag && <span className={styles.inlineTag}>{teamTag}</span>}
