@@ -2822,6 +2822,32 @@ export default function App() {
     sortOrder,
     activeEventType,
   );
+  const focusScheduleAverageEpaTeams = useMemo(() => {
+    const totals = new Map<string, { team: string; totalScore: number; matches: number }>();
+
+    competitions
+      .filter((competition) => (
+        isExplorerEventType(competition.eventType)
+        && hasCompetitionAccess(authUser, competition)
+      ))
+      .forEach((competition) => {
+        competition.teamsData.forEach((team) => {
+          if (team.matches <= 0) return;
+          const key = team.team.trim().replace(/\s+/g, '').toLowerCase();
+          if (!key) return;
+          const current = totals.get(key) ?? { team: team.team, totalScore: 0, matches: 0 };
+          current.totalScore += team.totalScore;
+          current.matches += team.matches;
+          totals.set(key, current);
+        });
+      });
+
+    return Array.from(totals.values()).map((team) => ({
+      team: team.team,
+      matches: team.matches,
+      epa: (team.totalScore / team.matches / 2).toFixed(2),
+    }));
+  }, [authUser, competitions]);
   const practiceExplorerAnalysisRows = useMemo(
     () => getScheduleCardOnlyRows(schedulePracticeExplorerRows),
     [schedulePracticeExplorerRows],
@@ -10640,6 +10666,7 @@ export default function App() {
               <FocusScheduleView
                 key={activeCompetition.id}
                 competitionId={activeCompetition.id}
+                averageEpaTeams={focusScheduleAverageEpaTeams}
                 showNotification={showNotification}
                 teamTags={effectiveTeamTags}
                 tagOptions={teamTagOptions}

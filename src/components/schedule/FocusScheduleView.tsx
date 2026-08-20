@@ -7,6 +7,7 @@ import styles from './FocusScheduleView.module.css';
 
 interface Props {
   competitionId: string;
+  averageEpaTeams?: Array<{ team: string; epa: string; matches: number }>;
   showNotification: (msg: string, type: NotificationType) => void;
   teamTags?: Record<string, string>;
   tagOptions?: string[];
@@ -17,6 +18,33 @@ interface Props {
 interface FocusIdentity {
   number: string;
   name: string;
+}
+
+function normalizeTeamIdentity(value: string): string {
+  return value.trim().replace(/\s+/g, '').toLowerCase();
+}
+
+function getTeamEpa(
+  averageEpaTeams: Array<{ team: string; epa: string; matches: number }>,
+  teamNumber: string,
+  teamName: string,
+): string | null {
+  const normalizedNumber = normalizeTeamIdentity(teamNumber);
+  const normalizedName = normalizeTeamIdentity(teamName);
+  const rankedTeam = averageEpaTeams.find((team) => {
+    const identity = normalizeTeamIdentity(team.team);
+    return Boolean(
+      (normalizedNumber && identity === normalizedNumber)
+      || (normalizedName && identity === normalizedName),
+    );
+  });
+
+  if (!rankedTeam || rankedTeam.matches <= 0) {
+    return null;
+  }
+
+  const value = Number.parseFloat(rankedTeam.epa);
+  return Number.isFinite(value) && value > 0 ? value.toFixed(2) : null;
 }
 
 interface FocusScheduleCache {
@@ -109,6 +137,7 @@ function countFocusTeams(teams: ScheduleAllianceTeam[], focusTeams: FocusIdentit
 
 export function FocusScheduleView({
   competitionId,
+  averageEpaTeams = [],
   showNotification,
   teamTags = {},
   tagOptions = [],
@@ -286,6 +315,7 @@ export function FocusScheduleView({
         const tagKey = getTeamTagKey(team.number, team.name);
         const fallbackSeatLabel = `${side === 'red' ? '红' : '蓝'}${index + 1}`;
         const seatLabel = team.seatLabel || fallbackSeatLabel;
+        const teamEpa = getTeamEpa(averageEpaTeams, team.number, team.name);
 
         return (
           <div
@@ -309,6 +339,11 @@ export function FocusScheduleView({
                 {seatLabel}
               </span>
               <span className={styles.teamName}>{team.name || '未识别'}</span>
+              {teamEpa && (
+                <span className={styles.epaBadge} title="历史 Explorer 比赛按参赛场次加权的平均 EPA">
+                  EPA {teamEpa}
+                </span>
+              )}
               {teamTag && <span className={styles.inlineTag}>{teamTag}</span>}
             </button>
             {activeTagKey === tagKey && renderTagPicker(team.number, team.name)}

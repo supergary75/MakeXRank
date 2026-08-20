@@ -404,6 +404,21 @@
   overflow-wrap: anywhere;
 }
 
+.epaBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 3px 7px;
+  border: 1px solid #8e6c19;
+  border-radius: 4px;
+  background: #fff7d6;
+  color: #664c0d;
+  font-size: 0.76rem;
+  font-weight: 950;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .inlineTag {
   display: inline-flex;
   padding: 2px 7px;
