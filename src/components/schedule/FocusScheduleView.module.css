@@ -765,3 +765,235 @@
 .blueTeam { background:#edf6ff; color:#0b5dcc; text-shadow:none; }
 .emptyState,
 .notFound { background:#f7fbff; border-color:rgba(22,104,232,.18); color:#506b89; }
+
+/* Focus schedule results: keep this deliberately plain and table-first. */
+.resultPanel {
+  background: #f5f7fa;
+  border: 1px solid #c8d1dc;
+  box-shadow: 0 10px 28px rgba(31, 45, 61, 0.1);
+}
+
+.resultPanel h3,
+.resultPanel .panelHeader p {
+  color: #172b4d;
+  text-shadow: none;
+}
+
+.scheduleList {
+  gap: 22px;
+}
+
+.scheduleCard {
+  padding: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #aeb9c7;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
+}
+
+.scheduleHeader {
+  align-items: center;
+  margin: 0;
+  padding: 16px 18px;
+  background: #eef2f6;
+  border-bottom: 1px solid #aeb9c7;
+}
+
+.scheduleHeader h4 {
+  color: #172b4d;
+  font-size: 1.08rem;
+  text-shadow: none;
+}
+
+.queryLabel {
+  margin-bottom: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #52677f;
+  font-size: 0.78rem;
+}
+
+.matchBadge {
+  border: 1px solid #8e9bab;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #172b4d;
+  box-shadow: none;
+}
+
+.complete {
+  border-color: #2f855a;
+  background: #e6f4ec;
+  color: #19643f;
+}
+
+.warning {
+  border-color: #b7791f;
+  background: #fff5d6;
+  color: #7a4b00;
+}
+
+.empty {
+  border-color: #c53030;
+  background: #fff0f0;
+  color: #9b2525;
+}
+
+.tableWrap {
+  padding: 0;
+  background: #ffffff;
+}
+
+.table {
+  min-width: 860px;
+  border: 0;
+  border-radius: 0;
+  border-collapse: collapse;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.table th,
+.table td {
+  padding: 13px 14px;
+  border-right: 1px solid #b8c2ce;
+  border-bottom: 1px solid #b8c2ce;
+  color: #172b4d;
+  text-shadow: none;
+  vertical-align: middle;
+}
+
+.table th:last-child,
+.table td:last-child {
+  border-right: 0;
+}
+
+.table th {
+  background: #263b55;
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.table th:nth-child(1),
+.table th:nth-child(2),
+.table td:nth-child(1),
+.table td:nth-child(2),
+.versusCell {
+  width: 72px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.table tbody tr:nth-child(even) td {
+  background-color: #f7f9fb;
+}
+
+.resultPanel .redAllianceCell,
+.resultPanel .sameAllianceRow .redAllianceCell,
+.resultPanel .headToHeadRow .redAllianceCell {
+  background: #fff2f2;
+  box-shadow: inset 4px 0 0 #d64545;
+}
+
+.resultPanel .blueAllianceCell,
+.resultPanel .sameAllianceRow .blueAllianceCell,
+.resultPanel .headToHeadRow .blueAllianceCell {
+  background: #eef6ff;
+  box-shadow: inset 4px 0 0 #2b6cb0;
+}
+
+.teamPill,
+.redTeam,
+.blueTeam {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 5px;
+  box-shadow: none;
+  color: #172b4d;
+  text-shadow: none;
+}
+
+.redTeam {
+  border: 1px solid #e2a4a4;
+  background: #ffffff;
+}
+
+.blueTeam {
+  border: 1px solid #9fc2e8;
+  background: #ffffff;
+}
+
+.focusTeam {
+  border: 2px solid #1f6f43;
+  background: #e8f5ee;
+  color: #164c31;
+  box-shadow: none;
+}
+
+.otherFocusTeam {
+  border: 2px solid #8a5a00;
+  background: #fff5d6;
+  color: #684400;
+  box-shadow: none;
+}
+
+.sameAllianceRow td,
+.headToHeadRow td {
+  border-top: 2px solid #738297;
+  border-bottom: 2px solid #738297;
+}
+
+.sameAllianceRow td:first-child,
+.headToHeadRow td:first-child {
+  border-left: 5px solid #2f855a;
+}
+
+.sameAllianceRow td:last-child,
+.headToHeadRow td:last-child {
+  border-right: 0;
+}
+
+.sameAllianceGroup,
+.headToHeadGroup {
+  padding: 8px;
+  padding-top: 29px;
+  border: 1px solid #738297;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.sameAllianceGroup::before,
+.headToHeadGroup::before {
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.versusCell {
+  color: #52677f;
+  text-shadow: none;
+}
+
+.headToHeadBadge {
+  border: 1px solid #8a5a00;
+  border-radius: 4px;
+  background: #fff5d6;
+  color: #684400;
+  box-shadow: none;
+}
+
+.inlineTag {
+  border-color: #8e9bab;
+  background: #eef2f6;
+  color: #34495e;
+}
+
+.notFound {
+  margin: 16px;
+}
