@@ -354,18 +354,20 @@ export function FocusScheduleView({
               <span className={`${styles.seatBadge} ${side === 'red' ? styles.redSeatBadge : styles.blueSeatBadge}`}>
                 {seatLabel}
               </span>
-              <span className={styles.teamName}>{team.name || '未识别'}</span>
-              {teamEpa && (
-                <span
-                  className={styles.epaBadge}
-                  title={`按 ${teamEpa.matches} 场参赛记录加权计算；来源：${teamEpa.sourceCompetitions.join('、')}`}
-                >
-                  <strong>EPA {teamEpa.value}</strong>
-                  <span className={styles.epaSource}>
-                    来源：{teamEpa.sourceCompetitions.join('、')}
+              <span className={styles.teamDetails}>
+                <span className={styles.teamName}>{team.name || '未识别'}</span>
+                {teamEpa && (
+                  <span
+                    className={styles.epaBadge}
+                    title={`按 ${teamEpa.matches} 场参赛记录加权计算；来源：${teamEpa.sourceCompetitions.join('、')}`}
+                  >
+                    <strong>EPA {teamEpa.value}</strong>
+                    <span className={styles.epaSource}>
+                      来源：{teamEpa.sourceCompetitions.join('、')}
+                    </span>
                   </span>
-                </span>
-              )}
+                )}
+              </span>
               {teamTag && <span className={styles.inlineTag}>{teamTag}</span>}
             </button>
             {activeTagKey === tagKey && renderTagPicker(team.number, team.name)}
