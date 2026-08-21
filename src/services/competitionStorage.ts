@@ -1,5 +1,6 @@
 import type { CompetitionRecord, EventType, StorageMode, TeamRaw } from '../types';
 import { parseScheduledTeamData, parseTableData } from '../utils/dataParser';
+import { getStoredAccessToken } from './authService';
 
 const STORAGE_KEY = 'competitive-ranking-board::competitions';
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
@@ -96,9 +97,10 @@ function toRow(record: CompetitionRecord): CompetitionRow {
 }
 
 function getSupabaseHeaders(includeJsonBody = false): HeadersInit {
+  const accessToken = getStoredAccessToken();
   return {
     apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    Authorization: `Bearer ${accessToken ?? SUPABASE_ANON_KEY}`,
     ...(includeJsonBody ? { 'Content-Type': 'application/json' } : {}),
   };
 }

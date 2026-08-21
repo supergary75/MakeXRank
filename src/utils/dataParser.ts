@@ -301,6 +301,51 @@ export function parseTableData(text: string, eventType: EventType): TeamRaw[] {
   return parseAllianceTableData(rows);
 }
 
+function extractNumberedTeamRoster(rows: string[]): TeamRaw[] {
+  const teams = new Map<string, TeamRaw>();
+
+  rows.forEach((row) => {
+    const idMatches = Array.from(row.matchAll(/(?:^|\s)(\d{5,8})(?=\s)/g));
+    if (idMatches.length < 4) {
+      return;
+    }
+
+    idMatches.slice(0, 4).forEach((match, index) => {
+      const teamId = match[1];
+      const idOffset = (match.index ?? 0) + match[0].lastIndexOf(teamId);
+      const nameStart = idOffset + teamId.length;
+      const nextMatch = idMatches[index + 1];
+      const nameEnd = nextMatch
+        ? (nextMatch.index ?? row.length) + nextMatch[0].lastIndexOf(nextMatch[1])
+        : row.length;
+      let teamName = normalizeCell(row.slice(nameStart, nameEnd));
+
+      if (!nextMatch) {
+        teamName = teamName
+          .replace(/(?:\s+-?\d+(?:\.\d+)?){6}\s*$/, '')
+          .replace(/(?:\s+-?\d+(?:\.\d+)?){4}\s*$/, '')
+          .trim();
+      }
+
+      if (!teamName || teams.has(teamId)) {
+        return;
+      }
+
+      teams.set(teamId, {
+        team: teamName,
+        wins: 0,
+        losses: 0,
+        points: 0,
+        totalScore: 0,
+        netScore: 0,
+        matches: 0,
+      });
+    });
+  });
+
+  return Array.from(teams.values());
+}
+
 /**
  * Extracts the roster from an Explorer schedule without treating unplayed
  * rows as matches. This keeps the ranking board useful before scoring starts.
@@ -351,7 +396,15 @@ export function parseScheduledTeamData(text: string, eventType: EventType): Team
     });
   });
 
-  return Array.from(teams.values());
+  const structuredTeams = Array.from(teams.values());
+  const numberedTeams = extractNumberedTeamRoster(rows);
+
+  // Plain-text clipboard copies can collapse empty score columns and shift
+  // the positional parser. Team numbers remain unambiguous, so prefer that
+  // roster whenever the two methods disagree.
+  return numberedTeams.length > 0 && numberedTeams.length !== structuredTeams.length
+    ? numberedTeams
+    : structuredTeams;
 }
 
 export function countTeamsFromSourceText(text: string, eventType: EventType): number {
@@ -362,6 +415,11 @@ export function countTeamsFromSourceText(text: string, eventType: EventType): nu
 
   if (eventType === 'MakeX Inspire') {
     return parseInspireTableData(rows).length;
+  }
+
+  const numberedTeams = extractNumberedTeamRoster(rows);
+  if (numberedTeams.length > 0) {
+    return numberedTeams.length;
   }
 
   const header = splitRow(rows[0]);

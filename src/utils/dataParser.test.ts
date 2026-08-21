@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseScheduledTeamData, parseTableData } from './dataParser';
+import { countTeamsFromSourceText, parseScheduledTeamData, parseTableData } from './dataParser';
 
 describe('parseTableData', () => {
   it('aggregates both alliances from an Explorer schedule table', () => {
@@ -35,6 +35,26 @@ describe('parseTableData', () => {
     const teams = parseScheduledTeamData(source, 'MakeX Explorer');
     expect(teams.map((team) => team.team)).toEqual(['红1', '红2', '蓝1', '蓝2']);
     expect(teams.every((team) => team.matches === 0 && team.points === 0)).toBe(true);
+  });
+
+  it('uses unique team numbers when a plain-text copy collapses blank score columns', () => {
+    const source = [
+      '场地 场次 红方战队1 红方战队1名称 红方战队2 红方战队2名称 蓝方战队1 蓝方战队1名称 蓝方战队2 蓝方战队2名称 红方胜负分 红方总分 红方净胜分 蓝方胜负分 蓝方总分 蓝方净胜分',
+      'E1 1 150011 九州先行者 152213 FQT-协作凯旋队 149017 jy-王中王 153088 WIR-猎户座 1 0 1 0',
+      'E2 1 153082 黑桃Q 147967 KB-齐贝林 147965 KB-乔斯达 150058 XY破竹 1 0 1 0',
+    ].join('\n');
+
+    expect(countTeamsFromSourceText(source, 'MakeX Explorer')).toBe(8);
+    expect(parseScheduledTeamData(source, 'MakeX Explorer').map((team) => team.team)).toEqual([
+      '九州先行者',
+      'FQT-协作凯旋队',
+      'jy-王中王',
+      'WIR-猎户座',
+      '黑桃Q',
+      'KB-齐贝林',
+      'KB-乔斯达',
+      'XY破竹',
+    ]);
   });
 
   it('keeps a recorded scoreless Explorer draw', () => {

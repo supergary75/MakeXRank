@@ -5,6 +5,7 @@ type BeforeInstallPromptEvent = Event & {
 
 const INSTALL_DISMISSED_KEY = 'makexrank-pwa-install-dismissed';
 const INSTALL_READY_EVENT = 'makexrank:pwa-install-ready';
+const ACTIVE_BUILD_KEY = 'makexrank-active-build';
 
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
@@ -101,6 +102,8 @@ export function registerPwaFeatures(): void {
   if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
       const buildId = import.meta.env.VITE_BUILD_ID || 'production';
+      const previousBuildId = window.localStorage.getItem(ACTIVE_BUILD_KEY);
+      window.localStorage.setItem(ACTIVE_BUILD_KEY, buildId);
       let isReloadingForUpdate = false;
       window.navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (isReloadingForUpdate) return;
@@ -115,6 +118,14 @@ export function registerPwaFeatures(): void {
         .then((registration) => {
           const checkForUpdate = () => void registration.update().catch(() => undefined);
           checkForUpdate();
+
+          if (previousBuildId && previousBuildId !== buildId && 'caches' in window) {
+            void window.caches.keys()
+              .then((keys) => Promise.all(
+                keys.filter((key) => key.startsWith('makexrank-')).map((key) => window.caches.delete(key)),
+              ));
+          }
+
           window.setInterval(checkForUpdate, 5 * 60 * 1000);
           document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') checkForUpdate();
