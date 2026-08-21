@@ -60,6 +60,14 @@ function hasRecordedNumber(value: string): boolean {
 }
 
 function splitRow(row: string): string[] {
+  const trimmed = row.trim();
+  if (trimmed.includes('|')) {
+    return trimmed
+      .replace(/^\||\|$/g, '')
+      .split('|')
+      .map(normalizeCell);
+  }
+
   if (row.includes('\t')) {
     return row.split('\t').map(normalizeCell);
   }
@@ -94,6 +102,19 @@ function splitRow(row: string): string[] {
     .split(/\s{2,}/)
     .map(normalizeCell)
     .filter(Boolean);
+}
+
+function isTableHeaderOrSeparator(row: string[]): boolean {
+  const normalizedCells = row.map(normalizeCell);
+  if (normalizedCells.length > 0 && normalizedCells.every((cell) => /^:?-{3,}:?$/.test(cell))) {
+    return true;
+  }
+
+  const joined = normalizedCells.join('|').toLowerCase().replace(/\s+/g, '');
+  return (
+    (joined.includes('红方战队1') && joined.includes('蓝方战队2'))
+    || (joined.includes('red1team') && joined.includes('blue2team'))
+  );
 }
 
 function resolveColumnIndexes(header: string[]): Record<TableColumnKey, number> {
@@ -171,6 +192,9 @@ function parseAllianceTableData(rows: string[]): TeamRaw[] {
 
   for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
     const parts = splitRow(rows[rowIndex]);
+    if (isTableHeaderOrSeparator(parts)) {
+      continue;
+    }
     if (parts.length <= minimumIndex) {
       continue;
     }
@@ -299,6 +323,9 @@ export function countTeamsFromSourceText(text: string, eventType: EventType): nu
 
   for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
     const parts = splitRow(rows[rowIndex]);
+    if (isTableHeaderOrSeparator(parts)) {
+      continue;
+    }
 
     identifierIndexes.forEach(({ id, name }) => {
       const teamId = normalizeCell(parts[id] ?? '');
@@ -331,6 +358,9 @@ export function getHighestSingleMatchScoreFromSourceText(text: string, eventType
 
   for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
     const parts = splitRow(rows[rowIndex]);
+    if (isTableHeaderOrSeparator(parts)) {
+      continue;
+    }
     if (parts.length <= minimumIndex) {
       continue;
     }

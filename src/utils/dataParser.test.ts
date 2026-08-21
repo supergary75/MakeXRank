@@ -36,4 +36,16 @@ describe('parseTableData', () => {
     expect(teams).toHaveLength(4);
     expect(teams.every((team) => team.matches === 1 && team.points === 1)).toBe(true);
   });
+
+  it('skips Markdown separators and an English translation header', () => {
+    const source = [
+      '| 场地 | 场次 | 红方战队1 | 红方战队1名称 | 红方战队2 | 红方战队2名称 | 蓝方战队1 | 蓝方战队1名称 | 蓝方战队2 | 蓝方战队2名称 | 红方胜负分 | 红方总分 | 红方净胜分 | 蓝方胜负分 | 蓝方总分 | 蓝方净胜分 |',
+      '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+      '| Arena | Session | Red 1 Team No. | Red 1 Team Name | Red 2 Team No. | Red 2 Team Name | Blue 1 Team No. | Blue 1 Team Name | Blue 2 Team No. | Blue 2 Team Name | Red Win-loss pts | Red Total Pts | Red Point Differential | Blue Win-loss pts | Blue Total Pts | Blue Point Differential |',
+      '| E1 | 1 | 1 | 红1 | 2 | 红2 | 3 | 蓝1 | 4 | 蓝2 | 3 | 420 | 80 | 0 | 340 | -80 |',
+    ].join('\n');
+
+    const teams = parseTableData(source, 'MakeX Explorer');
+    expect(teams.map((team) => team.team)).toEqual(['红1', '红2', '蓝1', '蓝2']);
+  });
 });

@@ -105,6 +105,14 @@ function splitCsvLine(line: string): string[] {
 }
 
 function splitLine(line: string): string[] {
+  const trimmed = line.trim();
+  if (trimmed.includes('|')) {
+    return trimmed
+      .replace(/^\||\|$/g, '')
+      .split('|')
+      .map(cleanCell);
+  }
+
   if (line.includes('\t')) {
     return line.split('\t').map(cleanCell);
   }
@@ -114,6 +122,18 @@ function splitLine(line: string): string[] {
   }
 
   return line.split(/\s{2,}/).map(cleanCell);
+}
+
+function isMarkdownSeparatorRow(row: string[]): boolean {
+  return row.length > 0 && row.every((cell) => /^:?-{3,}:?$/.test(cleanCell(cell)));
+}
+
+function isScheduleHeaderRow(row: string[]): boolean {
+  const joined = normalize(row.join('|'));
+  return (
+    (joined.includes('红方战队1') && joined.includes('蓝方战队2'))
+    || (joined.includes('red1team') && joined.includes('blue2team'))
+  );
 }
 
 function normalize(value: string): string {
@@ -132,10 +152,7 @@ function findColumn(headers: string[], required: string[], forbidden: string[] =
 }
 
 function getColumnIndexes(rows: string[][]): { indexes: ColumnIndexes; dataStartIndex: number } {
-  const headerIndex = rows.findIndex((row) => {
-    const joined = normalize(row.join('|'));
-    return joined.includes('红方战队1') && joined.includes('蓝方战队2');
-  });
+  const headerIndex = rows.findIndex(isScheduleHeaderRow);
 
   if (headerIndex < 0) {
     return { indexes: FALLBACK_INDEXES, dataStartIndex: 0 };
@@ -201,7 +218,9 @@ function parseMatchRows(rawText: string): ParsedMatchRow[] {
 
   const { indexes, dataStartIndex } = getColumnIndexes(rows);
 
-  return rows.slice(dataStartIndex).map((row) => {
+  return rows.slice(dataStartIndex)
+    .filter((row) => !isMarkdownSeparatorRow(row) && !isScheduleHeaderRow(row))
+    .map((row) => {
     const teams = [
       buildTeamSlot(row, indexes, 'red', 1),
       buildTeamSlot(row, indexes, 'red', 2),
@@ -214,7 +233,8 @@ function parseMatchRows(rawText: string): ParsedMatchRow[] {
       matchNo: readCell(row, indexes.matchNo),
       teams,
     };
-  }).filter((match) => match.teams.length >= 2 && match.matchNo);
+    })
+    .filter((match) => match.teams.length >= 2 && match.matchNo);
 }
 
 function splitFocusQueries(input: string): string[] {
