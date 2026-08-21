@@ -6389,6 +6389,10 @@ export default function App() {
       }
 
       try {
+        // Clipboard imports from the ranking panel must always finish on the
+        // ranking panel. This also clears a stale `tab=focusSchedule` hash
+        // left behind by older deployed versions.
+        setActiveTab('ranking');
         const parsed = parseTableData(text, activeCompetition.eventType);
         const scheduledTeams = activeCompetition.eventType === 'MakeX Explorer'
           ? parseScheduledTeamData(text, activeCompetition.eventType)
