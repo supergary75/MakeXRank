@@ -6398,11 +6398,11 @@ export default function App() {
             updateActiveCompetition((competition) => ({
               ...competition,
               sourceText: text,
+              teamsData: [],
               updatedAt: new Date().toISOString(),
             }));
-            setActiveTab('focusSchedule');
             showNotification(
-              `已识别 ${scheduleRowCount} 场未赛资格赛，已带入“重点赛队赛程”。总分为空，因此不会写入排名。`,
+              `已识别 ${scheduleRowCount} 场未赛资格赛。总分尚未录入，排名榜暂不生成排名；页面保持在排名榜。`,
               'info',
             );
             return;
