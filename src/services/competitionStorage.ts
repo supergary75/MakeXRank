@@ -1,5 +1,5 @@
 import type { CompetitionRecord, EventType, StorageMode, TeamRaw } from '../types';
-import { parseTableData } from '../utils/dataParser';
+import { parseScheduledTeamData, parseTableData } from '../utils/dataParser';
 
 const STORAGE_KEY = 'competitive-ranking-board::competitions';
 const DEFAULT_EVENT_TYPE: EventType = 'MakeX Inspire';
@@ -43,9 +43,16 @@ function normalizeCompetitionRecord(input: unknown): CompetitionRecord | null {
 
   const eventType = isEventType(item.eventType) ? item.eventType : DEFAULT_EVENT_TYPE;
   const sourceText = item.sourceText;
-  const reparsedTeams = eventType === 'MakeX Explorer' && sourceText.trim()
+  const parsedResults = eventType === 'MakeX Explorer' && sourceText.trim()
     ? parseTableData(sourceText, eventType)
     : [];
+  const scheduledTeams = eventType === 'MakeX Explorer' && sourceText.trim()
+    ? parseScheduledTeamData(sourceText, eventType)
+    : [];
+  const parsedResultsByName = new Map(parsedResults.map((team) => [team.team.trim(), team]));
+  const reparsedTeams = scheduledTeams.length > 0
+    ? scheduledTeams.map((team) => parsedResultsByName.get(team.team.trim()) ?? team)
+    : parsedResults;
 
   return {
     id: item.id,
@@ -55,8 +62,9 @@ function normalizeCompetitionRecord(input: unknown): CompetitionRecord | null {
     updatedAt: item.updatedAt,
     lastUpdate: item.lastUpdate,
     sourceText,
-    // Rebuild Explorer standings from the original table so previously cached
-    // blank-result rows are corrected immediately after an app update.
+    // Rebuild the complete Explorer roster from the original schedule. Teams
+    // without a recorded result stay at zero matches instead of disappearing
+    // or being counted as scoreless draws.
     teamsData: reparsedTeams.length > 0 ? reparsedTeams : item.teamsData as TeamRaw[],
   };
 }
