@@ -301,6 +301,59 @@ export function parseTableData(text: string, eventType: EventType): TeamRaw[] {
   return parseAllianceTableData(rows);
 }
 
+/**
+ * Extracts the roster from an Explorer schedule without treating unplayed
+ * rows as matches. This keeps the ranking board useful before scoring starts.
+ */
+export function parseScheduledTeamData(text: string, eventType: EventType): TeamRaw[] {
+  if (eventType === 'MakeX Inspire') {
+    return parseTableData(text, eventType);
+  }
+
+  const rows = parseRows(text);
+  if (rows.length <= 1) {
+    return [];
+  }
+
+  const header = splitRow(rows[0]);
+  const indexes = resolveColumnIndexes(header);
+  const teamColumns = [
+    { id: Math.max(indexes.redTeam1Name - 1, 0), name: indexes.redTeam1Name },
+    { id: Math.max(indexes.redTeam2Name - 1, 0), name: indexes.redTeam2Name },
+    { id: Math.max(indexes.blueTeam1Name - 1, 0), name: indexes.blueTeam1Name },
+    { id: Math.max(indexes.blueTeam2Name - 1, 0), name: indexes.blueTeam2Name },
+  ];
+  const teams = new Map<string, TeamRaw>();
+
+  rows.slice(1).forEach((row) => {
+    const parts = splitRow(row);
+    if (isTableHeaderOrSeparator(parts)) {
+      return;
+    }
+
+    teamColumns.forEach(({ id, name }) => {
+      const teamName = normalizeCell(parts[name] ?? '');
+      const teamId = normalizeCell(parts[id] ?? '');
+      const key = teamId || teamName;
+      if (!key || !teamName || teams.has(key)) {
+        return;
+      }
+
+      teams.set(key, {
+        team: teamName,
+        wins: 0,
+        losses: 0,
+        points: 0,
+        totalScore: 0,
+        netScore: 0,
+        matches: 0,
+      });
+    });
+  });
+
+  return Array.from(teams.values());
+}
+
 export function countTeamsFromSourceText(text: string, eventType: EventType): number {
   const rows = parseRows(text);
   if (rows.length <= 1) {

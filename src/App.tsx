@@ -17,6 +17,7 @@ import {
   countTeamsFromSourceText,
   getHighestSingleMatchScoreFromSourceText,
   parseTableData,
+  parseScheduledTeamData,
 } from './utils/dataParser';
 import { countScheduleRows } from './utils/focusScheduleParser';
 import {
@@ -6389,6 +6390,13 @@ export default function App() {
 
       try {
         const parsed = parseTableData(text, activeCompetition.eventType);
+        const scheduledTeams = activeCompetition.eventType === 'MakeX Explorer'
+          ? parseScheduledTeamData(text, activeCompetition.eventType)
+          : [];
+        const parsedByName = new Map(parsed.map((team) => [team.team.trim(), team]));
+        const teamsForRanking = scheduledTeams.length > 0
+          ? scheduledTeams.map((team) => parsedByName.get(team.team.trim()) ?? team)
+          : parsed;
 
         if (parsed.length === 0) {
           const scheduleRowCount = activeCompetition.eventType === 'MakeX Explorer'
@@ -6398,11 +6406,11 @@ export default function App() {
             updateActiveCompetition((competition) => ({
               ...competition,
               sourceText: text,
-              teamsData: [],
+              teamsData: scheduledTeams,
               updatedAt: new Date().toISOString(),
             }));
             showNotification(
-              `已识别 ${scheduleRowCount} 场未赛资格赛。总分尚未录入，排名榜暂不生成排名；页面保持在排名榜。`,
+              `已识别 ${scheduledTeams.length} 支赛队与 ${scheduleRowCount} 场赛程，已显示在排名榜。总分录入后将自动按成绩重新排序。`,
               'info',
             );
             return;
@@ -6415,13 +6423,13 @@ export default function App() {
         updateActiveCompetition((competition) => ({
           ...competition,
           sourceText: text,
-          teamsData: parsed,
+          teamsData: teamsForRanking,
           lastUpdate,
           updatedAt: new Date().toISOString(),
         }));
 
         showNotification(
-          successMessage ?? `成功解析 ${parsed.length} 支队伍的数据，已写入 ${activeCompetition.name}。`,
+          successMessage ?? `成功解析 ${teamsForRanking.length} 支队伍的数据，已写入 ${activeCompetition.name}。`,
           'success',
         );
       } catch (error) {

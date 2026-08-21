@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTableData } from './dataParser';
+import { parseScheduledTeamData, parseTableData } from './dataParser';
 
 describe('parseTableData', () => {
   it('aggregates both alliances from an Explorer schedule table', () => {
@@ -24,6 +24,17 @@ describe('parseTableData', () => {
     const teams = parseTableData(source, 'MakeX Explorer');
     expect(teams).toHaveLength(4);
     expect(teams.some((team) => team.team.startsWith('未开赛'))).toBe(false);
+  });
+
+  it('extracts an unplayed Explorer roster for the ranking board', () => {
+    const source = [
+      '红方战队1名称\t红方战队2名称\t蓝方战队1名称\t蓝方战队2名称\t红方胜负分\t红方总分\t红方净胜分\t蓝方胜负分\t蓝方总分\t蓝方净胜分',
+      '红1\t红2\t蓝1\t蓝2\t\t\t\t\t\t',
+    ].join('\n');
+
+    const teams = parseScheduledTeamData(source, 'MakeX Explorer');
+    expect(teams.map((team) => team.team)).toEqual(['红1', '红2', '蓝1', '蓝2']);
+    expect(teams.every((team) => team.matches === 0 && team.points === 0)).toBe(true);
   });
 
   it('keeps a recorded scoreless Explorer draw', () => {
