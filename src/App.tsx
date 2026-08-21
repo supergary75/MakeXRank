@@ -18,6 +18,7 @@ import {
   getHighestSingleMatchScoreFromSourceText,
   parseTableData,
 } from './utils/dataParser';
+import { countScheduleRows } from './utils/focusScheduleParser';
 import {
   cacheCompetitionsLocally,
   deleteCompetitionRecord,
@@ -6390,6 +6391,22 @@ export default function App() {
         const parsed = parseTableData(text, activeCompetition.eventType);
 
         if (parsed.length === 0) {
+          const scheduleRowCount = activeCompetition.eventType === 'MakeX Explorer'
+            ? countScheduleRows(text)
+            : 0;
+          if (scheduleRowCount > 0) {
+            updateActiveCompetition((competition) => ({
+              ...competition,
+              sourceText: text,
+              updatedAt: new Date().toISOString(),
+            }));
+            setActiveTab('focusSchedule');
+            showNotification(
+              `已识别 ${scheduleRowCount} 场未赛资格赛，已带入“重点赛队赛程”。总分为空，因此不会写入排名。`,
+              'info',
+            );
+            return;
+          }
           showNotification('没有识别到有效表格数据，请确认复制的是完整比赛表格。', 'error');
           return;
         }
@@ -10679,6 +10696,7 @@ export default function App() {
                 key={activeCompetition.id}
                 competitionId={activeCompetition.id}
                 averageEpaTeams={focusScheduleAverageEpaTeams}
+                sourceScheduleText={activeCompetition.sourceText}
                 showNotification={showNotification}
                 teamTags={effectiveTeamTags}
                 tagOptions={teamTagOptions}

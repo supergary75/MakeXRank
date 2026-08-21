@@ -7,6 +7,7 @@ import styles from './FocusScheduleView.module.css';
 
 interface Props {
   competitionId: string;
+  sourceScheduleText?: string;
   averageEpaTeams?: Array<{
     team: string;
     epa: string;
@@ -153,6 +154,7 @@ function countFocusTeams(teams: ScheduleAllianceTeam[], focusTeams: FocusIdentit
 
 export function FocusScheduleView({
   competitionId,
+  sourceScheduleText = '',
   averageEpaTeams = [],
   showNotification,
   teamTags = {},
@@ -183,6 +185,22 @@ export function FocusScheduleView({
       }),
     );
   }, [competitionId, focusInput, rowCount, scheduleInput, schedules]);
+
+  useEffect(() => {
+    const incomingSchedule = sourceScheduleText.trim();
+    if (!incomingSchedule || incomingSchedule === scheduleInput) {
+      return;
+    }
+
+    setScheduleInput(incomingSchedule);
+    if (!focusInput.trim()) {
+      return;
+    }
+
+    const nextSchedules = buildFocusTeamSchedules(incomingSchedule, focusInput);
+    setSchedules(nextSchedules);
+    setRowCount(countScheduleRows(incomingSchedule));
+  }, [focusInput, scheduleInput, sourceScheduleText]);
 
   const generateSchedules = (sourceText = scheduleInput) => {
     const trimmedSource = sourceText.trim();
