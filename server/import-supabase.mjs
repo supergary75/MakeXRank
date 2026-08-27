@@ -31,6 +31,22 @@ const definitions = {
   inspire_sync: ['id','payload','updated_at'],
 };
 
+const jsonColumns = new Set([
+  'teams_data', 'events', 'deleted_event_ids', 'schedules', 'tags', 'options', 'payload',
+]);
+
+function normalizeJsonValue(value) {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(value));
+    } catch {
+      return JSON.stringify(value);
+    }
+  }
+  return JSON.stringify(value);
+}
+
 for (const [table, allowed] of Object.entries(definitions)) {
   const response = await fetch(`${oldUrl}/rest/v1/${table}?select=*`, {
     headers: { apikey: oldKey, Authorization: `Bearer ${accessToken}` },
@@ -41,7 +57,7 @@ for (const [table, allowed] of Object.entries(definitions)) {
   for (const row of rows) {
     const keys = Object.keys(row).filter((key) => allowed.includes(key));
     if (!keys.length) continue;
-    const values = keys.map((key) => row[key]);
+    const values = keys.map((key) => jsonColumns.has(key) ? normalizeJsonValue(row[key]) : row[key]);
     const updates = keys.filter((key) => key !== 'id').map((key) => `${key}=excluded.${key}`);
     await pool.query(
       `insert into ${table} (${keys.join(',')}) values (${keys.map((_, index) => `$${index + 1}`).join(',')}) on conflict (id) do update set ${updates.join(',')}`,
