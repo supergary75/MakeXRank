@@ -1,0 +1,17 @@
+[Unit]
+Description=MakeXRank API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/makexrank
+EnvironmentFile=/etc/makexrank.env
+ExecStart=/usr/bin/node server/app.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

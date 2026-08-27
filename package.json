@@ -5,18 +5,22 @@
   "type": "module",
   "description": "竞技排行榜 - 实时战队排名与淘汰赛预测系统",
   "scripts": {
+    "server": "node server/app.mjs",
     "sync:inspire": "node scripts/sync-inspire-module.mjs",
     "update:inspire": "git submodule update --remote --merge modules/ins_training_tool && npm run sync:inspire",
     "predev": "npm run sync:inspire",
     "dev": "vite",
     "prebuild": "npm run sync:inspire",
     "build": "tsc -b && vite build",
+    "build:tencent": "tsc -b && vite build --mode tencent",
     "lint": "eslint .",
     "test": "vitest run",
     "check": "npm run lint && npm run test && npm run build && npm audit --omit=dev --audit-level=high",
     "preview": "vite preview"
   },
   "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "read-excel-file": "^9.3.5"
