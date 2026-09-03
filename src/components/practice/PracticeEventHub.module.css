@@ -205,3 +205,13 @@
   vertical-align: middle;
   box-shadow: 0 4px 12px rgba(62, 103, 190, 0.12);
 }
+
+/* Dark arena theme: remove the remaining pale practice workspace panels. */
+.builder,.listSection,.simulatorSection,.scheduleCard,.eventCard,.mobileMatchCard,.cardAnalysis,.cardInsightGrid article,.cardMetricGrid article { border-color:#354352; background:linear-gradient(145deg,rgba(53,242,255,.045),transparent 48%),#121821; color:#f5f7fa; box-shadow:0 14px 34px rgba(0,0,0,.28); }
+.eventCard,.scheduleCard { border-left-color:#FFD700; }
+.builder h2,.listSection h2,.simulatorSection h2,.eventCard h3,.scheduleCard h3,.cardAnalysis h3,.cardMetricGrid h4 { color:#fff; }
+.builder p,.listSection p,.simulatorSection p,.eventCard p,.scheduleCard p,.cardAnalysis > p,.cardInsightGrid span,.cardMetricGrid span,.cardMetricDescription { color:#c8d2dc; }
+.builder input,.builder select,.builder textarea,.manualTeamGrid input,.manualTeamGrid select { border-color:#465363; background:#0d121a; color:#f5f7fa; }
+.scheduleEmpty { border-color:#465363; background:#101720; color:#c8d2dc; }
+.mobileRedAlliance { background:rgba(255,43,43,.09); }.mobileBlueAlliance { background:rgba(53,242,255,.08); }
+.kcTeamBadge { border-color:#FFD700; background:rgba(255,215,0,.09); color:#ffe766; box-shadow:none; }

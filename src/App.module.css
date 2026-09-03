@@ -3727,6 +3727,103 @@
 .trainingDateStatus,
 .trainingOverviewLevel,
 .trainingOverviewSelfPracticeDay .trainingOverviewLevel { border-color:#FFD700; background:rgba(255,215,0,.08); color:#ffe766; }
+
+/* Final dark arena overrides for legacy logistics glass surfaces. */
+.logisticsFormPanel,
+.logisticsEventCard,
+.logisticsEmpty,
+.logisticsItemCard,
+.parameterCard,
+.cardEditPanel,
+.timelineItem,
+.rollCallNode,
+.mentorRollCallBlock,
+.personalTaskMeta span {
+  border-color: #354352;
+  border-left-color: #FFD700;
+  background: linear-gradient(145deg, rgba(53, 242, 255, 0.045), transparent 48%), #121821;
+  color: #f5f7fa;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.logisticsFormPanel h2,
+.logisticsFormPanel h3,
+.logisticsEventCard h2,
+.logisticsEventCard h3,
+.logisticsItemCard h2,
+.logisticsItemCard h3,
+.rollCallNode strong,
+.timelineItem strong {
+  color: #ffffff;
+}
+
+.logisticsFormPanel p,
+.logisticsEventCard p,
+.logisticsItemCard p,
+.timelineItem span,
+.timelineItem small,
+.rollCallTimeLabel span,
+.logisticsField label,
+.logisticsField > span {
+  color: #c8d2dc;
+}
+
+.logisticsField input,
+.logisticsField select,
+.logisticsField textarea,
+.logisticsTable select,
+.logisticsTable input,
+.timelineEditGrid input,
+.timelineEditGrid select {
+  border-color: #465363;
+  background: #0d121a;
+  color: #f5f7fa;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.logisticsField input::placeholder,
+.logisticsField textarea::placeholder {
+  color: #9eacba;
+  opacity: 1;
+}
+
+.logisticsMeta span,
+.portalBadgeButton,
+.statusPill,
+.attendanceToggleButton {
+  border-color: #35f2ff;
+  background: rgba(53, 242, 255, 0.075);
+  color: #c8faff;
+}
+
+.logisticsTableWrap,
+.practiceTableWrap,
+.logisticsTable,
+.practiceRankTable {
+  border-color: #354352;
+  background: #0d121a;
+}
+
+.logisticsTable th,
+.practiceRankTable th {
+  color: #ffe766;
+  background: #171b24;
+}
+
+.rollCallTimeAlertSoon,
+.rollCallProgressComplete {
+  border-color: #FFD700 !important;
+  background: rgba(255, 215, 0, 0.1) !important;
+  color: #ffe766 !important;
+}
+
+.rollCallTimeAlertDue,
+.rollCallProgressWarning,
+.attendanceRemoveButton {
+  border-color: #ff4f4f !important;
+  background: rgba(255, 43, 43, 0.09) !important;
+  color: #ff8a8a !important;
+}
 .trainingDateTime,
 .trainingOverviewNames { color:#bdc8d2; }
 .workHubNote { color:#9eacba; }
