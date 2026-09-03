@@ -10,6 +10,11 @@ create table if not exists user_profiles (
   created_at timestamptz not null default now()
 );
 
+-- Canonical account identity: the login username and displayed name are both
+-- `supergary`; authorization continues to use the immutable auth_user_id.
+update user_profiles set display_name='supergary'
+where lower(username)='supergary' and display_name<>'supergary';
+
 create table if not exists refresh_tokens (
   token_hash text primary key,
   auth_user_id uuid not null references user_profiles(auth_user_id) on delete cascade,
@@ -24,6 +29,14 @@ create table if not exists competitions (
   teams_data jsonb not null default '[]'::jsonb
 );
 create index if not exists competitions_created_at_idx on competitions(created_at desc);
+
+-- Keep a tombstone for deleted cards. Older browsers may still have a cached
+-- copy and try to upload it again; the API uses this table to prevent that
+-- stale copy from resurrecting a deleted competition.
+create table if not exists competition_deletions (
+  id text primary key,
+  deleted_at timestamptz not null default now()
+);
 
 create table if not exists practice_sync (
   id text primary key, events jsonb not null default '[]',

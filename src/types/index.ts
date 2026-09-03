@@ -139,6 +139,9 @@ export interface AuthUserProfile {
 }
 export type TabName = 'ranking' | 'playoff' | 'focusSchedule';
 export type ViewMode =
+  | 'work-hub'
+  | 'interview-center'
+  | 'product-center'
   | 'home'
   | 'login'
   | 'my-tasks'

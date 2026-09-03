@@ -26,6 +26,9 @@
   color: var(--gray-300);
 }
 
+.footer { background:#0d121a; color:#bdc8d2; border-top-color:#303a46; }
+.lastUpdate { color:#9eacba; }
+
 @media (max-width: 768px) {
   .footer {
     padding: 16px;

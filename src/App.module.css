@@ -361,6 +361,145 @@
 }
 
 /* Light glass technology theme: portal and shared shell */
+.workHubSection {
+  padding: clamp(22px, 4vw, 48px);
+  background: linear-gradient(160deg, #f8faff, #edf3ff);
+}
+
+.workHubIntro, .workHubCardTop, .workHubLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.workHubIntro {
+  margin-bottom: 22px;
+  color: #627391;
+  font-size: 13px;
+  letter-spacing: .12em;
+}
+
+.workHubGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.workHubCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  padding: clamp(24px, 3vw, 38px);
+  border: 1px solid #cddcff;
+  border-radius: 26px;
+  background: linear-gradient(140deg, #fff 25%, #eaf1ff);
+  color: #192e56;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 14px 35px #345ca610;
+  transition: transform .2s, box-shadow .2s;
+}
+
+.workHubCard:hover { transform: translateY(-4px); box-shadow: 0 20px 42px #345ca620; }
+.workHubCard:focus-visible { outline: 3px solid #4069df; outline-offset: 5px; }
+.workHubInterview { background: linear-gradient(140deg, #fff 25%, #fcf6e8); border-color: #e9d9b5; }
+.workHubProduct { background: linear-gradient(140deg, #fff 25%, #eaf8f4); border-color: #c8e5db; }
+.workHubCardTop { margin-bottom: 36px; }
+.workHubIcon { font-size: 30px; font-weight: 800; color: #4168d4; letter-spacing: -.05em; }
+.workHubStatus { display: inline-block; border: 1px solid #d7e2f8; border-radius: 99px; padding: 6px 12px; font-size: 12px; color: #567199; background: #f5f8ff; }
+.workHubInterview .workHubIcon { color: #ad8540; }
+.workHubInterview .workHubStatus { color: #967335; border-color: #e9d9b5; background: #fffaf0; }
+.workHubProduct .workHubIcon { color: #25806c; }
+.workHubProduct .workHubStatus { color: #287462; border-color: #c8e5db; background: #f2fbf8; }
+.workHubEnglish { color: #7484a2; letter-spacing: .14em; font-size: 11px; }
+.workHubCard h2 { font-size: clamp(24px, 2.6vw, 34px); margin: 12px 0 18px; }
+.workHubCard p { color: #667797; font-size: 15px; line-height: 1.9; margin: 0 0 24px; }
+.workHubTags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; margin-bottom: 32px; }
+.workHubTags > span { font-size: 12px; color: #60728f; background: #ffffffa6; border: 1px solid #dfe6f1; border-radius: 8px; padding: 6px 10px; }
+.workHubLink { border-top: 1px solid #dce4f2; padding-top: 22px; font-weight: 700; color: #3e62bd; }
+.workHubLink > span { font-size: 24px; }
+.workHubInterview .workHubLink { color: #987335; border-color: #eadfc9; }
+.workHubProduct .workHubLink { color: #287462; border-color: #d2e9e1; }
+.workHubNote { text-align: center; font-size: 12px; letter-spacing: .12em; color: #8290a8; margin: 36px 0 0; }
+.productCenterSection { padding: clamp(28px,4vw,52px); background: linear-gradient(155deg,#f8fbff,#edf8f5); }
+.productCenterIntro { max-width: 760px; margin-bottom: 30px; color: #647694; }
+.productCenterIntro h2 { color: #1c355b; font-size: clamp(26px,3vw,38px); margin: 8px 0 14px; }
+.productCenterIntro > p:last-child { line-height: 1.9; }
+.productModuleGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+.productModuleCard { padding:clamp(24px,3vw,36px); border:1px solid #d8e5e2; border-radius:24px; background:#ffffffd9; color:#1d385c; box-shadow:0 14px 35px #315f5310; }
+.productModuleCard > span { display:inline-grid; place-items:center; width:48px; height:48px; border-radius:14px; background:#e1f3ed; color:#267863; font-weight:800; }
+.productModuleCard h3 { font-size:clamp(22px,2.5vw,30px); margin:12px 0; }
+.productModuleCard > p:not(.workHubEnglish) { color:#687b97; line-height:1.9; min-height:58px; }
+.productModuleCard button { margin-top:18px; border:1px solid #d4dfec; border-radius:10px; padding:10px 18px; color:#718096; background:#f4f7fb; }
+.interviewPlaceholder { text-align: center; padding: 40px 16px; color: #253b60; }
+.interviewPlaceholder h2 { margin: 24px 0 16px; }
+.interviewPlaceholder p { color: #667797; line-height: 1.9; margin-bottom: 30px; }
+@media (max-width: 700px) { .workHubGrid, .productModuleGrid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .workHubCard { transition: none; } .workHubCard:hover { transform: none; } }
+
+/* Work hub: competition-grade black and pure-gold visual system. */
+.workHubSection {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(255, 43, 43, 0.14), transparent 24%),
+    radial-gradient(circle at 92% 14%, rgba(53, 242, 255, 0.13), transparent 26%),
+    radial-gradient(circle at 52% 100%, rgba(173, 63, 255, 0.1), transparent 28%),
+    repeating-linear-gradient(90deg, transparent 0, transparent 71px, rgba(53, 242, 255, 0.035) 72px),
+    #090c13;
+  border-bottom: 1px solid #282828;
+}
+.workHubIntro { color: #9d9d9d; }
+.workHubIntro span:first-child { color: #FFD700; font-weight: 800; }
+.workHubGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.workHubCard,
+.workHubInterview,
+.workHubProduct {
+  border: 1px solid #333;
+  border-top: 3px solid #FFD700;
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.055), transparent 42%), #12151d;
+  color: #fff;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+}
+.workHubCard:hover { border-color: #FFD700; box-shadow: 0 0 0 1px #FFD700, 0 18px 46px rgba(255, 215, 0, 0.13); }
+.workHubCard:focus-visible { outline-color: #FFD700; }
+.workHubIcon,
+.workHubInterview .workHubIcon,
+.workHubProduct .workHubIcon { color: #FFD700; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
+.workHubStatus,
+.workHubInterview .workHubStatus,
+.workHubProduct .workHubStatus { color: #FFD700; border-color: #FFD700; background: #0b0b0b; }
+.workHubEnglish { color: #FFD700; }
+.workHubCard p { color: #b6b6b6; }
+.workHubTags > span { color: #d8d8d8; background: #1b1b1b; border-color: #363636; }
+.workHubLink,
+.workHubInterview .workHubLink,
+.workHubProduct .workHubLink { color: #FFD700; border-color: #343434; }
+.workHubNote { color: #777; }
+.workHubAccount .accountChip { color: #fff; background: #111; border-color: #444; box-shadow: none; }
+.workHubAccount .accountChip span { color: #aaa; }
+.workHubAccount .accountButton { color: #080808; background: #FFD700; border-color: #FFD700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+.workHubInterview { border-top-color:#ff2b2b; background:linear-gradient(145deg,rgba(255,43,43,.09),transparent 44%),#151319; }
+.workHubInterview:hover { border-color:#ff2b2b; box-shadow:0 0 0 1px #ff2b2b,0 18px 46px rgba(255,43,43,.18); }
+.workHubInterview .workHubIcon,
+.workHubInterview .workHubEnglish,
+.workHubInterview .workHubLink { color:#ff4a4a; }
+.workHubInterview .workHubStatus { color:#ff6262; border-color:#ff2b2b; background:rgba(255,43,43,.08); }
+.workHubProduct { border-top-color:#35f2ff; background:linear-gradient(145deg,rgba(53,242,255,.085),transparent 44%),#10171d; }
+.workHubProduct:hover { border-color:#35f2ff; box-shadow:0 0 0 1px #35f2ff,0 18px 46px rgba(53,242,255,.16); }
+.workHubProduct .workHubIcon,
+.workHubProduct .workHubEnglish,
+.workHubProduct .workHubLink { color:#35f2ff; }
+.workHubProduct .workHubStatus { color:#35f2ff; border-color:#35f2ff; background:rgba(53,242,255,.07); }
+.workHubCard:nth-child(1)::after,
+.workHubInterview::after,
+.workHubProduct::after { content:''; display:block; height:3px; margin-top:20px; border-radius:4px; opacity:.75; }
+.workHubCard:nth-child(1)::after { background:#FFD700; box-shadow:0 0 14px rgba(255,215,0,.5); }
+.workHubInterview::after { background:#ff2b2b; box-shadow:0 0 14px rgba(255,43,43,.55); }
+.workHubProduct::after { background:#35f2ff; box-shadow:0 0 14px rgba(53,242,255,.5); }
+@media (max-width: 1050px) { .workHubGrid { grid-template-columns: 1fr; } }
+
 .app {
   background:
     radial-gradient(circle at 78% 8%, rgba(75, 158, 255, 0.2), transparent 28%),
@@ -3531,3 +3670,63 @@
 }
 
 .summaryCard strong { color: #102f5c; }
+
+/* Unified arena shell and portal surfaces */
+.app {
+  background:
+    radial-gradient(circle at 8% 8%,rgba(255,43,43,.13),transparent 26%),
+    radial-gradient(circle at 92% 14%,rgba(53,242,255,.12),transparent 28%),
+    #070a10;
+}
+.app::before { background:repeating-linear-gradient(90deg,transparent 0,transparent 71px,rgba(53,242,255,.035) 72px); }
+.app::after { background:linear-gradient(125deg,transparent 0 48%,rgba(255,43,43,.05) 49%,transparent 50%); mix-blend-mode:screen; opacity:.7; }
+.container { background:rgba(9,12,19,.94); border-color:#2a323d; box-shadow:0 28px 70px rgba(0,0,0,.54),0 0 0 1px rgba(53,242,255,.08); }
+.container::before { background:linear-gradient(135deg,rgba(255,255,255,.025),transparent 26%),repeating-linear-gradient(135deg,transparent 0,transparent 36px,rgba(53,242,255,.02) 37px); }
+.backButton,
+.accountChip { border-color:#38424e; background:#111720; color:#f5f7fa; box-shadow:inset 0 1px 0 rgba(255,255,255,.05); }
+.accountChip span { color:#9eacba; }
+.accountButton,
+.portalButton { border-color:#FFD700; background:#FFD700; color:#090c13; box-shadow:0 0 20px rgba(255,215,0,.18); }
+.accountButton:hover,
+.portalButton:hover { box-shadow:0 0 0 1px #FFD700,0 0 28px rgba(255,215,0,.3); }
+.portalSection { background:radial-gradient(circle at 90% 5%,rgba(53,242,255,.07),transparent 28%),#0a0e15; }
+.portalIntro,
+.installShortcutCard,
+.portalCard { border-color:#303a46; background:linear-gradient(145deg,rgba(53,242,255,.035),transparent 48%),#121821; box-shadow:0 16px 38px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.04); }
+.portalPriorityCard,
+.portalIntro { border-left-color:#FFD700; }
+.portalCard { border-top-color:#3a4654; }
+.portalCard::before { background:linear-gradient(180deg,transparent,#ff2b2b 30%,#35f2ff 72%,transparent); }
+.portalIntro h2,
+.portalCardTop h3,
+.installShortcutCard h3 { color:#fff; }
+.portalEyebrow,
+.portalCardLabel { color:#FFD700; }
+.portalHint,
+.portalCardText,
+.installShortcutCard p { color:#bdc8d2; }
+.portalBadge { background:#151d27; border-color:#35f2ff; color:#35f2ff; box-shadow:0 0 14px rgba(53,242,255,.1); }
+.secondaryButton { border-color:#35f2ff; background:#121a24; color:#35f2ff; }
+.productCenterSection { background:radial-gradient(circle at 90% 8%,rgba(53,242,255,.1),transparent 28%),#0a0e15; }
+.productCenterIntro { color:#bdc8d2; }
+.productCenterIntro h2 { color:#fff; }
+.productModuleCard { border-color:#354352; border-top:3px solid #35f2ff; background:linear-gradient(145deg,rgba(53,242,255,.07),transparent 46%),#121821; color:#fff; box-shadow:0 16px 38px rgba(0,0,0,.32); }
+.productModuleCard > span { background:rgba(53,242,255,.08); color:#35f2ff; border:1px solid #35f2ff; }
+.productModuleCard > p:not(.workHubEnglish) { color:#bdc8d2; }
+.productModuleCard button { border-color:#465363; color:#9eacba; background:#171d26; }
+.kcTeamBadge { border-color:#FFD700; background:#191a12; color:#FFD700; }
+.summaryCard { border-color:#354352; background:linear-gradient(145deg,rgba(53,242,255,.05),transparent),#121821; color:#bdc8d2; box-shadow:0 10px 26px rgba(0,0,0,.28); }
+.summaryCard strong { color:#fff; }
+.calendarWeekday { color:#bdc8d2; }
+.calendarDay,
+.trainingOverviewEventDay,
+.trainingOverviewSelfPracticeDay { border-color:#354352; background:linear-gradient(145deg,rgba(53,242,255,.045),transparent),#121821; color:#e8edf2; box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.24); }
+.calendarSelectedDay { border-color:#FFD700; background:linear-gradient(145deg,rgba(255,215,0,.1),transparent),#18180f; color:#fff; box-shadow:0 0 0 2px rgba(255,215,0,.2); }
+.calendarSelfPracticeDay,
+.trainingOverviewSelfPracticeDay { border-color:#35f2ff; background:linear-gradient(145deg,rgba(53,242,255,.09),transparent),#111a21; }
+.trainingDateStatus,
+.trainingOverviewLevel,
+.trainingOverviewSelfPracticeDay .trainingOverviewLevel { border-color:#FFD700; background:rgba(255,215,0,.08); color:#ffe766; }
+.trainingDateTime,
+.trainingOverviewNames { color:#bdc8d2; }
+.workHubNote { color:#9eacba; }

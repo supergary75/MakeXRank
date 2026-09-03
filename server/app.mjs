@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import express from 'express';
 import pg from 'pg';
+import { mountInterviewRoutes } from './interviews.mjs';
 
 const { Pool } = pg;
 const app = express();
@@ -9,6 +10,11 @@ const databaseUrl = process.env.DATABASE_URL;
 const jwtSecret = process.env.JWT_SECRET;
 if (!databaseUrl || !jwtSecret) throw new Error('DATABASE_URL and JWT_SECRET are required');
 const pool = new Pool({ connectionString: databaseUrl, max: 10 });
+await pool.query("update user_profiles set display_name='supergary' where lower(username)='supergary' and display_name<>'supergary'");
+await pool.query(`create table if not exists competition_deletions (
+  id text primary key,
+  deleted_at timestamptz not null default now()
+)`);
 app.disable('x-powered-by');
 app.use(express.json({ limit: '30mb' }));
 
@@ -100,15 +106,35 @@ app.all('/rest/v1/:table', async (req,res,next) => { try {
   }
   if(req.method==='POST'){
     const items=Array.isArray(req.body)?req.body:[req.body]; const output=[];
-    for(const item of items){const keys=Object.keys(item).filter(k=>cols.includes(k));if(cols.includes('updated_at')&&!keys.includes('updated_at')){item.updated_at=new Date();keys.push('updated_at');}
+    for(const item of items){
+      if(table==='competitions'&&typeof item?.id==='string'){
+        const deleted=await pool.query('select 1 from competition_deletions where id=$1',[item.id]);
+        if(deleted.rowCount)continue;
+      }
+      const keys=Object.keys(item).filter(k=>cols.includes(k));if(cols.includes('updated_at')&&!keys.includes('updated_at')){item.updated_at=new Date();keys.push('updated_at');}
       const vals=keys.map(k=>item[k]); const updates=keys.filter(k=>k!=='id'&&k!=='auth_user_id').map(k=>`${k}=excluded.${k}`);
       const conflict=cols.includes('id')?'id':'auth_user_id'; const q=`insert into ${table}(${keys.join(',')}) values(${keys.map((_,i)=>`$${i+1}`).join(',')}) on conflict(${conflict}) do update set ${updates.join(',')} returning *`; output.push((await pool.query(q,vals)).rows[0]);}
     return res.status(201).json(output);
   }
   const idCol=cols.includes('id')?'id':'auth_user_id'; const raw=req.query[idCol]; if(typeof raw!=='string'||!raw.startsWith('eq.'))return res.status(400).json({message:'ID filter required'});
   if(req.method==='PATCH'){const keys=Object.keys(req.body).filter(k=>cols.includes(k)&&k!==idCol);const vals=keys.map(k=>req.body[k]);await pool.query(`update ${table} set ${keys.map((k,i)=>`${k}=$${i+1}`).join(',')} where ${idCol}=$${keys.length+1}`,[...vals,raw.slice(3)]);return res.status(204).end();}
-  if(req.method==='DELETE'){await pool.query(`delete from ${table} where ${idCol}=$1`,[raw.slice(3)]);return res.status(204).end();}
+  if(req.method==='DELETE'){
+    const id=raw.slice(3);
+    if(table==='competitions'){
+      const client=await pool.connect();
+      try{
+        await client.query('begin');
+        await client.query('insert into competition_deletions(id) values($1) on conflict(id) do update set deleted_at=now()',[id]);
+        await client.query('delete from competitions where id=$1',[id]);
+        await client.query('commit');
+      }catch(error){await client.query('rollback');throw error;}finally{client.release();}
+    }else{
+      await pool.query(`delete from ${table} where ${idCol}=$1`,[id]);
+    }
+    return res.status(204).end();
+  }
   res.status(405).end();
 } catch(e){next(e);} });
+await mountInterviewRoutes(app, pool, requireAuth);
 app.use((err,_req,res,_next)=>{console.error(err);res.status(500).json({message:'Server error'});});
 app.listen(port,'127.0.0.1',()=>console.log(`MakeXRank API listening on ${port}`));

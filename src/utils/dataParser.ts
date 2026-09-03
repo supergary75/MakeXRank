@@ -367,7 +367,12 @@ export function parseScheduledTeamData(text: string, eventType: EventType): Team
     { id: Math.max(indexes.redTeam2Name - 1, 0), name: indexes.redTeam2Name },
     { id: Math.max(indexes.blueTeam1Name - 1, 0), name: indexes.blueTeam1Name },
     { id: Math.max(indexes.blueTeam2Name - 1, 0), name: indexes.blueTeam2Name },
-  ];
+  ].map((column) => ({
+    ...column,
+    // Some exports contain only four adjacent name columns. In that format
+    // the preceding cell is another team's name, not a numeric team ID.
+    useId: column.id !== column.name && !normalizeCell(header[column.id] ?? '').includes('名称'),
+  }));
   const teams = new Map<string, TeamRaw>();
 
   rows.slice(1).forEach((row) => {
@@ -376,9 +381,9 @@ export function parseScheduledTeamData(text: string, eventType: EventType): Team
       return;
     }
 
-    teamColumns.forEach(({ id, name }) => {
+    teamColumns.forEach(({ id, name, useId }) => {
       const teamName = normalizeCell(parts[name] ?? '');
-      const teamId = normalizeCell(parts[id] ?? '');
+      const teamId = useId ? normalizeCell(parts[id] ?? '') : '';
       const key = teamId || teamName;
       if (!key || !teamName || teams.has(key)) {
         return;

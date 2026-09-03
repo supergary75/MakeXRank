@@ -239,3 +239,69 @@ td {
 tbody tr:hover {
   background: rgba(22, 104, 232, 0.055) !important;
 }
+
+/* Unified robot-competition theme */
+:root {
+  --primary: #FFD700;
+  --primary-dark: #b89b00;
+  --primary-light: #ffe766;
+  --primary-bg: rgba(255, 215, 0, 0.1);
+  --secondary: #35f2ff;
+  --accent: #ff2b2b;
+  --success: #43f59b;
+  --success-dark: #18a866;
+  --danger: #ff4a5f;
+  --danger-dark: #b91f36;
+  --warning: #FFD700;
+  --info: #35f2ff;
+  --gray-50: #090c13;
+  --gray-100: #10151e;
+  --gray-200: #1b2430;
+  --gray-300: #354352;
+  --gray-400: #9eacba;
+  --gray-500: #bdc8d2;
+  --gray-600: #d4dbe2;
+  --gray-700: #e8edf2;
+  --gray-800: #f5f7fa;
+  --gray-900: #ffffff;
+  --bg-dark: #070a10;
+  --bg-mid: #0d121a;
+  --bg-panel: rgba(12, 16, 23, 0.96);
+  --bg-panel-soft: rgba(18, 24, 33, 0.94);
+  --bg-steel: linear-gradient(145deg, #171b24, #0c1119);
+  --bg-steel-soft: linear-gradient(145deg, rgba(24, 31, 42, 0.98), rgba(10, 14, 21, 0.98));
+  --line-strong: rgba(255, 215, 0, 0.45);
+  --line-soft: rgba(53, 242, 255, 0.2);
+  --glow-cyan: 0 0 26px rgba(53, 242, 255, 0.22);
+  --glow-amber: 0 0 28px rgba(255, 215, 0, 0.22);
+  --shadow-sm: 0 4px 14px rgba(0,0,0,.28);
+  --shadow-md: 0 14px 34px rgba(0,0,0,.36);
+  --shadow-lg: 0 24px 56px rgba(0,0,0,.44);
+  --shadow-xl: 0 34px 82px rgba(0,0,0,.54);
+}
+body {
+  color: var(--gray-700);
+  background:
+    radial-gradient(circle at 8% 6%, rgba(255,43,43,.12), transparent 27%),
+    radial-gradient(circle at 92% 14%, rgba(53,242,255,.12), transparent 28%),
+    #070a10;
+}
+body::before {
+  background:
+    repeating-linear-gradient(90deg, transparent 0, transparent 71px, rgba(53,242,255,.035) 72px),
+    repeating-linear-gradient(0deg, transparent 0, transparent 71px, rgba(255,215,0,.025) 72px);
+  opacity:.75;
+}
+::selection { background:#FFD700; color:#070a10; }
+input, select, textarea {
+  color:#f5f7fa;
+  border-color:#354352 !important;
+  background:#10151e !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+input::placeholder, textarea::placeholder { color:#9eacba; }
+input:focus, select:focus, textarea:focus { border-color:#35f2ff !important; outline:3px solid rgba(53,242,255,.14); }
+thead { background:linear-gradient(90deg,#171b24,#10151e) !important; }
+th { color:#fff !important; border-bottom-color:rgba(255,215,0,.38) !important; }
+td { border-bottom-color:rgba(255,255,255,.09) !important; }
+tbody tr:hover { background:rgba(53,242,255,.065) !important; }

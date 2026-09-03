@@ -62,3 +62,11 @@ button{user-select:none;-webkit-user-select:none}
 .restoreWarning span{font-size:14px}
 .restoreWarning button{width:max-content;min-height:42px;padding:0 16px;border:1px solid #c9a642;border-radius:10px;background:#fff;color:#684f12;font-size:15px}
 .foot button:disabled{cursor:not-allowed;opacity:.45}
+
+/* Arena theme */
+.overlay{background:#070a10;color:#f5f7fa}.phone{background:#0d121a;box-shadow:0 0 54px rgba(53,242,255,.12)}
+.head button,.review header button{color:#f5f7fa}.tabs{background:#18212c;border-color:#354352}.tabs button{color:#e8edf2}.tabs .on{background:#ff7a26;color:#10141e;font-weight:800}
+.panel,.card{background:#121821;border-color:#354352;box-shadow:0 12px 30px rgba(0,0,0,.3)}.item{border-bottom-color:#354352}.item button,.penalties button{color:#e8edf2}
+.foot,.reviewFoot{background:#18212c;border-color:#354352;box-shadow:0 -10px 30px rgba(0,0,0,.28)}.foot button,.score>button{color:#10141e;font-weight:800}
+.review header{background:#101821;color:#f5f7fa;border-bottom-color:#354352}.table{background:#0d121a}.reviewFoot button{color:#e8edf2;background:#121821}.reviewFoot button:last-child{color:#10141e;font-weight:800}
+.modal{background:#151b24;color:#f5f7fa}.toast{background:#151b24;color:#f5f7fa;border-color:#35f2ff}.restoreNotice{background:#10202b;border-color:#35f2ff;color:#c8faff}.restoreWarning{background:#251f0d;border-color:#FFD700;color:#ffe766}.restoreWarning button{background:#151b24;color:#ffe766;border-color:#FFD700}

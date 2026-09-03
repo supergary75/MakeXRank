@@ -6,27 +6,29 @@ interface Props {
   subtitle: string;
   eyebrow?: string;
   action?: ReactNode;
+  showLogo?: boolean;
+  theme?: 'default' | 'darkGold';
 }
 
-export function Header({ title, subtitle, eyebrow, action }: Props) {
+export function Header({ title, subtitle, eyebrow, action, showLogo = true, theme = 'default' }: Props) {
   const resolvedEyebrow = eyebrow === 'Event Selection' ? 'Event Analytics' : eyebrow;
   const resolvedTitle = eyebrow === 'Event Selection' ? '赛事数据分析' : title;
 
   return (
-    <header className={styles.header}>
+    <header className={`${styles.header} ${theme === 'darkGold' ? styles.darkGold : ''}`}>
       <div className={styles.decorStickers} aria-hidden="true">
         <span className={styles.surfSticker} />
         <span className={styles.cablecarSticker} />
       </div>
       <div className={styles.inner}>
         <div className={styles.brandBlock}>
-          <div className={styles.logoBadge} aria-label="KCLUB logo">
+          {showLogo && <div className={styles.logoBadge} aria-label="KCLUB logo">
             <span className={styles.logoMark}>KC</span>
             <div className={styles.logoText}>
               <strong className={styles.logoTitle}>KCLUB</strong>
               <span className={styles.logoSub}>Competition Lab</span>
             </div>
-          </div>
+          </div>}
 
           <div className={styles.copy}>
             {resolvedEyebrow && <p className={styles.eyebrow}>{resolvedEyebrow}</p>}

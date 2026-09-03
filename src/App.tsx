@@ -84,6 +84,7 @@ import { RankingTable } from './components/ranking/RankingTable';
 import { PlayoffView } from './components/playoff/PlayoffView';
 import { FocusScheduleView } from './components/schedule/FocusScheduleView';
 import { AuthPanel } from './components/auth/AuthPanel';
+import { InterviewCenter } from './components/interview/InterviewCenter';
 import { NotificationContainer } from './components/ui/Notification';
 import { SimulationSystem } from './components/simulation/SimulationSystem';
 import { ExplorerScheduleGenerator, PracticeEventHub } from './components/practice/PracticeEventHub';
@@ -257,6 +258,7 @@ const LOGISTICS_SYNC_TABLE = import.meta.env.VITE_SUPABASE_LOGISTICS_SYNC_TABLE?
 const LOGISTICS_SYNC_ID = 'global';
 const LOGISTICS_TOMBSTONE_PREFIX = '__makexrank_deleted_logistics__:';
 const VIEW_MODES: ViewMode[] = [
+  'work-hub', 'interview-center', 'product-center',
   'home', 'login', 'my-tasks', 'event-types', 'logistics', 'logistics-roster',
   'logistics-event', 'logistics-event-roster', 'logistics-event-rooms',
   'training-plan', 'training-event', 'simulation-system', 'score-calculator',
@@ -281,7 +283,7 @@ function readNavigationSnapshot(): NavigationSnapshot {
   const requestedTab = params.get('tab') as TabName | null;
 
   return {
-    viewMode: requestedView && VIEW_MODES.includes(requestedView) ? requestedView : 'home',
+    viewMode: requestedView && VIEW_MODES.includes(requestedView) ? requestedView : 'work-hub',
     activeCompetitionId: params.get('competition'),
     activeLogisticsEventId: params.get('logisticsEvent'),
     activeLogisticsEventItem: params.get('logisticsItem'),
@@ -2467,43 +2469,6 @@ function sortCompetitionsByCreatedAt(competitions: CompetitionRecord[]): Competi
   return [...competitions].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
-function getTimestamp(value: string): number {
-  const timestamp = Date.parse(value);
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-}
-
-function mergeCompetitionsForSync(
-  localCompetitions: CompetitionRecord[],
-  remoteCompetitions: CompetitionRecord[],
-): {
-  mergedCompetitions: CompetitionRecord[];
-  competitionsToUpload: CompetitionRecord[];
-} {
-  const mergedById = new Map(remoteCompetitions.map((competition) => [competition.id, competition]));
-  const remoteById = new Map(remoteCompetitions.map((competition) => [competition.id, competition]));
-  const competitionsToUpload: CompetitionRecord[] = [];
-
-  for (const localCompetition of localCompetitions) {
-    const remoteCompetition = remoteById.get(localCompetition.id);
-
-    if (!remoteCompetition) {
-      mergedById.set(localCompetition.id, localCompetition);
-      competitionsToUpload.push(localCompetition);
-      continue;
-    }
-
-    if (getTimestamp(localCompetition.updatedAt) > getTimestamp(remoteCompetition.updatedAt)) {
-      mergedById.set(localCompetition.id, localCompetition);
-      competitionsToUpload.push(localCompetition);
-    }
-  }
-
-  return {
-    mergedCompetitions: sortCompetitionsByCreatedAt(Array.from(mergedById.values())),
-    competitionsToUpload,
-  };
-}
-
 export default function App() {
   const [initialNavigation] = useState<NavigationSnapshot>(() => readNavigationSnapshot());
   const [competitions, setCompetitions] = useState<CompetitionRecord[]>(() => loadCachedCompetitions());
@@ -3505,29 +3470,15 @@ export default function App() {
 
     void (async () => {
       try {
-        const localCompetitions = loadCachedCompetitions();
         const remoteCompetitions = await fetchRemoteCompetitions();
-        const { mergedCompetitions, competitionsToUpload } = mergeCompetitionsForSync(
-          localCompetitions,
-          remoteCompetitions,
-        );
-
-        if (competitionsToUpload.length > 0) {
-          await Promise.all(
-            competitionsToUpload.map((competition) => saveCompetitionRecord(competition)),
-          );
-        }
-
-        const syncedCompetitions =
-          competitionsToUpload.length > 0
-            ? await fetchRemoteCompetitions()
-            : mergedCompetitions;
 
         if (cancelled) {
           return;
         }
 
-        setCompetitions(sortCompetitionsByCreatedAt(syncedCompetitions));
+        // The server is authoritative. Merging cached cards back into the
+        // remote list can resurrect a card deleted on another device.
+        setCompetitions(sortCompetitionsByCreatedAt(remoteCompetitions));
         setStorageMode('supabase');
       } catch (error) {
         if (cancelled) {
@@ -3642,7 +3593,7 @@ export default function App() {
       await runAuthTask(async () => {
         const profile = await signInWithUsername(username, password);
         setAuthUser(profile);
-        setViewMode('home');
+        setViewMode(current => current === 'login' ? 'work-hub' : current);
         setAuthPanelOpen(false);
         showNotification(`欢迎回来，${profile.displayName}。`, 'success');
       });
@@ -3674,7 +3625,7 @@ export default function App() {
       await runAuthTask(async () => {
         const profile = await bootstrapAdminUser(input);
         setAuthUser(profile);
-        setViewMode('home');
+        setViewMode(current => current === 'login' ? 'work-hub' : current);
         setAuthPanelOpen(false);
         showNotification(`首个管理员 ${profile.displayName} 已创建并登录。`, 'success');
       });
@@ -3858,6 +3809,7 @@ export default function App() {
       } catch (error) {
         const message = error instanceof Error ? error.message : '未知错误';
         showNotification(`Supabase 删除失败，云端可能仍保留这场比赛。原因：${message}`, 'error');
+        throw error;
       }
     },
     [showNotification, storageMode],
@@ -6327,15 +6279,19 @@ export default function App() {
   }, []);
 
   const handleDeleteCompetition = useCallback(
-    (id: string) => {
+    async (id: string) => {
       if (!canDeleteCompetition) {
         showNotification('当前账号没有删除赛事卡片的权限。', 'error');
         return;
       }
 
       const competition = competitions.find((item) => item.id === id);
+      try {
+        await removeCompetitionFromCloud(id);
+      } catch {
+        return;
+      }
       setCompetitions((previous) => previous.filter((item) => item.id !== id));
-      void removeCompetitionFromCloud(id);
 
       if (activeCompetitionId === id) {
         setActiveCompetitionId(null);
@@ -6711,7 +6667,6 @@ export default function App() {
                 return;
               }
 
-              setViewMode('login');
               setAuthPanelOpen(true);
             }}
           >
@@ -6725,7 +6680,69 @@ export default function App() {
   return (
     <div className={styles.app}>
       <div className={styles.container}>
-        {viewMode === 'home' || viewMode === 'login' ? (
+        {viewMode === 'work-hub' ? (
+          <>
+            <Header
+              eyebrow="KCLUB Workspace"
+              title="俱乐部内部工作系统"
+              subtitle="让每一份工作有序开展。选择工作中心，开启今天的协作。"
+              action={<div className={styles.workHubAccount}>{accountAction}</div>}
+              showLogo={false}
+              theme="darkGold"
+            />
+            <section className={styles.workHubSection} aria-label="工作中心入口">
+              <div className={styles.workHubIntro}>
+                <span>工作中心</span>
+                <span>WORK CENTERS / 03</span>
+              </div>
+              <div className={styles.workHubGrid}>
+                <button type="button" className={styles.workHubCard} onClick={() => setViewMode('home')}>
+                  <span className={styles.workHubCardTop}><span className={styles.workHubIcon} aria-hidden="true">01</span><span className={styles.workHubStatus}>已开放</span></span>
+                  <span className={styles.workHubEnglish}>COMPETITION CENTER</span>
+                  <h2>赛事管理中心</h2>
+                  <p>赛事后勤、数据分析、练习赛与集训安排，一站式开展赛事协作。</p>
+                  <span className={styles.workHubTags}><span>赛事协同</span><span>数据分析</span><span>集训安排</span></span>
+                  <span className={styles.workHubLink}>进入赛事管理中心 <span aria-hidden="true">↗</span></span>
+                </button>
+                <button type="button" className={`${styles.workHubCard} ${styles.workHubInterview}`} onClick={() => setViewMode('interview-center')}>
+                  <span className={styles.workHubCardTop}><span className={styles.workHubIcon} aria-hidden="true">02</span><span className={styles.workHubStatus}>开发预览</span></span>
+                  <span className={styles.workHubEnglish}>INTERVIEW CENTER</span>
+                  <h2>面试流程中心</h2>
+                  <p>发起面试、协调教练时间，在进度看板中跟进每一条面试与结案资料。</p>
+                  <span className={styles.workHubTags}><span>面试安排</span><span>流程跟进</span><span>反馈记录</span></span>
+                  <span className={styles.workHubLink}>查看面试流程中心 <span aria-hidden="true">↗</span></span>
+                </button>
+                <button type="button" className={`${styles.workHubCard} ${styles.workHubProduct}`} onClick={() => setViewMode('product-center')}>
+                  <span className={styles.workHubCardTop}><span className={styles.workHubIcon} aria-hidden="true">03</span><span className={styles.workHubStatus}>规划中</span></span>
+                  <span className={styles.workHubEnglish}>PRODUCT CENTER</span>
+                  <h2>产品中心</h2>
+                  <p>统一建设 KCLUB 课程产品，沉淀课程体系、教学资料与版本文档。</p>
+                  <span className={styles.workHubTags}><span>课程体系</span><span>课程文档</span><span>版本沉淀</span></span>
+                  <span className={styles.workHubLink}>进入产品中心 <span aria-hidden="true">↗</span></span>
+                </button>
+              </div>
+              <p className={styles.workHubNote}>KCLUB · 团队协作，从这里开始</p>
+            </section>
+          </>
+        ) : viewMode === 'interview-center' ? (
+          <>
+            <Header eyebrow="Interview Center" title="面试流程中心" subtitle="面试协作的统一入口。"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>{accountAction}</div>} />
+            <InterviewCenter key={authUser?.authUserId || 'guest'} accountId={authUser?.authUserId} onLogin={() => setAuthPanelOpen(true)} />
+          </>
+        ) : viewMode === 'product-center' ? (
+          <>
+            <Header eyebrow="Product Center" title="产品中心" subtitle="KCLUB 课程产品与教学资料的统一入口。"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>{accountAction}</div>} />
+            <section className={styles.productCenterSection} aria-label="产品中心模块">
+              <div className={styles.productCenterIntro}><p className={styles.portalCardLabel}>PRODUCT WORKSPACE</p><h2>课程产品，持续沉淀</h2><p>这里将集中管理课程结构、教学目标、课次内容与配套文档。当前先建立入口，后续逐步接入实际内容。</p></div>
+              <div className={styles.productModuleGrid}>
+                <article className={styles.productModuleCard}><span>01</span><p className={styles.workHubEnglish}>CURRICULUM SYSTEM</p><h3>课程体系</h3><p>规划课程阶段、年龄层、能力目标、课次路径和升级关系。</p><button type="button" disabled>待接入</button></article>
+                <article className={styles.productModuleCard}><span>02</span><p className={styles.workHubEnglish}>COURSE DOCUMENTS</p><h3>课程文档</h3><p>归档教案、课程说明、课堂材料、教师指引和历史版本。</p><button type="button" disabled>待接入</button></article>
+              </div>
+            </section>
+          </>
+        ) : viewMode === 'home' || viewMode === 'login' ? (
           <>
             <Header
               eyebrow="Operations Hub"
@@ -6733,6 +6750,7 @@ export default function App() {
               subtitle="先在首页登录，再根据工作内容进入对应入口。当前已提供赛事后勤管理、赛事数据分析、Explorer练习赛数据分析与集训安排入口。"
               action={
                 <div className={styles.headerActions}>
+                  <button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>
                   {accountAction}
                 </div>
               }
@@ -10730,8 +10748,8 @@ export default function App() {
           busy={authBusy}
           onClose={() => {
             setAuthPanelOpen(false);
-            if (!authUser) {
-              setViewMode('home');
+            if (viewMode === 'login') {
+              setViewMode('work-hub');
             }
           }}
           onLogin={handleLogin}

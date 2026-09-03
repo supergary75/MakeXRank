@@ -197,3 +197,18 @@
     padding: 18px;
   }
 }
+
+/* Arena theme */
+.selector { background:#0a0e15; }
+.intro,
+.card { border-color:#354352; border-left-color:#FFD700; background:linear-gradient(145deg,rgba(53,242,255,.045),transparent 48%),#121821; box-shadow:0 16px 36px rgba(0,0,0,.32); }
+.intro h2,
+.card h3 { color:#fff; }
+.hint,
+.description { color:#bdc8d2; }
+.eyebrow,
+.cardLabel { color:#FFD700; }
+.countBadge { border-color:#35f2ff; background:rgba(53,242,255,.08); color:#35f2ff; }
+.keywordRow span { border-color:#354352; background:#19212b; color:#e8edf2; }
+.footer { color:#bdc8d2; }
+.enterButton { border-color:#FFD700; background:#FFD700; color:#090c13; }

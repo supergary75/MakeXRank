@@ -373,3 +373,40 @@
   color: var(--gray-900);
   text-shadow: 0 8px 24px rgba(53, 101, 153, 0.09);
 }
+
+.header.darkGold {
+  background:
+    radial-gradient(circle at 82% 10%, rgba(255, 43, 43, 0.2), transparent 27%),
+    radial-gradient(circle at 58% 90%, rgba(53, 242, 255, 0.12), transparent 30%),
+    linear-gradient(135deg, #080b12 0%, #141016 58%, #080b12 100%);
+  color: #fff;
+  border-bottom-color: rgba(255, 215, 0, 0.45);
+}
+.header.darkGold::before {
+  background:
+    linear-gradient(115deg, transparent 0 55%, rgba(255, 43, 43, 0.1) 55.2%, transparent 55.6%),
+    repeating-linear-gradient(90deg, transparent 0, transparent 70px, rgba(53, 242, 255, 0.04) 71px, transparent 72px);
+}
+.header.darkGold::after { height: 3px; background: linear-gradient(90deg,#FFD700 0 32%,#ff2b2b 48% 68%,#35f2ff 84% 100%); box-shadow: 0 0 20px rgba(53, 242, 255, 0.35); }
+.header.darkGold .decorStickers { display: none; }
+.header.darkGold .eyebrow { color: #FFD700; }
+.header.darkGold h1 { color: #fff; text-shadow: 0 0 24px rgba(255, 215, 0, 0.14); }
+.header.darkGold .subtitle { color: #b8b8b8; }
+
+/* Shared header inherits the same arena palette on every page. */
+.header:not(.darkGold) {
+  background:
+    radial-gradient(circle at 84% 10%,rgba(255,43,43,.15),transparent 25%),
+    radial-gradient(circle at 62% 100%,rgba(53,242,255,.1),transparent 28%),
+    linear-gradient(135deg,#080b12,#141019 60%,#080b12);
+  color:#fff;
+  border-bottom-color:rgba(255,215,0,.34);
+}
+.header:not(.darkGold)::after { height:3px; background:linear-gradient(90deg,#FFD700,#ff2b2b 55%,#35f2ff); box-shadow:0 0 18px rgba(53,242,255,.28); }
+.header:not(.darkGold) .eyebrow { color:#FFD700; }
+.header:not(.darkGold) h1 { color:#fff; text-shadow:0 0 22px rgba(53,242,255,.1); }
+.header:not(.darkGold) .subtitle { color:#bdc8d2; }
+.header:not(.darkGold) .logoBadge { border-color:rgba(255,215,0,.42); background:rgba(9,12,19,.82); box-shadow:0 12px 30px rgba(0,0,0,.36),0 0 18px rgba(255,215,0,.1); }
+.header:not(.darkGold) .logoMark { background:#FFD700; color:#080b12; box-shadow:0 0 18px rgba(255,215,0,.28); }
+.header:not(.darkGold) .logoTitle { color:#FFD700; }
+.header:not(.darkGold) .logoSub { color:#bdc8d2; }

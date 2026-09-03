@@ -103,10 +103,11 @@ function normalizeCompetitionIds(competitionIds?: string[] | null): string[] | n
 }
 
 function toProfile(row: ProfileRow): AuthUserProfile {
+  const username = normalizeUsername(row.username);
   return {
     authUserId: row.auth_user_id,
-    username: row.username,
-    displayName: row.display_name,
+    username,
+    displayName: username === 'supergary' ? 'supergary' : row.display_name,
     role: row.role,
     isActive: row.is_active,
     createdAt: row.created_at,
