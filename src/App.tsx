@@ -6738,8 +6738,28 @@ export default function App() {
               <div className={styles.productCenterIntro}><p className={styles.portalCardLabel}>PRODUCT WORKSPACE</p><h2>课程产品，持续沉淀</h2><p>这里将集中管理课程结构、教学目标、课次内容与配套文档。当前先建立入口，后续逐步接入实际内容。</p></div>
               <div className={styles.productModuleGrid}>
                 <article className={styles.productModuleCard}><span>01</span><p className={styles.workHubEnglish}>CURRICULUM SYSTEM</p><h3>课程体系</h3><p>规划课程阶段、年龄层、能力目标、课次路径和升级关系。</p><button type="button" disabled>待接入</button></article>
-                <article className={styles.productModuleCard}><span>02</span><p className={styles.workHubEnglish}>COURSE DOCUMENTS</p><h3>课程文档</h3><p>归档教案、课程说明、课堂材料、教师指引和历史版本。</p><button type="button" disabled>待接入</button></article>
+                <article className={styles.productModuleCard}><span>02</span><p className={styles.workHubEnglish}>COURSE DOCUMENTS</p><h3>课程文档</h3><p>归档教案、课程说明、课堂材料、教师指引和历史版本。</p><a className={styles.productModuleLink} href="#course-document-library">查看文档库</a></article>
               </div>
+              <section className={styles.courseDocumentLibrary} id="course-document-library" aria-labelledby="course-document-title">
+                <div className={styles.courseDocumentHeading}>
+                  <div>
+                    <p className={styles.portalCardLabel}>COURSE DOCUMENT LIBRARY</p>
+                    <h2 id="course-document-title">课程文档库</h2>
+                  </div>
+                  <span>8 个课程阶段</span>
+                </div>
+                <div className={styles.courseDocumentGrid}>
+                  {['U9', 'U12B', 'U12A', 'U15B', 'U15A', 'U18A-1', 'U18A-2', 'U18A-3'].map((level, index) => (
+                    <article className={styles.courseDocumentCard} key={level}>
+                      <span>{String(index + 1).padStart(2, '0')}</span>
+                      <p>COURSE DOCUMENT</p>
+                      <h3>{level}</h3>
+                      <small>课程资料待上传</small>
+                      <button type="button" disabled>进入文档</button>
+                    </article>
+                  ))}
+                </div>
+              </section>
             </section>
           </>
         ) : viewMode === 'home' || viewMode === 'login' ? (
