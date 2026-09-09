@@ -1,7 +1,7 @@
 .container {
   padding: 24px;
   overflow-x: auto;
-  background: rgba(8, 12, 18, 0.28);
+  background: rgba(232,237,241,0.28);
 }
 
 .searchResult {
@@ -17,16 +17,16 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: rgba(13, 18, 25, 0.88);
-  border: 1px solid rgba(217, 226, 236, 0.1);
-  box-shadow: var(--shadow-lg);
+  background: rgba(232,237,241,0.88);
+  border: 1px solid rgba(157,172,185,0.1);
+  box-shadow: none;
 }
 
 .table thead {
   background:
-    linear-gradient(90deg, rgba(93, 214, 255, 0.1), transparent 24%),
-    linear-gradient(145deg, #17324e 0%, #0d1f36 62%, #8f6421 100%);
-  color: #fff8eb;
+    linear-gradient(90deg, rgba(228,240,234,0.1), transparent 24%),
+    linear-gradient(145deg, #f2f5f7 0%, #e8edf1 62%, #f7e5e8 100%);
+  color: #202a35;
 }
 
 .table th {
@@ -45,11 +45,11 @@
 }
 
 .sortable:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(242,245,247,0.08);
 }
 
 .active {
-  background: rgba(255, 245, 220, 0.12);
+  background: rgba(242,245,247,0.12);
 }
 
 .sortIcon {
@@ -83,8 +83,8 @@
 }
 
 .teamClickable:hover {
-  background: rgba(93, 214, 255, 0.1);
-  color: #e9fbff;
+  background: rgba(228,240,234,0.1);
+  color: #202a35;
   transform: translateX(2px);
 }
 
@@ -106,9 +106,9 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(93, 214, 255, 0.18), rgba(214, 169, 74, 0.16));
-  border: 1px solid rgba(93, 214, 255, 0.24);
-  color: #f7fbff;
+  background: linear-gradient(135deg, rgba(228,240,234,0.18), rgba(247,229,232,0.16));
+  border: 1px solid rgba(94,125,145,0.24);
+  color: #202a35;
   font-size: 0.78em;
   font-weight: 900;
 }
@@ -119,15 +119,15 @@
   min-width: 260px;
   margin-top: 10px;
   padding: 12px;
-  border: 1px solid rgba(93, 214, 255, 0.24);
+  border: 1px solid rgba(94,125,145,0.24);
   border-radius: var(--radius-md);
-  background: rgba(7, 17, 31, 0.96);
-  box-shadow: var(--shadow-lg);
-  color: #fff4dc;
+  background: rgba(232,237,241,0.96);
+  box-shadow: none;
+  color: #202a35;
 }
 
 .tagPicker strong {
-  color: #f4d28c;
+  color: #275b7b;
   font-size: 0.9em;
 }
 
@@ -141,9 +141,9 @@
 .tagPickerHeader button {
   min-height: 28px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 130, 112, 0.34);
-  background: rgba(255, 130, 112, 0.1);
-  color: #ffd1ca;
+  border: 1px solid rgba(185,46,59,0.34);
+  background: rgba(247,229,232,0.1);
+  color: #202a35;
   cursor: pointer;
   font: inherit;
   font-size: 0.78em;
@@ -152,7 +152,7 @@
 }
 
 .tagPickerHeader button:hover {
-  background: rgba(255, 130, 112, 0.2);
+  background: rgba(247,229,232,0.2);
 }
 
 .tagOptions,
@@ -166,9 +166,9 @@
 .customTagRow button {
   min-height: 32px;
   border-radius: 999px;
-  border: 1px solid rgba(93, 214, 255, 0.22);
-  background: rgba(93, 214, 255, 0.08);
-  color: #fff4dc;
+  border: 1px solid rgba(94,125,145,0.22);
+  background: rgba(228,240,234,0.08);
+  color: #202a35;
   cursor: pointer;
   font: inherit;
   font-size: 0.82em;
@@ -179,13 +179,13 @@
 .tagOptions button:hover,
 .customTagRow button:hover,
 .activeTagOption {
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%) !important;
-  color: #07111f !important;
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 52%, #f7e5e8 100%) !important;
+  color: #445464 !important;
 }
 
 .clearTagOption {
-  border-color: rgba(255, 130, 112, 0.38) !important;
-  color: #ffd1ca !important;
+  border-color: rgba(185,46,59,0.38) !important;
+  color: #202a35 !important;
 }
 
 .customTagRow input {
@@ -193,9 +193,9 @@
   min-height: 32px;
   min-width: 0;
   border-radius: 999px;
-  border: 1px solid rgba(93, 214, 255, 0.22);
-  background: rgba(7, 17, 31, 0.72);
-  color: #fff4dc;
+  border: 1px solid rgba(94,125,145,0.22);
+  background: rgba(232,237,241,0.72);
+  color: #202a35;
   font: inherit;
   padding: 0 10px;
 }
@@ -223,12 +223,12 @@
 }
 
 .table tbody tr {
-  border-bottom: 1px solid rgba(217, 226, 236, 0.07);
+  border-bottom: 1px solid rgba(157,172,185,0.07);
   transition: all var(--transition-fast);
 }
 
 .table tbody tr:hover {
-  background: rgba(0, 200, 255, 0.07);
+  background: rgba(228,240,234,0.07);
 }
 
 .table td {
@@ -251,15 +251,15 @@
 }
 
 .rank1 {
-  background: linear-gradient(90deg, rgba(93, 214, 255, 0.14), rgba(214, 169, 74, 0.08));
+  background: linear-gradient(90deg, rgba(228,240,234,0.14), rgba(247,229,232,0.08));
 }
 
 .rank2 {
-  background: linear-gradient(90deg, rgba(217, 226, 236, 0.08), rgba(93, 214, 255, 0.04));
+  background: linear-gradient(90deg, rgba(242,245,247,0.08), rgba(228,240,234,0.04));
 }
 
 .rank3 {
-  background: linear-gradient(90deg, rgba(214, 169, 74, 0.08), rgba(93, 214, 255, 0.04));
+  background: linear-gradient(90deg, rgba(247,229,232,0.08), rgba(228,240,234,0.04));
 }
 
 .rank1 .rankCol {
@@ -326,30 +326,30 @@
 }
 
 /* Light ranking table */
-.container { background: rgba(238, 246, 255, 0.68); }
+.container { background: rgba(242,245,247,0.68); }
 .table {
-  background: rgba(255,255,255,.92);
-  border-color: rgba(22,104,232,.14);
-  box-shadow: 0 16px 40px rgba(45,92,143,.1);
+  background: rgba(242,245,247,0.92);
+  border-color: rgba(94,125,145,0.14);
+  box-shadow: none;
 }
-.table thead { background: linear-gradient(90deg, #e6f1ff, #fff9df); color: #102f5c; }
+.table thead { background: linear-gradient(90deg, #f2f5f7, #f2f5f7); color: #275b7b; }
 .sortable:hover,
-.active { background: rgba(22,104,232,.08); }
-.teamClickable { color: #0b5dcc; }
-.teamClickable:hover { background: #eef6ff; color: #083f91; }
-.teamTag { color: #203b60; background: #eef6ff; }
+.active { background: rgba(228,240,234,0.08); }
+.teamClickable { color: #275b7b; }
+.teamClickable:hover { background: #f2f5f7; color: #275b7b; }
+.teamTag { color: #275b7b; background: #f2f5f7; }
 .tagPicker {
-  background: #fff;
-  border-color: rgba(22,104,232,.2);
-  color: #203b60;
+  background: #f2f5f7;
+  border-color: rgba(94,125,145,0.2);
+  color: #275b7b;
 }
-.tagPicker strong { color: #8a6710; }
+.tagPicker strong { color: #275b7b; }
 .tagOptions button,
-.customTagRow button { background: #eef6ff; color: #203b60; }
-.clearTagOption { color: #a91f34 !important; }
-.customTagRow input { background: #fff; color: #102f5c; }
-.table tbody tr { border-bottom-color: rgba(22,104,232,.1); }
-.table tbody tr:hover { background: #f3f8ff; }
-.rank1 { background: linear-gradient(90deg, #eaf4ff, #fff9df); }
-.rank2 { background: #f7faff; }
-.rank3 { background: linear-gradient(90deg, #fffaf0, #f4f8ff); }
+.customTagRow button { background: #f2f5f7; color: #275b7b; }
+.clearTagOption { color: #a62230 !important; }
+.customTagRow input { background: #f2f5f7; color: #275b7b; }
+.table tbody tr { border-bottom-color: rgba(94,125,145,0.1); }
+.table tbody tr:hover { background: #f2f5f7; }
+.rank1 { background: linear-gradient(90deg, #f2f5f7, #f2f5f7); }
+.rank2 { background: #f2f5f7; }
+.rank3 { background: linear-gradient(90deg, #f2f5f7, #f2f5f7); }

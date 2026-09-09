@@ -2,9 +2,9 @@
   min-height: 100vh;
   padding: 24px;
   background:
-    radial-gradient(circle at top center, rgba(214, 169, 74, 0.15) 0%, transparent 30%),
-    radial-gradient(circle at 80% 16%, rgba(93, 214, 255, 0.12), transparent 28%),
-    linear-gradient(135deg, #0d1f36 0%, #07111f 52%, #04101c 100%);
+    radial-gradient(circle at top center, rgba(247,229,232,0.15) 0%, transparent 30%),
+    radial-gradient(circle at 80% 16%, rgba(228,240,234,0.12), transparent 28%),
+    linear-gradient(135deg, #e8edf1 0%, #e8edf1 52%, #e8edf1 100%);
   position: relative;
 }
 
@@ -16,12 +16,12 @@
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(ellipse at 16% 18%, rgba(214, 169, 74, 0.12) 0%, transparent 46%),
-    radial-gradient(ellipse at 86% 24%, rgba(93, 214, 255, 0.1) 0%, transparent 34%),
+    radial-gradient(ellipse at 16% 18%, rgba(247,229,232,0.12) 0%, transparent 46%),
+    radial-gradient(ellipse at 86% 24%, rgba(228,240,234,0.1) 0%, transparent 34%),
     repeating-linear-gradient(
       90deg,
-      rgba(217, 226, 236, 0.028) 0,
-      rgba(217, 226, 236, 0.028) 1px,
+      rgba(242,245,247,0.028) 0,
+      rgba(242,245,247,0.028) 1px,
       transparent 1px,
       transparent 72px
     );
@@ -35,13 +35,13 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
+    linear-gradient(180deg, rgba(242,245,247,0.035), transparent 24%),
     repeating-linear-gradient(
       45deg,
       transparent 0,
       transparent 38px,
-      rgba(214, 169, 74, 0.035) 38px,
-      rgba(214, 169, 74, 0.035) 39px
+      rgba(247,229,232,0.035) 38px,
+      rgba(247,229,232,0.035) 39px
     );
   mix-blend-mode: screen;
   opacity: 0.35;
@@ -53,11 +53,7 @@
   background: var(--bg-panel);
   border-radius: 22px;
   box-shadow:
-    0 28px 70px rgba(0, 0, 0, 0.52),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(93, 214, 255, 0.08),
-    0 0 0 1px rgba(214, 169, 74, 0.16),
-    0 0 0 3px rgba(93, 214, 255, 0.04);
+    none;
   overflow: hidden;
   position: relative;
   z-index: 1;
@@ -70,14 +66,14 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 26%),
-    linear-gradient(180deg, rgba(93, 214, 255, 0.05), transparent 14%),
+    linear-gradient(135deg, rgba(242,245,247,0.05), transparent 26%),
+    linear-gradient(180deg, rgba(228,240,234,0.05), transparent 14%),
     repeating-linear-gradient(
       135deg,
       transparent 0,
       transparent 36px,
-      rgba(214, 169, 74, 0.026) 36px,
-      rgba(214, 169, 74, 0.026) 37px
+      rgba(247,229,232,0.026) 36px,
+      rgba(247,229,232,0.026) 37px
     );
 }
 
@@ -85,8 +81,8 @@
   min-height: 44px;
   padding: 10px 18px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(217, 226, 236, 0.12);
-  background: rgba(18, 25, 34, 0.72);
+  border: 1px solid rgba(157,172,185,0.12);
+  background: rgba(232,237,241,0.72);
   color: var(--gray-800);
   font-weight: 700;
   cursor: pointer;
@@ -95,7 +91,7 @@
 
 .backButton:hover {
   transform: translateY(-1px);
-  box-shadow: var(--glow-amber);
+  box-shadow: none;
 }
 
 .headerActions,
@@ -112,8 +108,8 @@
   min-width: 112px;
   padding: 8px 14px;
   border-radius: 16px;
-  border: 1px solid rgba(217, 226, 236, 0.12);
-  background: rgba(18, 25, 34, 0.74);
+  border: 1px solid rgba(157,172,185,0.12);
+  background: rgba(232,237,241,0.74);
   color: var(--gray-800);
 }
 
@@ -132,9 +128,9 @@
   min-height: 44px;
   padding: 10px 16px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(244, 214, 138, 0.34);
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 46%, #8f6421 100%);
-  color: #07111f;
+  border: 1px solid rgba(94,125,145,0.34);
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 46%, #f7e5e8 100%);
+  color: #445464;
   font-weight: 700;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -142,7 +138,7 @@
 
 .accountButton:hover {
   transform: translateY(-1px);
-  box-shadow: var(--glow-amber);
+  box-shadow: none;
 }
 
 .portalSection {
@@ -154,10 +150,10 @@
 .portalIntro {
   padding: 26px 24px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    linear-gradient(145deg, rgba(93, 214, 255, 0.06), transparent 52%),
-    rgba(18, 25, 34, 0.74);
+    linear-gradient(145deg, rgba(228,240,234,0.06), transparent 52%),
+    rgba(232,237,241,0.74);
   overflow: hidden;
   position: relative;
 }
@@ -175,8 +171,7 @@
   pointer-events: none;
   transform: rotate(6deg);
   box-shadow:
-    0 20px 44px rgba(0, 0, 0, 0.28),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    none;
 }
 
 .portalIntro > * {
@@ -213,10 +208,10 @@
 .portalCard {
   padding: 24px;
   border-radius: 22px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    linear-gradient(145deg, rgba(214, 169, 74, 0.1), transparent 52%),
-    rgba(18, 25, 34, 0.8);
+    linear-gradient(145deg, rgba(247,229,232,0.1), transparent 52%),
+    rgba(232,237,241,0.8);
   display: grid;
   gap: 16px;
   overflow: hidden;
@@ -235,7 +230,7 @@
   opacity: 0.18;
   pointer-events: none;
   transform: rotate(8deg);
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+  box-shadow: none;
 }
 
 .portalCard:nth-child(2)::after {
@@ -279,8 +274,8 @@
   min-height: 36px;
   padding: 0 14px;
   border-radius: var(--radius-full);
-  background: rgba(93, 214, 255, 0.1);
-  border: 1px solid rgba(93, 214, 255, 0.2);
+  background: rgba(228,240,234,0.1);
+  border: 1px solid rgba(94,125,145,0.2);
   color: var(--gray-700);
   font-size: 0.84rem;
   font-weight: 700;
@@ -299,11 +294,11 @@
   gap: 18px;
   padding: 20px;
   border-radius: 22px;
-  border: 1px solid rgba(93, 214, 255, 0.24);
+  border: 1px solid rgba(94,125,145,0.24);
   background:
-    linear-gradient(135deg, rgba(93, 214, 255, 0.14), rgba(214, 169, 74, 0.1)),
-    rgba(13, 24, 34, 0.78);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 42px rgba(0, 0, 0, 0.2);
+    linear-gradient(135deg, rgba(228,240,234,0.14), rgba(247,229,232,0.1)),
+    rgba(232,237,241,0.78);
+  box-shadow: none;
 }
 
 .installShortcutCard h3 {
@@ -321,9 +316,9 @@
   min-height: 48px;
   padding: 0 18px;
   border-radius: 14px;
-  border: 1px solid rgba(244, 214, 138, 0.34);
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
-  color: #07111f;
+  border: 1px solid rgba(94,125,145,0.34);
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 52%, #f7e5e8 100%);
+  color: #445464;
   font-weight: 700;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -331,7 +326,7 @@
 
 .portalButton:hover {
   transform: translateY(-1px);
-  box-shadow: var(--glow-amber);
+  box-shadow: none;
 }
 
 .portalButton:disabled,
@@ -344,10 +339,10 @@
 
 .secondaryButton {
   width: 100%;
-  border: 1px solid rgba(93, 214, 255, 0.22);
+  border: 1px solid rgba(94,125,145,0.22);
   border-radius: 16px;
   padding: 13px 18px;
-  background: linear-gradient(145deg, rgba(93, 214, 255, 0.18), rgba(16, 42, 67, 0.92));
+  background: linear-gradient(145deg, rgba(228,240,234,0.18), rgba(242,245,247,0.92));
   color: var(--gray-800);
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -357,13 +352,13 @@
 
 .secondaryButton:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: var(--glow-cyan);
+  box-shadow: none;
 }
 
 /* Light glass technology theme: portal and shared shell */
 .workHubSection {
   padding: clamp(22px, 4vw, 48px);
-  background: linear-gradient(160deg, #f8faff, #edf3ff);
+  background: linear-gradient(160deg, #f2f5f7, #f2f5f7);
 }
 
 .workHubIntro, .workHubCardTop, .workHubLink {
@@ -375,7 +370,7 @@
 
 .workHubIntro {
   margin-bottom: 22px;
-  color: #627391;
+  color: #445464;
   font-size: 13px;
   letter-spacing: .12em;
 }
@@ -392,186 +387,186 @@
   align-items: stretch;
   text-align: left;
   padding: clamp(24px, 3vw, 38px);
-  border: 1px solid #cddcff;
+  border: 1px solid #9dacb9;
   border-radius: 26px;
-  background: linear-gradient(140deg, #fff 25%, #eaf1ff);
-  color: #192e56;
+  background: linear-gradient(140deg, #f2f5f7 25%, #f2f5f7);
+  color: #275b7b;
   font: inherit;
   cursor: pointer;
-  box-shadow: 0 14px 35px #345ca610;
+  box-shadow: none;
   transition: transform .2s, box-shadow .2s;
 }
 
-.workHubCard:hover { transform: translateY(-4px); box-shadow: 0 20px 42px #345ca620; }
-.workHubCard:focus-visible { outline: 3px solid #4069df; outline-offset: 5px; }
-.workHubInterview { background: linear-gradient(140deg, #fff 25%, #fcf6e8); border-color: #e9d9b5; }
-.workHubProduct { background: linear-gradient(140deg, #fff 25%, #eaf8f4); border-color: #c8e5db; }
+.workHubCard:hover { transform: translateY(-4px); box-shadow: none; }
+.workHubCard:focus-visible { outline: 3px solid #5e7d91; outline-offset: 5px; }
+.workHubInterview { background: linear-gradient(140deg, #f2f5f7 25%, #f2f5f7); border-color: #9dacb9; }
+.workHubProduct { background: linear-gradient(140deg, #f2f5f7 25%, #f2f5f7); border-color: #9dacb9; }
 .workHubCardTop { margin-bottom: 36px; }
-.workHubIcon { font-size: 30px; font-weight: 800; color: #4168d4; letter-spacing: -.05em; }
-.workHubStatus { display: inline-block; border: 1px solid #d7e2f8; border-radius: 99px; padding: 6px 12px; font-size: 12px; color: #567199; background: #f5f8ff; }
-.workHubInterview .workHubIcon { color: #ad8540; }
-.workHubInterview .workHubStatus { color: #967335; border-color: #e9d9b5; background: #fffaf0; }
-.workHubProduct .workHubIcon { color: #25806c; }
-.workHubProduct .workHubStatus { color: #287462; border-color: #c8e5db; background: #f2fbf8; }
-.workHubEnglish { color: #7484a2; letter-spacing: .14em; font-size: 11px; }
+.workHubIcon { font-size: 30px; font-weight: 800; color: #275b7b; letter-spacing: -.05em; }
+.workHubStatus { display: inline-block; border: 1px solid #9dacb9; border-radius: 99px; padding: 6px 12px; font-size: 12px; color: #275b7b; background: #f2f5f7; }
+.workHubInterview .workHubIcon { color: #704f00; }
+.workHubInterview .workHubStatus { color: #275b7b; border-color: #9dacb9; background: #f2f5f7; }
+.workHubProduct .workHubIcon { color: #166847; }
+.workHubProduct .workHubStatus { color: #166847; border-color: #9dacb9; background: #f2f5f7; }
+.workHubEnglish { color: #445464; letter-spacing: .14em; font-size: 11px; }
 .workHubCard h2 { font-size: clamp(24px, 2.6vw, 34px); margin: 12px 0 18px; }
-.workHubCard p { color: #667797; font-size: 15px; line-height: 1.9; margin: 0 0 24px; }
+.workHubCard p { color: #445464; font-size: 15px; line-height: 1.9; margin: 0 0 24px; }
 .workHubTags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; margin-bottom: 32px; }
-.workHubTags > span { font-size: 12px; color: #60728f; background: #ffffffa6; border: 1px solid #dfe6f1; border-radius: 8px; padding: 6px 10px; }
-.workHubLink { border-top: 1px solid #dce4f2; padding-top: 22px; font-weight: 700; color: #3e62bd; }
+.workHubTags > span { font-size: 12px; color: #445464; background: rgba(242,245,247,0.6509803921568628); border: 1px solid #9dacb9; border-radius: 8px; padding: 6px 10px; }
+.workHubLink { border-top: 1px solid #9dacb9; padding-top: 22px; font-weight: 700; color: #275b7b; }
 .workHubLink > span { font-size: 24px; }
-.workHubInterview .workHubLink { color: #987335; border-color: #eadfc9; }
-.workHubProduct .workHubLink { color: #287462; border-color: #d2e9e1; }
-.workHubNote { text-align: center; font-size: 12px; letter-spacing: .12em; color: #8290a8; margin: 36px 0 0; }
-.productCenterSection { padding: clamp(28px,4vw,52px); background: linear-gradient(155deg,#f8fbff,#edf8f5); }
-.productCenterIntro { max-width: 760px; margin-bottom: 30px; color: #647694; }
-.productCenterIntro h2 { color: #1c355b; font-size: clamp(26px,3vw,38px); margin: 8px 0 14px; }
+.workHubInterview .workHubLink { color: #275b7b; border-color: #9dacb9; }
+.workHubProduct .workHubLink { color: #166847; border-color: #9dacb9; }
+.workHubNote { text-align: center; font-size: 12px; letter-spacing: .12em; color: #445464; margin: 36px 0 0; }
+.productCenterSection { padding: clamp(28px,4vw,52px); background: linear-gradient(155deg,#f2f5f7,#f2f5f7); }
+.productCenterIntro { max-width: 760px; margin-bottom: 30px; color: #445464; }
+.productCenterIntro h2 { color: #275b7b; font-size: clamp(26px,3vw,38px); margin: 8px 0 14px; }
 .productCenterIntro > p:last-child { line-height: 1.9; }
 .productModuleGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
-.productModuleCard { padding:clamp(24px,3vw,36px); border:1px solid #d8e5e2; border-radius:24px; background:#ffffffd9; color:#1d385c; box-shadow:0 14px 35px #315f5310; }
-.productModuleCard > span { display:inline-grid; place-items:center; width:48px; height:48px; border-radius:14px; background:#e1f3ed; color:#267863; font-weight:800; }
+.productModuleCard { padding:clamp(24px,3vw,36px); border:1px solid #9dacb9; border-radius:24px; background:rgba(242,245,247,0.8509803921568627); color:#275b7b; box-shadow:none; }
+.productModuleCard > span { display:inline-grid; place-items:center; width:48px; height:48px; border-radius:14px; background:#f2f5f7; color:#166847; font-weight:800; }
 .productModuleCard h3 { font-size:clamp(22px,2.5vw,30px); margin:12px 0; }
-.productModuleCard > p:not(.workHubEnglish) { color:#687b97; line-height:1.9; min-height:58px; }
-.productModuleCard button { margin-top:18px; border:1px solid #d4dfec; border-radius:10px; padding:10px 18px; color:#718096; background:#f4f7fb; }
-.interviewPlaceholder { text-align: center; padding: 40px 16px; color: #253b60; }
+.productModuleCard > p:not(.workHubEnglish) { color:#445464; line-height:1.9; min-height:58px; }
+.productModuleCard button { margin-top:18px; border:1px solid #9dacb9; border-radius:10px; padding:10px 18px; color:#445464; background:#f2f5f7; }
+.interviewPlaceholder { text-align: center; padding: 40px 16px; color: #445464; }
 .interviewPlaceholder h2 { margin: 24px 0 16px; }
-.interviewPlaceholder p { color: #667797; line-height: 1.9; margin-bottom: 30px; }
+.interviewPlaceholder p { color: #445464; line-height: 1.9; margin-bottom: 30px; }
 @media (max-width: 700px) { .workHubGrid, .productModuleGrid { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .workHubCard { transition: none; } .workHubCard:hover { transform: none; } }
 
 /* Work hub: competition-grade black and pure-gold visual system. */
 .workHubSection {
   background:
-    radial-gradient(circle at 8% 5%, rgba(255, 43, 43, 0.14), transparent 24%),
-    radial-gradient(circle at 92% 14%, rgba(53, 242, 255, 0.13), transparent 26%),
-    radial-gradient(circle at 52% 100%, rgba(173, 63, 255, 0.1), transparent 28%),
-    repeating-linear-gradient(90deg, transparent 0, transparent 71px, rgba(53, 242, 255, 0.035) 72px),
-    #090c13;
-  border-bottom: 1px solid #282828;
+    radial-gradient(circle at 8% 5%, rgba(247,229,232,0.14), transparent 24%),
+    radial-gradient(circle at 92% 14%, rgba(228,240,234,0.13), transparent 26%),
+    radial-gradient(circle at 52% 100%, rgba(247,229,232,0.1), transparent 28%),
+    repeating-linear-gradient(90deg, transparent 0, transparent 71px, rgba(228,240,234,0.035) 72px),
+    #e8edf1;
+  border-bottom: 1px solid #9dacb9;
 }
-.workHubIntro { color: #9d9d9d; }
-.workHubIntro span:first-child { color: #FFD700; font-weight: 800; }
+.workHubIntro { color: #445464; }
+.workHubIntro span:first-child { color: #704f00; font-weight: 800; }
 .workHubGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .workHubCard,
 .workHubInterview,
 .workHubProduct {
-  border: 1px solid #333;
-  border-top: 3px solid #FFD700;
+  border: 1px solid #9dacb9;
+  border-top: 3px solid #5e7d91;
   border-radius: 8px;
-  background: linear-gradient(145deg, rgba(255, 215, 0, 0.055), transparent 42%), #12151d;
-  color: #fff;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+  background: linear-gradient(145deg, rgba(227,237,246,0.055), transparent 42%), #e8edf1;
+  color: #202a35;
+  box-shadow: none;
 }
-.workHubCard:hover { border-color: #FFD700; box-shadow: 0 0 0 1px #FFD700, 0 18px 46px rgba(255, 215, 0, 0.13); }
-.workHubCard:focus-visible { outline-color: #FFD700; }
+.workHubCard:hover { border-color: #5e7d91; box-shadow: none; }
+.workHubCard:focus-visible { outline-color: #5e7d91; }
 .workHubIcon,
 .workHubInterview .workHubIcon,
-.workHubProduct .workHubIcon { color: #FFD700; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
+.workHubProduct .workHubIcon { color: #704f00; font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
 .workHubStatus,
 .workHubInterview .workHubStatus,
-.workHubProduct .workHubStatus { color: #FFD700; border-color: #FFD700; background: #0b0b0b; }
-.workHubEnglish { color: #FFD700; }
-.workHubCard p { color: #b6b6b6; }
-.workHubTags > span { color: #d8d8d8; background: #1b1b1b; border-color: #363636; }
+.workHubProduct .workHubStatus { color: #704f00; border-color: #5e7d91; background: #e8edf1; }
+.workHubEnglish { color: #704f00; }
+.workHubCard p { color: #202a35; }
+.workHubTags > span { color: #202a35; background: #e8edf1; border-color: #9dacb9; }
 .workHubLink,
 .workHubInterview .workHubLink,
-.workHubProduct .workHubLink { color: #FFD700; border-color: #343434; }
-.workHubNote { color: #777; }
-.workHubAccount .accountChip { color: #fff; background: #111; border-color: #444; box-shadow: none; }
-.workHubAccount .accountChip span { color: #aaa; }
-.workHubAccount .accountButton { color: #080808; background: #FFD700; border-color: #FFD700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
-.workHubInterview { border-top-color:#ff2b2b; background:linear-gradient(145deg,rgba(255,43,43,.09),transparent 44%),#151319; }
-.workHubInterview:hover { border-color:#ff2b2b; box-shadow:0 0 0 1px #ff2b2b,0 18px 46px rgba(255,43,43,.18); }
+.workHubProduct .workHubLink { color: #704f00; border-color: #9dacb9; }
+.workHubNote { color: #445464; }
+.workHubAccount .accountChip { color: #202a35; background: #e8edf1; border-color: #9dacb9; box-shadow: none; }
+.workHubAccount .accountChip span { color: #445464; }
+.workHubAccount .accountButton { color: #445464; background: #e3edf6; border-color: #5e7d91; box-shadow: none; }
+.workHubInterview { border-top-color:#b92e3b; background:linear-gradient(145deg,rgba(247,229,232,0.09),transparent 44%),#e8edf1; }
+.workHubInterview:hover { border-color:#b92e3b; box-shadow:none; }
 .workHubInterview .workHubIcon,
 .workHubInterview .workHubEnglish,
-.workHubInterview .workHubLink { color:#ff4a4a; }
-.workHubInterview .workHubStatus { color:#ff6262; border-color:#ff2b2b; background:rgba(255,43,43,.08); }
-.workHubProduct { border-top-color:#35f2ff; background:linear-gradient(145deg,rgba(53,242,255,.085),transparent 44%),#10171d; }
-.workHubProduct:hover { border-color:#35f2ff; box-shadow:0 0 0 1px #35f2ff,0 18px 46px rgba(53,242,255,.16); }
+.workHubInterview .workHubLink { color:#a62230; }
+.workHubInterview .workHubStatus { color:#a62230; border-color:#b92e3b; background:rgba(247,229,232,0.08); }
+.workHubProduct { border-top-color:#5e7d91; background:linear-gradient(145deg,rgba(228,240,234,0.085),transparent 44%),#e8edf1; }
+.workHubProduct:hover { border-color:#5e7d91; box-shadow:none; }
 .workHubProduct .workHubIcon,
 .workHubProduct .workHubEnglish,
-.workHubProduct .workHubLink { color:#35f2ff; }
-.workHubProduct .workHubStatus { color:#35f2ff; border-color:#35f2ff; background:rgba(53,242,255,.07); }
+.workHubProduct .workHubLink { color:#275b7b; }
+.workHubProduct .workHubStatus { color:#275b7b; border-color:#5e7d91; background:rgba(228,240,234,0.07); }
 .workHubCard:nth-child(1)::after,
 .workHubInterview::after,
 .workHubProduct::after { content:''; display:block; height:3px; margin-top:20px; border-radius:4px; opacity:.75; }
-.workHubCard:nth-child(1)::after { background:#FFD700; box-shadow:0 0 14px rgba(255,215,0,.5); }
-.workHubInterview::after { background:#ff2b2b; box-shadow:0 0 14px rgba(255,43,43,.55); }
-.workHubProduct::after { background:#35f2ff; box-shadow:0 0 14px rgba(53,242,255,.5); }
+.workHubCard:nth-child(1)::after { background:#e3edf6; box-shadow:none; }
+.workHubInterview::after { background:#f7e5e8; box-shadow:none; }
+.workHubProduct::after { background:#e4f0ea; box-shadow:none; }
 @media (max-width: 1050px) { .workHubGrid { grid-template-columns: 1fr; } }
 
 .app {
   background:
-    radial-gradient(circle at 78% 8%, rgba(75, 158, 255, 0.2), transparent 28%),
-    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.94), transparent 34%),
-    linear-gradient(145deg, #f8fbff 0%, #edf6ff 54%, #e7f2ff 100%);
+    radial-gradient(circle at 78% 8%, rgba(228,240,234,0.2), transparent 28%),
+    radial-gradient(circle at 12% 18%, rgba(242,245,247,0.94), transparent 34%),
+    linear-gradient(145deg, #f2f5f7 0%, #f2f5f7 54%, #f2f5f7 100%);
 }
 
 .app::before {
   background:
-    radial-gradient(ellipse at 16% 18%, rgba(213, 173, 56, 0.07) 0%, transparent 42%),
-    radial-gradient(ellipse at 86% 24%, rgba(22, 104, 232, 0.11) 0%, transparent 36%),
-    repeating-linear-gradient(90deg, rgba(22, 104, 232, 0.045) 0, rgba(22, 104, 232, 0.045) 1px, transparent 1px, transparent 72px);
+    radial-gradient(ellipse at 16% 18%, rgba(247,229,232,0.07) 0%, transparent 42%),
+    radial-gradient(ellipse at 86% 24%, rgba(228,240,234,0.11) 0%, transparent 36%),
+    repeating-linear-gradient(90deg, rgba(228,240,234,0.045) 0, rgba(228,240,234,0.045) 1px, transparent 1px, transparent 72px);
 }
 
 .app::after {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 24%),
-    repeating-linear-gradient(45deg, transparent 0, transparent 38px, rgba(213, 173, 56, 0.035) 38px, rgba(213, 173, 56, 0.035) 39px);
+    linear-gradient(180deg, rgba(242,245,247,0.46), transparent 24%),
+    repeating-linear-gradient(45deg, transparent 0, transparent 38px, rgba(247,229,232,0.035) 38px, rgba(247,229,232,0.035) 39px);
   mix-blend-mode: normal;
   opacity: 0.65;
 }
 
 .container {
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 28px 70px rgba(47, 93, 143, 0.14), inset 0 1px 0 #fff, 0 0 0 1px rgba(22, 104, 232, 0.08);
+  background: rgba(242,245,247,0.68);
+  border: 1px solid rgba(157,172,185,0.9);
+  box-shadow: none;
   backdrop-filter: blur(24px) saturate(1.12);
 }
 
 .container::before {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent 26%),
-    linear-gradient(180deg, rgba(22, 104, 232, 0.035), transparent 14%),
-    repeating-linear-gradient(135deg, transparent 0, transparent 36px, rgba(213, 173, 56, 0.025) 36px, rgba(213, 173, 56, 0.025) 37px);
+    linear-gradient(135deg, rgba(242,245,247,0.6), transparent 26%),
+    linear-gradient(180deg, rgba(228,240,234,0.035), transparent 14%),
+    repeating-linear-gradient(135deg, transparent 0, transparent 36px, rgba(247,229,232,0.025) 36px, rgba(247,229,232,0.025) 37px);
 }
 
 .backButton,
 .accountChip {
-  border-color: rgba(22, 104, 232, 0.16);
-  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(94,125,145,0.16);
+  background: rgba(242,245,247,0.62);
   color: var(--gray-800);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: none;
   backdrop-filter: blur(16px);
 }
 
 .accountButton,
 .portalButton {
-  border-color: rgba(11, 79, 189, 0.2);
-  background: linear-gradient(145deg, #2d83f3 0%, #1668e8 56%, #0b4fbd 100%);
-  color: #fff;
-  box-shadow: 0 10px 24px rgba(22, 104, 232, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  border-color: rgba(94,125,145,0.2);
+  background: linear-gradient(145deg, #e4f0ea 0%, #e4f0ea 56%, #e4f0ea 100%);
+  color: #202a35;
+  box-shadow: none;
 }
 
 .accountButton:hover,
 .portalButton:hover {
-  box-shadow: 0 14px 30px rgba(22, 104, 232, 0.26), 0 0 0 1px rgba(213, 173, 56, 0.34);
+  box-shadow: none;
 }
 
 .portalIntro,
 .installShortcutCard,
 .portalCard {
-  border-color: rgba(22, 104, 232, 0.14);
+  border-color: rgba(94,125,145,0.14);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(236, 246, 255, 0.64)),
-    rgba(255, 255, 255, 0.58);
-  box-shadow: 0 16px 38px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    linear-gradient(145deg, rgba(242,245,247,0.88), rgba(242,245,247,0.64)),
+    rgba(242,245,247,0.58);
+  box-shadow: none;
   backdrop-filter: blur(20px) saturate(1.1);
 }
 
 .portalPriorityCard {
-  border-color: rgba(22, 104, 232, 0.18);
-  border-left: 2px solid #d5ad38;
+  border-color: rgba(94,125,145,0.18);
+  border-left: 2px solid #5e7d91;
 }
 
 .portalPriorityCard .portalButton {
@@ -579,15 +574,15 @@
 }
 
 .portalIntro {
-  border-left: 2px solid #d5ad38;
+  border-left: 2px solid #5e7d91;
 }
 
 .installShortcutCard {
-  border-color: rgba(22, 104, 232, 0.2);
+  border-color: rgba(94,125,145,0.2);
 }
 
 .portalCard {
-  border-top-color: rgba(255, 255, 255, 0.96);
+  border-top-color: rgba(157,172,185,0.96);
 }
 
 .portalCard::before {
@@ -595,7 +590,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 2px;
-  background: linear-gradient(180deg, transparent, #d5ad38 26%, #f1ce61 72%, transparent);
+  background: linear-gradient(180deg, transparent, #f7e5e8 26%, #e3edf6 72%, transparent);
   opacity: 0.88;
 }
 
@@ -603,7 +598,7 @@
 .portalCard::after {
   opacity: 0.12;
   filter: saturate(0.8) brightness(1.12);
-  box-shadow: 0 18px 38px rgba(40, 92, 150, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+  box-shadow: none;
 }
 
 .portalIntro h2,
@@ -614,7 +609,7 @@
 
 .portalEyebrow,
 .portalCardLabel {
-  color: #b58a12;
+  color: #704f00;
 }
 
 .portalHint,
@@ -624,15 +619,15 @@
 }
 
 .portalBadge {
-  background: rgba(232, 243, 255, 0.72);
-  border-color: rgba(22, 104, 232, 0.18);
-  color: #0e5ccf;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  background: rgba(242,245,247,0.72);
+  border-color: rgba(94,125,145,0.18);
+  color: #275b7b;
+  box-shadow: none;
 }
 
 .secondaryButton {
-  border-color: rgba(22, 104, 232, 0.2);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(228, 241, 255, 0.9));
+  border-color: rgba(94,125,145,0.2);
+  background: linear-gradient(145deg, rgba(242,245,247,0.82), rgba(242,245,247,0.9));
   color: var(--gray-800);
 }
 
@@ -643,7 +638,7 @@
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(0, 0, 0, 0.62);
+  background: rgba(232,237,241,0.62);
   backdrop-filter: blur(12px);
 }
 
@@ -653,12 +648,12 @@
   gap: 18px;
   padding: 24px;
   border-radius: 24px;
-  border: 1px solid rgba(93, 214, 255, 0.22);
+  border: 1px solid rgba(94,125,145,0.22);
   background:
-    linear-gradient(145deg, rgba(93, 214, 255, 0.1), transparent 48%),
-    linear-gradient(315deg, rgba(214, 169, 74, 0.14), transparent 46%),
-    rgba(13, 19, 28, 0.96);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
+    linear-gradient(145deg, rgba(228,240,234,0.1), transparent 48%),
+    linear-gradient(315deg, rgba(247,229,232,0.14), transparent 46%),
+    rgba(232,237,241,0.96);
+  box-shadow: none;
 }
 
 .installGuidePanel h2 {
@@ -670,8 +665,8 @@
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  border: 1px solid rgba(217, 226, 236, 0.16);
-  background: rgba(8, 12, 18, 0.76);
+  border: 1px solid rgba(157,172,185,0.16);
+  background: rgba(232,237,241,0.76);
   color: var(--gray-800);
   font-size: 1.4rem;
   font-weight: 900;
@@ -696,14 +691,13 @@
 .parameterPanel {
   padding: 24px;
   border-radius: 22px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    radial-gradient(circle at 12% 0%, rgba(93, 214, 255, 0.14), transparent 34%),
-    linear-gradient(145deg, rgba(214, 169, 74, 0.08), transparent 58%),
-    rgba(18, 25, 34, 0.82);
+    radial-gradient(circle at 12% 0%, rgba(228,240,234,0.14), transparent 34%),
+    linear-gradient(145deg, rgba(247,229,232,0.08), transparent 58%),
+    rgba(232,237,241,0.82);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 20px 44px rgba(2, 5, 10, 0.28);
+    none;
 }
 
 .practiceToolbar {
@@ -742,10 +736,10 @@
   min-height: 112px;
   padding: 16px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(157,172,185,0.12);
   background:
-    linear-gradient(145deg, rgba(93, 214, 255, 0.1), rgba(214, 169, 74, 0.08)),
-    rgba(8, 12, 18, 0.72);
+    linear-gradient(145deg, rgba(228,240,234,0.1), rgba(247,229,232,0.08)),
+    rgba(232,237,241,0.72);
   display: grid;
   gap: 6px;
   align-content: center;
@@ -768,14 +762,13 @@
 .logisticsEmpty {
   padding: 24px;
   border-radius: 22px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    linear-gradient(145deg, rgba(93, 214, 255, 0.08), transparent 46%),
-    linear-gradient(135deg, rgba(214, 169, 74, 0.08), transparent 60%),
-    rgba(18, 25, 34, 0.82);
+    linear-gradient(145deg, rgba(228,240,234,0.08), transparent 46%),
+    linear-gradient(135deg, rgba(247,229,232,0.08), transparent 60%),
+    rgba(232,237,241,0.82);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 20px 44px rgba(2, 5, 10, 0.24);
+    none;
 }
 
 .logisticsFormPanel {
@@ -820,9 +813,9 @@
 .logisticsField select,
 .logisticsField textarea {
   width: 100%;
-  border: 1px solid rgba(217, 226, 236, 0.14);
+  border: 1px solid rgba(157,172,185,0.14);
   border-radius: 14px;
-  background: rgba(8, 12, 18, 0.78);
+  background: rgba(232,237,241,0.78);
   color: var(--gray-800);
   padding: 12px 14px;
   font: inherit;
@@ -838,8 +831,8 @@
 .logisticsField input:focus,
 .logisticsField select:focus,
 .logisticsField textarea:focus {
-  border-color: rgba(0, 200, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+  border-color: rgba(94,125,145,0.5);
+  box-shadow: none;
 }
 
 .logisticsField input:disabled,
@@ -871,11 +864,9 @@
 
 .clickableCard:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 200, 255, 0.32);
+  border-color: rgba(94,125,145,0.32);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 22px 50px rgba(2, 5, 10, 0.3),
-    0 0 24px rgba(0, 200, 255, 0.12);
+    none;
 }
 
 .cardActionRow {
@@ -902,12 +893,12 @@
   width: 100%;
   margin: 18px 0 8px;
   padding: 18px;
-  border: 1px solid rgba(93, 214, 255, 0.22);
+  border: 1px solid rgba(94,125,145,0.22);
   border-radius: 22px;
   background:
-    linear-gradient(145deg, rgba(12, 22, 36, 0.78), rgba(6, 10, 18, 0.92)),
-    radial-gradient(circle at 18% 0%, rgba(93, 214, 255, 0.12), transparent 34%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    linear-gradient(145deg, rgba(232,237,241,0.78), rgba(232,237,241,0.92)),
+    radial-gradient(circle at 18% 0%, rgba(228,240,234,0.12), transparent 34%);
+  box-shadow: none;
 }
 
 .portalBadgeButton {
@@ -916,8 +907,8 @@
   min-height: 36px;
   padding: 0 14px;
   border-radius: var(--radius-full);
-  background: rgba(93, 214, 255, 0.1);
-  border: 1px solid rgba(93, 214, 255, 0.2);
+  background: rgba(228,240,234,0.1);
+  border: 1px solid rgba(94,125,145,0.2);
   color: var(--gray-700);
   font-size: 0.84rem;
   font-weight: 700;
@@ -925,7 +916,7 @@
 }
 
 .portalBadgeButton:hover {
-  border-color: rgba(244, 214, 138, 0.58);
+  border-color: rgba(94,125,145,0.58);
   color: var(--gray-900);
 }
 
@@ -944,16 +935,16 @@
 .cardTitleInput,
 .cardDateInput {
   width: min(100%, 520px);
-  border: 1px solid rgba(93, 214, 255, 0.35);
+  border: 1px solid rgba(94,125,145,0.35);
   border-radius: 14px;
-  background: rgba(5, 10, 18, 0.72);
+  background: rgba(232,237,241,0.72);
   color: var(--gray-900);
   font: inherit;
   font-size: 1.5rem;
   font-weight: 900;
   padding: 11px 14px;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(93, 214, 255, 0.08);
+  box-shadow: none;
 }
 
 .cardDateInput {
@@ -964,10 +955,9 @@
 
 .cardTitleInput:focus,
 .cardDateInput:focus {
-  border-color: rgba(244, 214, 138, 0.74);
+  border-color: rgba(94,125,145,0.74);
   box-shadow:
-    0 0 0 3px rgba(244, 214, 138, 0.12),
-    0 0 20px rgba(93, 214, 255, 0.16);
+    none;
 }
 
 .hiddenFileInput {
@@ -980,11 +970,11 @@
   gap: 16px;
   align-items: center;
   padding: 14px;
-  border: 1px dashed rgba(93, 214, 255, 0.28);
+  border: 1px dashed rgba(94,125,145,0.28);
   border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(93, 214, 255, 0.08), rgba(214, 169, 74, 0.06)),
-    rgba(8, 12, 18, 0.52);
+    linear-gradient(135deg, rgba(228,240,234,0.08), rgba(247,229,232,0.06)),
+    rgba(232,237,241,0.52);
 }
 
 .documentImagePanel img,
@@ -992,8 +982,8 @@
   width: 160px;
   height: 104px;
   border-radius: 14px;
-  border: 1px solid rgba(217, 226, 236, 0.12);
-  background: rgba(8, 12, 18, 0.74);
+  border: 1px solid rgba(157,172,185,0.12);
+  background: rgba(232,237,241,0.74);
   object-fit: cover;
 }
 
@@ -1019,7 +1009,7 @@
   height: 46px;
   margin-top: 8px;
   border-radius: 10px;
-  border: 1px solid rgba(93, 214, 255, 0.28);
+  border: 1px solid rgba(94,125,145,0.28);
   object-fit: cover;
 }
 
@@ -1033,8 +1023,8 @@
   display: inline-flex;
   padding: 8px 12px;
   border-radius: var(--radius-full);
-  background: rgba(8, 12, 18, 0.62);
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  background: rgba(232,237,241,0.62);
+  border: 1px solid rgba(157,172,185,0.1);
   color: var(--gray-500);
   font-size: 0.86rem;
 }
@@ -1064,28 +1054,25 @@
   align-content: space-between;
   gap: 14px;
   padding: 24px;
-  border: 1px solid rgba(93, 214, 255, 0.18);
+  border: 1px solid rgba(94,125,145,0.18);
   border-radius: 24px;
   background:
-    radial-gradient(circle at 10% 0%, rgba(93, 214, 255, 0.18), transparent 34%),
-    radial-gradient(circle at 90% 90%, rgba(214, 169, 74, 0.14), transparent 32%),
-    linear-gradient(145deg, rgba(18, 25, 34, 0.92), rgba(8, 12, 18, 0.9));
+    radial-gradient(circle at 10% 0%, rgba(228,240,234,0.18), transparent 34%),
+    radial-gradient(circle at 90% 90%, rgba(247,229,232,0.14), transparent 32%),
+    linear-gradient(145deg, rgba(232,237,241,0.92), rgba(232,237,241,0.9));
   color: var(--gray-800);
   text-align: left;
   cursor: pointer;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 20px 44px rgba(2, 5, 10, 0.24);
+    none;
   transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .logisticsItemCard:hover {
   transform: translateY(-3px);
-  border-color: rgba(93, 214, 255, 0.42);
+  border-color: rgba(94,125,145,0.42);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 26px 54px rgba(2, 5, 10, 0.34),
-    0 0 30px rgba(93, 214, 255, 0.14);
+    none;
 }
 
 .logisticsItemCard strong {
@@ -1104,7 +1091,7 @@
   justify-self: start;
   padding: 9px 13px;
   border-radius: var(--radius-full);
-  background: rgba(214, 169, 74, 0.13);
+  background: rgba(247,229,232,0.13);
   color: var(--primary);
   font-style: normal;
   font-weight: 900;
@@ -1128,20 +1115,20 @@
 .logisticsTableWrap {
   overflow: auto;
   border-radius: 18px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
 }
 
 .logisticsTable {
   width: 100%;
   min-width: 920px;
   border-collapse: collapse;
-  background: rgba(8, 12, 18, 0.46);
+  background: rgba(232,237,241,0.46);
 }
 
 .logisticsTable th,
 .logisticsTable td {
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(217, 226, 236, 0.08);
+  border-bottom: 1px solid rgba(157,172,185,0.08);
   color: var(--gray-600);
   text-align: left;
   vertical-align: top;
@@ -1152,7 +1139,7 @@
   font-size: 0.84rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: rgba(93, 214, 255, 0.06);
+  background: rgba(228,240,234,0.06);
 }
 
 .logisticsTable td strong,
@@ -1175,9 +1162,9 @@
 .logisticsTable select,
 .logisticsTable input {
   width: 100%;
-  border: 1px solid rgba(217, 226, 236, 0.14);
+  border: 1px solid rgba(157,172,185,0.14);
   border-radius: 12px;
-  background: rgba(8, 12, 18, 0.82);
+  background: rgba(232,237,241,0.82);
   color: var(--gray-800);
   padding: 9px 10px;
   font: inherit;
@@ -1203,7 +1190,7 @@
   display: inline-flex;
   padding: 7px 10px;
   border-radius: var(--radius-full);
-  background: rgba(93, 214, 255, 0.1);
+  background: rgba(228,240,234,0.1);
   color: var(--secondary);
   font-size: 0.82rem;
   font-weight: 800;
@@ -1221,48 +1208,47 @@
   min-height: 28px;
   padding: 6px 11px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  border: 1px solid rgba(157,172,185,0.14);
+  color: #202a35;
   font-size: 0.78rem;
   font-weight: 950;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 8px 18px rgba(0, 0, 0, 0.18);
+    none;
 }
 
 .eventItemBadgeInspire {
-  background: linear-gradient(135deg, rgba(244, 214, 138, 0.95), rgba(178, 121, 30, 0.95));
-  color: #161009;
-  border-color: rgba(244, 214, 138, 0.72);
+  background: linear-gradient(135deg, rgba(227,237,246,0.95), rgba(247,229,232,0.95));
+  color: #445464;
+  border-color: rgba(94,125,145,0.72);
 }
 
 .eventItemBadgeExplorer {
-  background: linear-gradient(135deg, rgba(93, 214, 255, 0.92), rgba(20, 96, 190, 0.95));
-  border-color: rgba(93, 214, 255, 0.72);
+  background: linear-gradient(135deg, rgba(228,240,234,0.92), rgba(228,240,234,0.95));
+  border-color: rgba(94,125,145,0.72);
 }
 
 .eventItemBadgeChallenge {
-  background: linear-gradient(135deg, rgba(255, 92, 92, 0.95), rgba(191, 53, 24, 0.96));
-  border-color: rgba(255, 139, 92, 0.72);
+  background: linear-gradient(135deg, rgba(247,229,232,0.95), rgba(247,229,232,0.96));
+  border-color: rgba(185,46,59,0.72);
 }
 
 .eventItemBadgeFrc {
-  background: linear-gradient(135deg, rgba(178, 123, 255, 0.95), rgba(78, 72, 211, 0.96));
-  border-color: rgba(178, 123, 255, 0.72);
+  background: linear-gradient(135deg, rgba(247,229,232,0.95), rgba(227,237,246,0.96));
+  border-color: rgba(185,46,59,0.72);
 }
 
 .eventItemBadgeDefault {
-  background: linear-gradient(135deg, rgba(137, 150, 170, 0.8), rgba(69, 80, 99, 0.85));
+  background: linear-gradient(135deg, rgba(242,245,247,0.8), rgba(242,245,247,0.85));
   color: var(--gray-800);
 }
 
 .smallDangerButton,
 .ghostButton {
-  border: 1px solid rgba(217, 226, 236, 0.14);
+  border: 1px solid rgba(157,172,185,0.14);
   border-radius: 12px;
-  background: rgba(8, 12, 18, 0.58);
+  background: rgba(232,237,241,0.58);
   color: var(--gray-600);
   padding: 9px 12px;
   font-weight: 800;
@@ -1271,15 +1257,15 @@
 }
 
 .smallDangerButton {
-  border-color: rgba(244, 201, 106, 0.34);
-  color: #f4d68a;
+  border-color: rgba(94,125,145,0.34);
+  color: #275b7b;
 }
 
 .smallDangerButton:hover:not(:disabled),
 .ghostButton:hover:not(:disabled) {
   transform: translateY(-1px);
-  border-color: rgba(93, 214, 255, 0.36);
-  box-shadow: 0 0 16px rgba(93, 214, 255, 0.12);
+  border-color: rgba(94,125,145,0.36);
+  box-shadow: none;
 }
 
 .smallDangerButton:disabled,
@@ -1299,10 +1285,10 @@
   gap: 16px;
   padding: 16px;
   border-radius: 18px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    linear-gradient(135deg, rgba(93, 214, 255, 0.08), rgba(214, 169, 74, 0.06)),
-    rgba(8, 12, 18, 0.52);
+    linear-gradient(135deg, rgba(228,240,234,0.08), rgba(247,229,232,0.06)),
+    rgba(232,237,241,0.52);
 }
 
 .timelineItem > div:first-child {
@@ -1334,9 +1320,9 @@
 .timelineEditGrid input,
 .timelineEditGrid select {
   width: 100%;
-  border: 1px solid rgba(217, 226, 236, 0.14);
+  border: 1px solid rgba(157,172,185,0.14);
   border-radius: 12px;
-  background: rgba(8, 12, 18, 0.82);
+  background: rgba(232,237,241,0.82);
   color: var(--gray-800);
   padding: 9px 10px;
   font: inherit;
@@ -1382,8 +1368,8 @@
   display: inline-flex;
   padding: 8px 12px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(22, 104, 232, 0.16);
-  background: rgba(238, 246, 255, 0.88);
+  border: 1px solid rgba(94,125,145,0.16);
+  background: rgba(242,245,247,0.88);
   color: var(--gray-500);
   line-height: 1.4;
 }
@@ -1393,21 +1379,21 @@
   gap: 14px;
   padding: 18px;
   border-radius: 20px;
-  border: 1px solid rgba(22, 104, 232, 0.18);
+  border: 1px solid rgba(94,125,145,0.18);
   background:
-    radial-gradient(circle at 0% 0%, rgba(213, 173, 56, 0.1), transparent 34%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(235, 245, 255, 0.9));
-  box-shadow: 0 14px 34px rgba(45, 92, 143, 0.1);
+    radial-gradient(circle at 0% 0%, rgba(247,229,232,0.1), transparent 34%),
+    linear-gradient(145deg, rgba(242,245,247,0.97), rgba(242,245,247,0.9));
+  box-shadow: none;
 }
 
 .rollCallNodeSoon {
-  border-color: rgba(213, 173, 56, 0.54);
-  box-shadow: 0 14px 34px rgba(213, 173, 56, 0.13);
+  border-color: rgba(94,125,145,0.54);
+  box-shadow: none;
 }
 
 .rollCallNodeDue {
-  border-color: rgba(214, 86, 86, 0.46);
-  box-shadow: 0 14px 34px rgba(214, 86, 86, 0.12);
+  border-color: rgba(185,46,59,0.46);
+  box-shadow: none;
 }
 
 .rollCallTimeLabel {
@@ -1425,7 +1411,7 @@
 }
 
 .rollCallTimeLabel strong {
-  color: #315986;
+  color: #275b7b;
   font-size: 1.06rem;
   font-weight: 900;
   letter-spacing: 0.1em;
@@ -1451,17 +1437,17 @@
 }
 
 .rollCallTimeAlertSoon {
-  border: 1px solid rgba(213, 173, 56, 0.48);
-  background: #fff8df;
-  color: #8f6b08;
-  box-shadow: 0 8px 18px rgba(213, 173, 56, 0.12);
+  border: 1px solid rgba(94,125,145,0.48);
+  background: #f2f5f7;
+  color: #275b7b;
+  box-shadow: none;
 }
 
 .rollCallTimeAlertDue {
-  border: 1px solid rgba(214, 86, 86, 0.42);
-  background: #fff1f1;
-  color: #b7352d;
-  box-shadow: 0 8px 18px rgba(214, 86, 86, 0.12);
+  border: 1px solid rgba(185,46,59,0.42);
+  background: #f2f5f7;
+  color: #a62230;
+  box-shadow: none;
 }
 
 .mentorRollCallBlock {
@@ -1469,8 +1455,8 @@
   gap: 10px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(22, 104, 232, 0.14);
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(94,125,145,0.14);
+  background: rgba(242,245,247,0.88);
 }
 
 .mentorRollCallTitle {
@@ -1483,7 +1469,7 @@
 .mentorRollCallTitle span {
   padding: 6px 10px;
   border-radius: var(--radius-full);
-  background: rgba(214, 169, 74, 0.12);
+  background: rgba(247,229,232,0.12);
   color: var(--primary);
   font-weight: 900;
 }
@@ -1494,17 +1480,17 @@
 }
 
 .rollCallProgressWarning {
-  border-color: rgba(214, 86, 86, 0.42) !important;
-  background: #fff1f1 !important;
-  color: #b7352d !important;
-  box-shadow: 0 8px 18px rgba(214, 86, 86, 0.1);
+  border-color: rgba(185,46,59,0.42) !important;
+  background: #f2f5f7 !important;
+  color: #a62230 !important;
+  box-shadow: none;
 }
 
 .rollCallProgressComplete {
-  border-color: rgba(213, 173, 56, 0.56) !important;
-  background: linear-gradient(145deg, #f4d68a, #b58a2c) !important;
-  color: #fff !important;
-  box-shadow: 0 8px 18px rgba(181, 138, 44, 0.18);
+  border-color: rgba(94,125,145,0.56) !important;
+  background: linear-gradient(145deg, #e3edf6, #f7e5e8) !important;
+  color: #202a35 !important;
+  box-shadow: none;
 }
 
 .attendanceRow {
@@ -1513,16 +1499,16 @@
   gap: 12px;
   align-items: center;
   padding: 10px 0;
-  border-top: 1px solid rgba(22, 104, 232, 0.1);
+  border-top: 1px solid rgba(94,125,145,0.1);
 }
 
 .attendanceToggleButton {
   width: 100%;
   min-height: 46px;
-  border: 1px solid rgba(22, 104, 232, 0.18);
+  border: 1px solid rgba(94,125,145,0.18);
   border-radius: 16px;
-  background: rgba(238, 246, 255, 0.94);
-  color: #315986;
+  background: rgba(242,245,247,0.94);
+  color: #275b7b;
   font: inherit;
   font-weight: 900;
   cursor: pointer;
@@ -1531,17 +1517,17 @@
 }
 
 .attendanceToggleButton:hover:not(:disabled) {
-  border-color: rgba(22, 104, 232, 0.5);
-  color: #173f78;
-  box-shadow: 0 8px 18px rgba(22, 104, 232, 0.12);
+  border-color: rgba(94,125,145,0.5);
+  color: #275b7b;
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
 .attendanceToggleButtonArrived {
-  border-color: rgba(244, 214, 138, 0.82);
-  background: linear-gradient(145deg, #f4d68a, #b58a2c);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(181, 138, 44, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  border-color: rgba(94,125,145,0.82);
+  background: linear-gradient(145deg, #e3edf6, #f7e5e8);
+  color: #202a35;
+  box-shadow: none;
 }
 
 .attendanceToggleButton:disabled {
@@ -1565,10 +1551,10 @@
 
 .attendanceRemoveButton {
   min-height: 46px;
-  border: 1px solid rgba(183, 53, 45, 0.22);
+  border: 1px solid rgba(185,46,59,0.22);
   border-radius: 16px;
-  background: rgba(255, 248, 247, 0.96);
-  color: #a33a32;
+  background: rgba(242,245,247,0.96);
+  color: #a62230;
   font: inherit;
   font-weight: 800;
   cursor: pointer;
@@ -1576,8 +1562,8 @@
 }
 
 .attendanceRemoveButton:hover:not(:disabled) {
-  border-color: rgba(183, 53, 45, 0.5);
-  background: #fff1ef;
+  border-color: rgba(185,46,59,0.5);
+  background: #f2f5f7;
   transform: translateY(-1px);
 }
 
@@ -1590,10 +1576,10 @@
   display: grid;
   gap: 14px;
   padding: 18px;
-  border: 1px solid rgba(22, 104, 232, 0.18);
+  border: 1px solid rgba(94,125,145,0.18);
   border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.86));
-  box-shadow: 0 12px 30px rgba(45, 92, 143, 0.08);
+  background: linear-gradient(145deg, rgba(242,245,247,0.96), rgba(242,245,247,0.86));
+  box-shadow: none;
 }
 
 .roomDateCalendarHeader,
@@ -1617,10 +1603,10 @@
 .roomDateSummary button {
   min-height: 42px;
   padding: 8px 14px;
-  border: 1px solid rgba(22, 104, 232, 0.18);
+  border: 1px solid rgba(94,125,145,0.18);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #315986;
+  background: rgba(242,245,247,0.92);
+  color: #275b7b;
   cursor: pointer;
   font-weight: 800;
 }
@@ -1635,12 +1621,12 @@
   flex-wrap: wrap;
   padding: 10px 12px;
   border-radius: 13px;
-  background: rgba(234, 243, 255, 0.75);
+  background: rgba(242,245,247,0.75);
   color: var(--gray-600);
 }
 
 .roomDateSummary strong {
-  color: #1668e8;
+  color: #275b7b;
 }
 
 .roomDateSummary span {
@@ -1667,21 +1653,21 @@
   display: grid;
   place-items: center;
   gap: 1px;
-  border: 1px solid rgba(22, 104, 232, 0.14);
+  border: 1px solid rgba(94,125,145,0.14);
   border-radius: 13px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(242,245,247,0.92);
   color: var(--gray-800);
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .roomDateDay:hover:not(:disabled) {
-  border-color: rgba(22, 104, 232, 0.5);
+  border-color: rgba(94,125,145,0.5);
   transform: translateY(-1px);
 }
 
 .roomDateDay small {
-  color: #fff;
+  color: #202a35;
   font-size: 0.66rem;
 }
 
@@ -1690,10 +1676,10 @@
 }
 
 .roomDateDaySelected {
-  border-color: #3457c5;
-  background: linear-gradient(145deg, #5487ec, #3457c5);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(52, 87, 197, 0.22);
+  border-color: #5e7d91;
+  background: linear-gradient(145deg, #e4f0ea, #e4f0ea);
+  color: #202a35;
+  box-shadow: none;
 }
 
 .roomDateList {
@@ -1705,8 +1691,8 @@
 .roomDateList span {
   padding: 4px 7px;
   border-radius: 8px;
-  background: #eef5ff;
-  color: #315986;
+  background: #f2f5f7;
+  color: #275b7b;
   font-size: 0.76rem;
   white-space: nowrap;
 }
@@ -1721,7 +1707,7 @@
 .roomDateEditor label {
   display: grid;
   gap: 4px;
-  color: #5f7394;
+  color: #445464;
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -1729,17 +1715,17 @@
 .roomDateEditor input {
   min-height: 42px;
   padding: 7px 9px;
-  border: 1px solid rgba(22, 104, 232, 0.2);
+  border: 1px solid rgba(94,125,145,0.2);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.94);
-  color: #152a4d;
+  background: rgba(242,245,247,0.94);
+  color: #445464;
   font: inherit;
   font-size: 0.82rem;
 }
 
 .roomDateEditor small {
   grid-column: 1 / -1;
-  color: #7284a2;
+  color: #445464;
   font-size: 0.72rem;
 }
 
@@ -1747,9 +1733,9 @@
   width: 140px;
   min-height: 42px;
   padding: 8px 10px;
-  border: 1px solid rgba(22, 104, 232, 0.18);
+  border: 1px solid rgba(94,125,145,0.18);
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(242,245,247,0.92);
   color: var(--gray-800);
   font-weight: 800;
 }
@@ -1801,9 +1787,9 @@
   display: grid;
   gap: 14px;
   padding: 18px;
-  border: 1px solid rgba(213, 173, 56, 0.3);
+  border: 1px solid rgba(94,125,145,0.3);
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(255, 251, 232, 0.78), rgba(234, 243, 255, 0.8));
+  background: linear-gradient(135deg, rgba(242,245,247,0.78), rgba(242,245,247,0.8));
 }
 
 .roomStaffSelectorHeader {
@@ -1820,7 +1806,7 @@
 }
 
 .roomStaffSelectorHeader > span {
-  color: #8f6b08;
+  color: #275b7b;
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -1876,29 +1862,28 @@
   align-items: center;
   padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(22, 104, 232, 0.16);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(234, 243, 255, 0.78));
-  box-shadow: 0 8px 20px rgba(45, 92, 143, 0.08);
+  border: 1px solid rgba(94,125,145,0.16);
+  background: linear-gradient(145deg, rgba(242,245,247,0.94), rgba(242,245,247,0.78));
+  box-shadow: none;
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .roomPersonChipSelected {
-  border-color: rgba(213, 173, 56, 0.72);
+  border-color: rgba(94,125,145,0.72);
   background:
-    radial-gradient(circle at 12% 0%, rgba(244, 214, 138, 0.3), transparent 42%),
-    linear-gradient(145deg, rgba(255, 252, 238, 0.98), rgba(232, 243, 255, 0.92));
+    radial-gradient(circle at 12% 0%, rgba(227,237,246,0.3), transparent 42%),
+    linear-gradient(145deg, rgba(242,245,247,0.98), rgba(242,245,247,0.92));
   box-shadow:
-    inset 0 0 0 1px rgba(213, 173, 56, 0.18),
-    0 10px 24px rgba(45, 92, 143, 0.12);
+    none;
 }
 
 .roomPersonChipAssigned {
-  border-color: rgba(22, 104, 232, 0.2);
+  border-color: rgba(94,125,145,0.2);
   background:
-    radial-gradient(circle at 10% 0%, rgba(93, 214, 255, 0.14), transparent 38%),
-    linear-gradient(145deg, rgba(239, 246, 255, 0.9), rgba(225, 235, 247, 0.84));
-  box-shadow: inset 0 0 0 1px rgba(22, 104, 232, 0.06);
+    radial-gradient(circle at 10% 0%, rgba(228,240,234,0.14), transparent 38%),
+    linear-gradient(145deg, rgba(242,245,247,0.9), rgba(242,245,247,0.84));
+  box-shadow: none;
   opacity: 0.76;
   cursor: not-allowed;
 }
@@ -1934,7 +1919,7 @@
 }
 
 .roomPersonChipSelected small {
-  color: #8f6b08;
+  color: #275b7b;
 }
 
 .roomPersonChipAssigned small {
@@ -1952,10 +1937,10 @@
   gap: 14px;
   padding: 18px;
   border-radius: 20px;
-  border: 1px solid rgba(93, 214, 255, 0.16);
+  border: 1px solid rgba(94,125,145,0.16);
   background:
-    radial-gradient(circle at 12% 0%, rgba(93, 214, 255, 0.12), transparent 34%),
-    rgba(8, 12, 18, 0.58);
+    radial-gradient(circle at 12% 0%, rgba(228,240,234,0.12), transparent 34%),
+    rgba(232,237,241,0.58);
 }
 
 .roomPeopleList {
@@ -1969,7 +1954,7 @@
   gap: 2px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: rgba(214, 169, 74, 0.1);
+  background: rgba(247,229,232,0.1);
   color: var(--gray-800);
   font-weight: 900;
 }
@@ -1981,10 +1966,10 @@
 
 .dangerButton {
   justify-self: start;
-  border: 1px solid rgba(244, 201, 106, 0.38);
+  border: 1px solid rgba(94,125,145,0.38);
   border-radius: 14px;
-  background: rgba(244, 201, 106, 0.13);
-  color: #f4d68a;
+  background: rgba(247,229,232,0.13);
+  color: #275b7b;
   padding: 10px 16px;
   font-weight: 800;
   cursor: pointer;
@@ -1993,38 +1978,33 @@
 
 .dangerButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 0 18px rgba(244, 201, 106, 0.22);
+  box-shadow: none;
 }
 
 .trainingCalendarPanel,
 .trainingSchedulePanel {
   padding: 24px;
   border-radius: 22px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    radial-gradient(circle at 12% 0%, rgba(93, 214, 255, 0.12), transparent 34%),
-    linear-gradient(145deg, rgba(214, 169, 74, 0.08), transparent 58%),
-    rgba(18, 25, 34, 0.82);
+    radial-gradient(circle at 12% 0%, rgba(228,240,234,0.12), transparent 34%),
+    linear-gradient(145deg, rgba(247,229,232,0.08), transparent 58%),
+    rgba(232,237,241,0.82);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 20px 44px rgba(2, 5, 10, 0.24);
+    none;
 }
 
 .trainingCalendarPanel {
   position: relative;
   overflow: hidden;
-  border-color: rgba(0, 245, 255, 0.34);
+  border-color: rgba(94,125,145,0.34);
   background:
-    radial-gradient(circle at 12% 4%, rgba(0, 245, 255, 0.28), transparent 30%),
-    radial-gradient(circle at 86% 14%, rgba(255, 43, 214, 0.2), transparent 30%),
-    radial-gradient(circle at 58% 105%, rgba(255, 199, 77, 0.14), transparent 34%),
-    linear-gradient(135deg, rgba(7, 13, 29, 0.94), rgba(13, 7, 30, 0.9) 48%, rgba(4, 18, 26, 0.94));
+    radial-gradient(circle at 12% 4%, rgba(228,240,234,0.28), transparent 30%),
+    radial-gradient(circle at 86% 14%, rgba(247,229,232,0.2), transparent 30%),
+    radial-gradient(circle at 58% 105%, rgba(247,229,232,0.14), transparent 34%),
+    linear-gradient(135deg, rgba(232,237,241,0.94), rgba(232,237,241,0.9) 48%, rgba(232,237,241,0.94));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 0 38px rgba(0, 245, 255, 0.08),
-    0 0 0 1px rgba(255, 43, 214, 0.16),
-    0 24px 54px rgba(2, 5, 10, 0.36),
-    0 0 36px rgba(0, 245, 255, 0.12);
+    none;
 }
 
 .trainingCalendarPanel::before {
@@ -2032,11 +2012,11 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.09), transparent),
+    linear-gradient(90deg, transparent, rgba(228,240,234,0.09), transparent),
     repeating-linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.035) 0,
-      rgba(255, 255, 255, 0.035) 1px,
+      rgba(242,245,247,0.035) 0,
+      rgba(242,245,247,0.035) 1px,
       transparent 1px,
       transparent 22px
     );
@@ -2052,7 +2032,7 @@
   width: 230px;
   height: 230px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 43, 214, 0.24), transparent 64%);
+  background: radial-gradient(circle, rgba(247,229,232,0.24), transparent 64%);
   filter: blur(6px);
   pointer-events: none;
 }
@@ -2069,10 +2049,9 @@
 
 .trainingCalendarPanel h3,
 .trainingCalendarPanel .calendarActions strong {
-  color: #ffe8a8;
+  color: #275b7b;
   text-shadow:
-    0 0 12px rgba(255, 199, 77, 0.24),
-    0 0 26px rgba(0, 245, 255, 0.14);
+    none;
 }
 
 .trainingCalendarPanel .portalCardLabel,
@@ -2081,8 +2060,8 @@
 }
 
 .trainingCalendarPanel .portalCardLabel {
-  color: #00f5ff;
-  text-shadow: 0 0 14px rgba(0, 245, 255, 0.42);
+  color: #275b7b;
+  text-shadow: none;
 }
 
 .trainingCalendarPanel .portalCardText,
@@ -2091,7 +2070,7 @@
 }
 
 .trainingCalendarPanel .portalCardText {
-  color: #a9bfce;
+  color: #202a35;
 }
 
 .calendarActions {
@@ -2109,16 +2088,16 @@
 }
 
 .calendarActions button {
-  border: 1px solid rgba(0, 245, 255, 0.4);
+  border: 1px solid rgba(94,125,145,0.4);
   border-radius: 999px;
   background:
-    linear-gradient(135deg, rgba(0, 245, 255, 0.16), rgba(255, 43, 214, 0.1)),
-    rgba(7, 13, 29, 0.74);
-  color: #ffe8a8;
+    linear-gradient(135deg, rgba(228,240,234,0.16), rgba(247,229,232,0.1)),
+    rgba(232,237,241,0.74);
+  color: #275b7b;
   padding: 8px 12px;
   cursor: pointer;
   font-weight: 800;
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.08);
+  box-shadow: none;
 }
 
 .trainingModeSwitch {
@@ -2133,12 +2112,12 @@
   align-items: center;
   width: min(360px, 100%);
   min-height: 48px;
-  border: 1px solid rgba(0, 245, 255, 0.28);
+  border: 1px solid rgba(94,125,145,0.28);
   border-radius: 999px;
   background:
-    linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(255, 43, 214, 0.08)),
-    rgba(8, 12, 18, 0.82);
-  color: #7f91a3;
+    linear-gradient(135deg, rgba(228,240,234,0.1), rgba(247,229,232,0.08)),
+    rgba(232,237,241,0.82);
+  color: #445464;
   cursor: pointer;
   overflow: hidden;
   padding: 5px;
@@ -2154,18 +2133,17 @@
   width: calc(50% - 5px);
   border-radius: 999px;
   background:
-    radial-gradient(circle at 22% 18%, rgba(255, 232, 168, 0.32), transparent 38%),
-    linear-gradient(135deg, rgba(214, 182, 95, 0.42), rgba(255, 43, 214, 0.16)),
-    rgba(8, 12, 18, 0.94);
+    radial-gradient(circle at 22% 18%, rgba(227,237,246,0.32), transparent 38%),
+    linear-gradient(135deg, rgba(227,237,246,0.42), rgba(247,229,232,0.16)),
+    rgba(232,237,241,0.94);
   box-shadow:
-    0 0 0 1px rgba(255, 232, 168, 0.34),
-    0 0 24px rgba(214, 182, 95, 0.2);
+    none;
   transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .trainingModeSwitch button:hover {
-  border-color: rgba(0, 245, 255, 0.48);
-  box-shadow: 0 0 22px rgba(0, 245, 255, 0.12);
+  border-color: rgba(94,125,145,0.48);
+  box-shadow: none;
 }
 
 .trainingModeSwitch span {
@@ -2184,19 +2162,18 @@
 
 .trainingModeTraining span:first-child,
 .trainingModeSelf span:last-child {
-  color: #ffe8a8;
-  text-shadow: 0 0 14px rgba(255, 199, 77, 0.24);
+  color: #275b7b;
+  text-shadow: none;
 }
 
 .trainingModeSelf::before {
   transform: translateX(100%);
   background:
-    radial-gradient(circle at 22% 18%, rgba(117, 247, 255, 0.3), transparent 38%),
-    linear-gradient(135deg, rgba(0, 245, 255, 0.36), rgba(255, 43, 214, 0.14)),
-    rgba(8, 12, 18, 0.94) !important;
+    radial-gradient(circle at 22% 18%, rgba(228,240,234,0.3), transparent 38%),
+    linear-gradient(135deg, rgba(228,240,234,0.36), rgba(247,229,232,0.14)),
+    rgba(232,237,241,0.94) !important;
   box-shadow:
-    0 0 0 1px rgba(117, 247, 255, 0.36),
-    0 0 24px rgba(0, 245, 255, 0.22) !important;
+    none !important;
 }
 
 .trainingTimePicker {
@@ -2215,18 +2192,18 @@
 
 .trainingTimePickerTitle span,
 .trainingTimeSelectGrid span {
-  color: #ffe8a8;
+  color: #275b7b;
   font-size: 0.86rem;
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-shadow: 0 0 14px rgba(255, 199, 77, 0.2);
+  text-shadow: none;
 }
 
 .trainingTimePickerTitle strong {
-  border: 1px solid rgba(0, 245, 255, 0.28);
+  border: 1px solid rgba(94,125,145,0.28);
   border-radius: 999px;
-  background: rgba(0, 245, 255, 0.1);
-  color: #bdfcff;
+  background: rgba(228,240,234,0.1);
+  color: #275b7b;
   font-size: 0.82rem;
   padding: 5px 10px;
 }
@@ -2244,12 +2221,12 @@
 }
 
 .trainingTimeSelectGrid select {
-  border: 1px solid rgba(0, 245, 255, 0.28);
+  border: 1px solid rgba(94,125,145,0.28);
   border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(255, 43, 214, 0.08)),
-    rgba(8, 12, 18, 0.76);
-  color: #fff2bd;
+    linear-gradient(135deg, rgba(228,240,234,0.1), rgba(247,229,232,0.08)),
+    rgba(232,237,241,0.76);
+  color: #275b7b;
   font: inherit;
   outline: none;
   padding: 12px 14px;
@@ -2257,10 +2234,9 @@
 }
 
 .trainingTimeSelectGrid select:focus {
-  border-color: rgba(214, 182, 95, 0.72);
+  border-color: rgba(94,125,145,0.72);
   box-shadow:
-    0 0 0 2px rgba(255, 232, 168, 0.18),
-    0 0 24px rgba(0, 245, 255, 0.16);
+    none;
 }
 
 .trainingTimeSelectGrid select:disabled {
@@ -2269,10 +2245,10 @@
 }
 
 .trainingTimeSelectGrid button {
-  border: 1px solid rgba(244, 201, 106, 0.38);
+  border: 1px solid rgba(94,125,145,0.38);
   border-radius: 16px;
-  background: rgba(244, 201, 106, 0.13);
-  color: #f4d68a;
+  background: rgba(247,229,232,0.13);
+  color: #275b7b;
   cursor: pointer;
   font-weight: 900;
   min-height: 48px;
@@ -2285,7 +2261,7 @@
 }
 
 .trainingTimePicker small {
-  color: #7f91a3;
+  color: #445464;
   font-weight: 700;
 }
 
@@ -2297,21 +2273,21 @@
 }
 
 .calendarWeekday {
-  color: #75f7ff;
+  color: #275b7b;
   font-size: 0.82rem;
   text-align: center;
   font-weight: 900;
-  text-shadow: 0 0 12px rgba(0, 245, 255, 0.38);
+  text-shadow: none;
 }
 
 .calendarDay {
   min-height: 76px;
-  border: 1px solid rgba(0, 245, 255, 0.16);
+  border: 1px solid rgba(94,125,145,0.16);
   border-radius: 16px;
   background:
-    radial-gradient(circle at 18% 12%, rgba(0, 245, 255, 0.1), transparent 34%),
-    linear-gradient(145deg, rgba(11, 18, 36, 0.86), rgba(8, 10, 20, 0.92));
-  color: #ffe8a8;
+    radial-gradient(circle at 18% 12%, rgba(228,240,234,0.1), transparent 34%),
+    linear-gradient(145deg, rgba(232,237,241,0.86), rgba(232,237,241,0.92));
+  color: #275b7b;
   cursor: pointer;
   display: grid;
   align-content: center;
@@ -2324,17 +2300,14 @@
   font-size: 1.12rem;
   font-weight: 900;
   text-shadow:
-    0 0 10px rgba(255, 199, 77, 0.22),
-    0 0 18px rgba(0, 245, 255, 0.12);
+    none;
 }
 
 .calendarDay:hover {
   transform: translateY(-1px);
-  border-color: rgba(0, 245, 255, 0.62);
+  border-color: rgba(94,125,145,0.62);
   box-shadow:
-    0 0 0 1px rgba(255, 43, 214, 0.18),
-    0 0 24px rgba(0, 245, 255, 0.18),
-    0 12px 24px rgba(2, 5, 10, 0.28);
+    none;
 }
 
 .calendarDay:disabled {
@@ -2343,7 +2316,7 @@
 
 .calendarDay:disabled:hover {
   transform: none;
-  border-color: rgba(0, 245, 255, 0.16);
+  border-color: rgba(94,125,145,0.16);
   box-shadow: none;
 }
 
@@ -2352,42 +2325,36 @@
 }
 
 .calendarSelectedDay {
-  border: 2px solid #d6b65f;
+  border: 2px solid #5e7d91;
   background:
-    radial-gradient(circle at 22% 12%, rgba(255, 232, 168, 0.34), transparent 28%),
-    linear-gradient(145deg, rgba(255, 43, 214, 0.3), rgba(0, 245, 255, 0.22)),
-    rgba(8, 12, 18, 0.9);
-  color: #fff2bd;
+    radial-gradient(circle at 22% 12%, rgba(227,237,246,0.34), transparent 28%),
+    linear-gradient(145deg, rgba(247,229,232,0.3), rgba(228,240,234,0.22)),
+    rgba(232,237,241,0.9);
+  color: #275b7b;
   box-shadow:
-    0 0 0 2px rgba(255, 232, 168, 0.78),
-    0 0 18px rgba(255, 199, 77, 0.38),
-    0 0 34px rgba(0, 245, 255, 0.24),
-    0 0 46px rgba(255, 43, 214, 0.18),
-    0 14px 28px rgba(2, 5, 10, 0.3);
+    none;
 }
 
 .calendarEditingDay {
-  outline: 2px solid rgba(255, 43, 214, 0.72);
+  outline: 2px solid rgba(185,46,59,0.72);
   outline-offset: 3px;
 }
 
 .calendarSelfPracticeDay {
-  border-color: #75f7ff;
+  border-color: #5e7d91;
   background:
-    radial-gradient(circle at 22% 12%, rgba(0, 245, 255, 0.26), transparent 30%),
-    linear-gradient(145deg, rgba(0, 245, 255, 0.24), rgba(18, 51, 88, 0.4)),
-    rgba(8, 12, 18, 0.9);
+    radial-gradient(circle at 22% 12%, rgba(228,240,234,0.26), transparent 30%),
+    linear-gradient(145deg, rgba(228,240,234,0.24), rgba(242,245,247,0.4)),
+    rgba(232,237,241,0.9);
   box-shadow:
-    0 0 0 2px rgba(117, 247, 255, 0.52),
-    0 0 30px rgba(0, 245, 255, 0.22),
-    0 14px 28px rgba(2, 5, 10, 0.3);
+    none;
 }
 
 .trainingDateStatus {
-  border: 1px solid rgba(255, 232, 168, 0.36);
+  border: 1px solid rgba(94,125,145,0.36);
   border-radius: 999px;
-  background: rgba(214, 182, 95, 0.16);
-  color: #ffe8a8;
+  background: rgba(227,237,246,0.16);
+  color: #275b7b;
   font-size: 0.68rem;
   font-weight: 900;
   padding: 3px 8px;
@@ -2395,25 +2362,25 @@
 }
 
 .trainingDateTime {
-  color: #bdfcff;
+  color: #275b7b;
   font-size: 0.68rem;
   font-weight: 900;
   line-height: 1.2;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 0 12px rgba(0, 245, 255, 0.28);
+  text-shadow: none;
   white-space: nowrap;
 }
 
 .calendarSelfPracticeDay .trainingDateStatus {
-  border-color: rgba(117, 247, 255, 0.5);
-  background: rgba(0, 245, 255, 0.16);
-  color: #bdfcff;
+  border-color: rgba(94,125,145,0.5);
+  background: rgba(228,240,234,0.16);
+  color: #275b7b;
 }
 
 .calendarToday {
-  outline: 2px solid rgba(0, 245, 255, 0.52);
+  outline: 2px solid rgba(94,125,145,0.52);
   outline-offset: 2px;
 }
 
@@ -2427,42 +2394,42 @@
 }
 
 .trainingOverviewEventDay {
-  border-color: rgba(0, 245, 255, 0.46);
+  border-color: rgba(94,125,145,0.46);
   background:
-    radial-gradient(circle at 20% 10%, rgba(0, 245, 255, 0.22), transparent 34%),
-    radial-gradient(circle at 82% 90%, rgba(255, 43, 214, 0.18), transparent 34%),
-    linear-gradient(145deg, rgba(255, 43, 214, 0.12), rgba(0, 245, 255, 0.14)),
-    rgba(8, 12, 18, 0.86);
+    radial-gradient(circle at 20% 10%, rgba(228,240,234,0.22), transparent 34%),
+    radial-gradient(circle at 82% 90%, rgba(247,229,232,0.18), transparent 34%),
+    linear-gradient(145deg, rgba(247,229,232,0.12), rgba(228,240,234,0.14)),
+    rgba(232,237,241,0.86);
   cursor: pointer;
-  box-shadow: inset 0 0 18px rgba(0, 245, 255, 0.08);
+  box-shadow: none;
 }
 
 .trainingOverviewEventDay:hover {
-  border-color: rgba(214, 182, 95, 0.62);
-  box-shadow: 0 0 0 2px rgba(214, 182, 95, 0.18), 0 14px 28px rgba(2, 5, 10, 0.3);
+  border-color: rgba(94,125,145,0.62);
+  box-shadow: none;
 }
 
 .trainingOverviewSelfPracticeDay {
-  border-color: rgba(117, 247, 255, 0.56);
+  border-color: rgba(94,125,145,0.56);
   background:
-    radial-gradient(circle at 18% 12%, rgba(117, 247, 255, 0.24), transparent 34%),
-    radial-gradient(circle at 82% 90%, rgba(0, 245, 255, 0.14), transparent 34%),
-    linear-gradient(145deg, rgba(0, 245, 255, 0.16), rgba(18, 51, 88, 0.22)),
-    rgba(8, 12, 18, 0.88);
+    radial-gradient(circle at 18% 12%, rgba(228,240,234,0.24), transparent 34%),
+    radial-gradient(circle at 82% 90%, rgba(228,240,234,0.14), transparent 34%),
+    linear-gradient(145deg, rgba(228,240,234,0.16), rgba(242,245,247,0.22)),
+    rgba(232,237,241,0.88);
 }
 
 .trainingOverviewSelfPracticeDay .trainingOverviewLevel {
-  border-color: rgba(117, 247, 255, 0.5);
-  background: rgba(0, 245, 255, 0.16);
-  color: #bdfcff;
+  border-color: rgba(94,125,145,0.5);
+  background: rgba(228,240,234,0.16);
+  color: #275b7b;
 }
 
 .trainingOverviewLevel {
   display: inline-flex;
-  border: 1px solid rgba(214, 182, 95, 0.36);
+  border: 1px solid rgba(94,125,145,0.36);
   border-radius: 999px;
-  background: rgba(214, 182, 95, 0.14);
-  color: #ffe8a8;
+  background: rgba(227,237,246,0.14);
+  color: #275b7b;
   padding: 3px 8px;
   font-size: 0.72rem;
   font-weight: 900;
@@ -2493,11 +2460,11 @@
   gap: 12px;
   margin-top: 16px;
   padding: 12px 14px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(93, 214, 255, 0.08), rgba(214, 169, 74, 0.08)),
-    rgba(8, 12, 18, 0.64);
+    linear-gradient(135deg, rgba(228,240,234,0.08), rgba(247,229,232,0.08)),
+    rgba(232,237,241,0.64);
 }
 
 .trainingCoachBar label {
@@ -2508,37 +2475,37 @@
 .trainingCoachBar input {
   width: 100%;
   min-height: 40px;
-  border: 1px solid rgba(217, 226, 236, 0.12);
+  border: 1px solid rgba(157,172,185,0.12);
   border-radius: 12px;
-  background: rgba(3, 8, 13, 0.68);
+  background: rgba(232,237,241,0.68);
   color: var(--gray-800);
   padding: 9px 10px;
   outline: none;
 }
 
 .trainingCoachBar input:focus {
-  border-color: rgba(93, 214, 255, 0.48);
-  box-shadow: 0 0 0 3px rgba(93, 214, 255, 0.1);
+  border-color: rgba(94,125,145,0.48);
+  box-shadow: none;
 }
 
 .trainingScheduleTableWrap {
   margin-top: 18px;
   overflow-x: auto;
   border-radius: 18px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
 }
 
 .trainingScheduleTable {
   width: 100%;
   min-width: 560px;
   border-collapse: collapse;
-  background: rgba(8, 12, 18, 0.72);
+  background: rgba(232,237,241,0.72);
   table-layout: fixed;
 }
 
 .trainingScheduleTable th,
 .trainingScheduleTable td {
-  border-bottom: 1px solid rgba(217, 226, 236, 0.08);
+  border-bottom: 1px solid rgba(157,172,185,0.08);
   padding: 12px;
   text-align: left;
   color: var(--gray-600);
@@ -2546,7 +2513,7 @@
 }
 
 .trainingScheduleTable th {
-  background: rgba(0, 200, 255, 0.08);
+  background: rgba(228,240,234,0.08);
   color: var(--gray-900);
   font-size: 0.86rem;
 }
@@ -2570,24 +2537,24 @@
 .trainingScheduleTable input {
   width: 100%;
   min-height: 40px;
-  border: 1px solid rgba(217, 226, 236, 0.12);
+  border: 1px solid rgba(157,172,185,0.12);
   border-radius: 12px;
-  background: rgba(3, 8, 13, 0.68);
+  background: rgba(232,237,241,0.68);
   color: var(--gray-800);
   padding: 9px 10px;
   outline: none;
 }
 
 .trainingScheduleTable input:focus {
-  border-color: rgba(0, 200, 255, 0.48);
-  box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+  border-color: rgba(94,125,145,0.48);
+  box-shadow: none;
 }
 
 .trainingScheduleTimeText {
   display: inline-flex;
   align-items: center;
   min-height: 40px;
-  color: #bdfcff;
+  color: #275b7b;
   font-weight: 900;
 }
 
@@ -2601,14 +2568,13 @@
 .practiceRankPanel {
   padding: 24px;
   border-radius: 22px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    radial-gradient(circle at 84% 8%, rgba(214, 169, 74, 0.13), transparent 30%),
-    linear-gradient(145deg, rgba(93, 214, 255, 0.08), transparent 58%),
-    rgba(18, 25, 34, 0.84);
+    radial-gradient(circle at 84% 8%, rgba(247,229,232,0.13), transparent 30%),
+    linear-gradient(145deg, rgba(228,240,234,0.08), transparent 58%),
+    rgba(232,237,241,0.84);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 20px 44px rgba(2, 5, 10, 0.24);
+    none;
 }
 
 .diagnosticHeader {
@@ -2641,10 +2607,10 @@
   gap: 14px;
   padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    linear-gradient(145deg, rgba(214, 169, 74, 0.1), rgba(93, 214, 255, 0.07)),
-    rgba(8, 12, 18, 0.72);
+    linear-gradient(145deg, rgba(247,229,232,0.1), rgba(228,240,234,0.07)),
+    rgba(232,237,241,0.72);
 }
 
 .diagnosticCardTop {
@@ -2657,8 +2623,8 @@
 .diagnosticCardTop span {
   border-radius: var(--radius-full);
   padding: 6px 10px;
-  background: rgba(214, 169, 74, 0.16);
-  color: #9a7215;
+  background: rgba(247,229,232,0.16);
+  color: #a62230;
   font-size: 0.82rem;
   font-style: normal;
   font-weight: 800;
@@ -2667,12 +2633,12 @@
 
 .diagnosticCardTop em,
 .trainingTypeBadge {
-  border: 1px solid rgba(52, 101, 205, 0.28);
+  border: 1px solid rgba(94,125,145,0.28);
   border-radius: var(--radius-full);
   padding: 6px 12px;
-  background: rgba(239, 246, 255, 0.96);
-  color: #214f9d;
-  box-shadow: 0 4px 12px rgba(45, 92, 143, 0.08);
+  background: rgba(242,245,247,0.96);
+  color: #275b7b;
+  box-shadow: none;
   font-size: 0.82rem;
   font-style: normal;
   font-weight: 900;
@@ -2692,7 +2658,7 @@
 .diagnosticStats span {
   border-radius: 12px;
   padding: 8px 10px;
-  background: rgba(0, 200, 255, 0.08);
+  background: rgba(228,240,234,0.08);
   color: var(--gray-500);
   font-size: 0.86rem;
 }
@@ -2714,10 +2680,10 @@
   gap: 16px;
   padding: 20px;
   border-radius: 20px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    radial-gradient(circle at 88% 12%, rgba(93, 214, 255, 0.14), transparent 30%),
-    linear-gradient(145deg, rgba(214, 169, 74, 0.1), rgba(8, 23, 39, 0.78));
+    radial-gradient(circle at 88% 12%, rgba(228,240,234,0.14), transparent 30%),
+    linear-gradient(145deg, rgba(247,229,232,0.1), rgba(232,237,241,0.78));
 }
 
 .practicePlanTitle {
@@ -2732,9 +2698,9 @@
   margin-bottom: 8px;
   padding: 6px 10px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(52, 101, 205, 0.28);
-  background: rgba(239, 246, 255, 0.96);
-  color: #214f9d;
+  border: 1px solid rgba(94,125,145,0.28);
+  background: rgba(242,245,247,0.96);
+  color: #275b7b;
   font-size: 0.8rem;
   font-weight: 900;
   letter-spacing: 0.06em;
@@ -2754,8 +2720,8 @@
 .practicePlanBlock {
   padding: 14px;
   border-radius: 16px;
-  background: rgba(8, 12, 18, 0.55);
-  border: 1px solid rgba(217, 226, 236, 0.08);
+  background: rgba(232,237,241,0.55);
+  border: 1px solid rgba(157,172,185,0.08);
 }
 
 .practicePlanBlock h4 {
@@ -2780,8 +2746,8 @@
   margin: 0;
   padding: 14px;
   border-radius: 16px;
-  background: rgba(214, 169, 74, 0.1);
-  border: 1px solid rgba(214, 169, 74, 0.16);
+  background: rgba(247,229,232,0.1);
+  border: 1px solid rgba(94,125,145,0.16);
   color: var(--gray-600);
   line-height: 1.7;
 }
@@ -2795,13 +2761,13 @@
   display: grid;
   gap: 18px;
   padding: 20px;
-  border: 1px solid rgba(22, 104, 232, 0.15);
-  border-left: 2px solid rgba(213, 173, 56, 0.76);
+  border: 1px solid rgba(94,125,145,0.15);
+  border-left: 2px solid rgba(94,125,145,0.76);
   border-radius: 20px;
   background:
-    radial-gradient(circle at 88% 8%, rgba(22, 104, 232, 0.09), transparent 32%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 244, 255, 0.76));
-  box-shadow: 0 18px 42px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    radial-gradient(circle at 88% 8%, rgba(228,240,234,0.09), transparent 32%),
+    linear-gradient(145deg, rgba(242,245,247,0.96), rgba(242,245,247,0.76));
+  box-shadow: none;
 }
 
 .practiceTrendTeamHeader,
@@ -2819,14 +2785,14 @@
   flex-wrap: wrap;
   gap: 8px;
   margin: 0;
-  color: #102f5c;
+  color: #275b7b;
 }
 
 .practiceTrendTeamHeader > span {
   padding: 7px 12px;
   border-radius: var(--radius-full);
-  background: rgba(234, 243, 255, 0.9);
-  color: #315b91;
+  background: rgba(242,245,247,0.9);
+  color: #275b7b;
   font-size: 0.86rem;
   font-weight: 800;
   white-space: nowrap;
@@ -2841,13 +2807,13 @@
 .practiceTrendMetricCard {
   min-width: 0;
   padding: 14px;
-  border: 1px solid rgba(22, 104, 232, 0.12);
+  border: 1px solid rgba(94,125,145,0.12);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(242,245,247,0.78);
 }
 
 .practiceTrendMetricHeader strong {
-  color: #17355f;
+  color: #275b7b;
   font-size: 0.9rem;
 }
 
@@ -2856,18 +2822,18 @@
   align-items: baseline;
   justify-content: flex-end;
   gap: 6px;
-  color: #3465cd;
+  color: #275b7b;
   white-space: nowrap;
 }
 
 .practiceTrendMetricSummary small {
-  color: #7186a2;
+  color: #445464;
   font-size: 0.72rem;
   font-weight: 700;
 }
 
 .practiceTrendMetricSummary em {
-  color: #315b91;
+  color: #275b7b;
   font-size: 0.78rem;
   font-style: normal;
   font-weight: 800;
@@ -2887,12 +2853,12 @@
 }
 
 .practiceTrendBaseline {
-  stroke: rgba(49, 91, 145, 0.18);
+  stroke: rgba(39,91,123,0.18);
   stroke-width: 1;
 }
 
 .practiceTrendSinglePointHint {
-  fill: #6c819b;
+  fill: #445464;
   font-size: 9px;
   font-weight: 700;
 }
@@ -2901,21 +2867,21 @@
   font-size: 8px;
   font-weight: 900;
   paint-order: stroke;
-  stroke: rgba(255, 255, 255, 0.96);
+  stroke: rgba(32,42,53,0.96);
   stroke-width: 3px;
   stroke-linejoin: round;
   pointer-events: none;
 }
 
 .practiceTrendMetricFooter {
-  color: #6c819b;
+  color: #445464;
   font-size: 0.72rem;
 }
 
-.practiceTrendUp { color: #16845f; }
-.practiceTrendDown { color: #c54855; }
-.practiceTrendFlat { color: #6c819b; }
-.practiceTrendVolatile { color: #a46b08; }
+.practiceTrendUp { color: #166847; }
+.practiceTrendDown { color: #a62230; }
+.practiceTrendFlat { color: #445464; }
+.practiceTrendVolatile { color: #a62230; }
 
 .practiceTrendAssessment {
   position: relative;
@@ -2942,11 +2908,11 @@
   margin: 0;
   padding: 9px 12px;
   transform: translateX(-50%);
-  border: 1px solid rgba(83, 126, 191, 0.22);
+  border: 1px solid rgba(94,125,145,0.22);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 10px 24px rgba(41, 72, 119, 0.16);
-  color: #405a7e;
+  background: rgba(242,245,247,0.98);
+  box-shadow: none;
+  color: #275b7b;
   font-size: 0.72rem;
   line-height: 1.45;
 }
@@ -2984,8 +2950,8 @@
   gap: 8px;
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid rgba(93, 214, 255, 0.14);
-  background: rgba(8, 12, 18, 0.72);
+  border: 1px solid rgba(94,125,145,0.14);
+  background: rgba(232,237,241,0.72);
 }
 
 .metricLeaderCard span,
@@ -3010,10 +2976,10 @@
   gap: 14px;
   padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(93, 214, 255, 0.14);
+  border: 1px solid rgba(94,125,145,0.14);
   background:
-    linear-gradient(145deg, rgba(93, 214, 255, 0.1), rgba(214, 169, 74, 0.07)),
-    rgba(8, 12, 18, 0.72);
+    linear-gradient(145deg, rgba(228,240,234,0.1), rgba(247,229,232,0.07)),
+    rgba(232,237,241,0.72);
 }
 
 .metricRankingTitle {
@@ -3042,7 +3008,7 @@
 
 .metricRankingDescription {
   margin: 0;
-  color: #687b98;
+  color: #445464;
   font-size: 0.86rem;
   line-height: 1.6;
 }
@@ -3059,8 +3025,8 @@
   align-items: center;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(217, 226, 236, 0.08);
-  background: rgba(3, 8, 13, 0.52);
+  border: 1px solid rgba(157,172,185,0.08);
+  background: rgba(232,237,241,0.52);
 }
 
 .metricRankingOrder {
@@ -3070,8 +3036,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(214, 169, 74, 0.18);
-  color: #f4d68a;
+  background: rgba(247,229,232,0.18);
+  color: #275b7b;
   font-weight: 900;
 }
 
@@ -3096,33 +3062,33 @@
 .practiceTableWrap {
   overflow-x: auto;
   border-radius: 18px;
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
 }
 
 .practiceRankTable {
   width: 100%;
   border-collapse: collapse;
   min-width: 960px;
-  background: rgba(8, 12, 18, 0.72);
+  background: rgba(232,237,241,0.72);
 }
 
 .practiceRankTable th,
 .practiceRankTable td {
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(217, 226, 236, 0.08);
+  border-bottom: 1px solid rgba(157,172,185,0.08);
   text-align: left;
   color: var(--gray-600);
 }
 
 .practiceRankTable th {
   color: var(--gray-900);
-  background: rgba(93, 214, 255, 0.08);
+  background: rgba(228,240,234,0.08);
   font-size: 0.86rem;
   letter-spacing: 0.04em;
 }
 
 .practiceRankTable tbody tr:hover {
-  background: rgba(214, 169, 74, 0.08);
+  background: rgba(247,229,232,0.08);
 }
 
 .workspaceSummary {
@@ -3130,24 +3096,24 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   padding: 20px 24px 8px;
-  background: rgba(8, 12, 18, 0.28);
+  background: rgba(232,237,241,0.28);
 }
 
 /* Light, high-contrast calendar surfaces used by training and room planning. */
 .calendarWeekday {
-  color: #315986;
+  color: #275b7b;
   text-shadow: none;
 }
 
 .calendarDay,
 .trainingOverviewEventDay,
 .trainingOverviewSelfPracticeDay {
-  border-color: rgba(22, 104, 232, 0.2);
+  border-color: rgba(94,125,145,0.2);
   background:
-    radial-gradient(circle at 18% 12%, rgba(78, 148, 239, 0.12), transparent 34%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 244, 255, 0.88));
-  color: #102f5c;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 20px rgba(45, 92, 143, 0.08);
+    radial-gradient(circle at 18% 12%, rgba(228,240,234,0.12), transparent 34%),
+    linear-gradient(145deg, rgba(242,245,247,0.96), rgba(242,245,247,0.88));
+  color: #275b7b;
+  box-shadow: none;
 }
 
 .calendarDay span {
@@ -3155,38 +3121,38 @@
 }
 
 .calendarSelectedDay {
-  border-color: #c49a28;
-  background: linear-gradient(145deg, #fff9df, #e9f3ff);
-  color: #102f5c;
-  box-shadow: 0 0 0 2px rgba(213, 173, 56, 0.22), 0 10px 24px rgba(45, 92, 143, 0.12);
+  border-color: #5e7d91;
+  background: linear-gradient(145deg, #f2f5f7, #f2f5f7);
+  color: #275b7b;
+  box-shadow: none;
 }
 
 .calendarSelfPracticeDay,
 .trainingOverviewSelfPracticeDay {
-  border-color: rgba(22, 104, 232, 0.36);
-  background: linear-gradient(145deg, #eef7ff, #dcecff);
+  border-color: rgba(94,125,145,0.36);
+  background: linear-gradient(145deg, #f2f5f7, #f2f5f7);
 }
 
 .trainingDateStatus,
 .trainingOverviewLevel,
 .trainingOverviewSelfPracticeDay .trainingOverviewLevel {
-  border-color: rgba(213, 173, 56, 0.38);
-  background: #fff8dc;
-  color: #8a6710;
+  border-color: rgba(94,125,145,0.38);
+  background: #f2f5f7;
+  color: #275b7b;
 }
 
 .trainingDateTime,
 .trainingOverviewNames {
-  color: #506b89;
+  color: #445464;
   text-shadow: none;
 }
 
 .simulationHero,
 .simulationStep,
 .simulationEmptyState {
-  border: 1px solid rgba(22, 104, 232, 0.16);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(232, 244, 255, 0.7));
-  box-shadow: 0 16px 38px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(94,125,145,0.16);
+  background: linear-gradient(145deg, rgba(242,245,247,0.9), rgba(242,245,247,0.7));
+  box-shadow: none;
   backdrop-filter: blur(20px);
 }
 
@@ -3194,7 +3160,7 @@
   min-height: 190px;
   padding: 30px;
   border-radius: 24px;
-  border-left: 2px solid #d5ad38;
+  border-left: 2px solid #5e7d91;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3219,10 +3185,10 @@
 .simulationStatus {
   flex-shrink: 0;
   padding: 10px 16px;
-  border: 1px solid rgba(213, 173, 56, 0.38);
+  border: 1px solid rgba(94,125,145,0.38);
   border-radius: 999px;
-  background: rgba(255, 250, 229, 0.78);
-  color: #9b7410;
+  background: rgba(242,245,247,0.78);
+  color: #275b7b;
   font-weight: 800;
 }
 
@@ -3248,16 +3214,16 @@
   display: grid;
   place-items: center;
   border-radius: 14px;
-  background: linear-gradient(145deg, #2d83f3, #0b4fbd);
-  color: #fff;
+  background: linear-gradient(145deg, #e4f0ea, #e4f0ea);
+  color: #202a35;
   font-weight: 900;
-  box-shadow: 0 10px 22px rgba(22, 104, 232, 0.22);
+  box-shadow: none;
 }
 
 .simulationEmptyState {
   padding: 28px;
   border-radius: 22px;
-  border-top-color: rgba(213, 173, 56, 0.44);
+  border-top-color: rgba(94,125,145,0.44);
   text-align: center;
 }
 
@@ -3330,45 +3296,45 @@
 .parameterCard,
 .cardEditPanel,
 .timelineItem {
-  border-color: rgba(22, 104, 232, 0.16);
+  border-color: rgba(94,125,145,0.16);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 255, 0.76)),
-    radial-gradient(circle at 12% 0%, rgba(213, 173, 56, 0.1), transparent 34%);
-  box-shadow: 0 18px 42px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    linear-gradient(145deg, rgba(242,245,247,0.94), rgba(242,245,247,0.76)),
+    radial-gradient(circle at 12% 0%, rgba(247,229,232,0.1), transparent 34%);
+  box-shadow: none;
 }
 
 .logisticsEventCard,
 .logisticsFormPanel,
 .timelineItem {
-  border-left: 2px solid rgba(213, 173, 56, 0.78);
+  border-left: 2px solid rgba(94,125,145,0.78);
 }
 
 .timelineItem strong {
-  color: #102f5c;
+  color: #275b7b;
 }
 
 .timelineItem span,
 .timelineItem small {
-  color: #587392;
+  color: #445464;
 }
 
 .timelineEditGrid label {
-  color: #496886;
+  color: #275b7b;
 }
 
 .timelineEditGrid input,
 .timelineEditGrid select {
-  border-color: rgba(22, 104, 232, 0.18);
-  background: rgba(255, 255, 255, 0.9);
-  color: #102f5c;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  border-color: rgba(94,125,145,0.18);
+  background: rgba(242,245,247,0.9);
+  color: #275b7b;
+  box-shadow: none;
 }
 
 .timelineEditGrid input:focus,
 .timelineEditGrid select:focus {
-  border-color: rgba(22, 104, 232, 0.48);
+  border-color: rgba(94,125,145,0.48);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(22, 104, 232, 0.1);
+  box-shadow: none;
 }
 
 .logisticsField input,
@@ -3376,80 +3342,80 @@
 .logisticsField textarea,
 .logisticsTable select,
 .logisticsTable input {
-  border-color: rgba(22, 104, 232, 0.18);
-  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(94,125,145,0.18);
+  background: rgba(242,245,247,0.88);
   color: var(--gray-800);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  box-shadow: none;
 }
 
 .logisticsField input:focus,
 .logisticsField select:focus,
 .logisticsField textarea:focus {
-  border-color: rgba(22, 104, 232, 0.48);
-  box-shadow: 0 0 0 3px rgba(22, 104, 232, 0.1);
+  border-color: rgba(94,125,145,0.48);
+  box-shadow: none;
 }
 
 .logisticsMeta span,
 .portalBadgeButton,
 .statusPill {
-  border-color: rgba(22, 104, 232, 0.16);
-  background: rgba(234, 243, 255, 0.86);
-  color: #315b91;
+  border-color: rgba(94,125,145,0.16);
+  background: rgba(242,245,247,0.86);
+  color: #275b7b;
 }
 
 .logisticsItemCard {
-  border-color: rgba(22, 104, 232, 0.16);
-  border-left: 2px solid rgba(213, 173, 56, 0.76);
+  border-color: rgba(94,125,145,0.16);
+  border-left: 2px solid rgba(94,125,145,0.76);
   background:
-    radial-gradient(circle at 88% 8%, rgba(22, 104, 232, 0.1), transparent 34%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 255, 0.76));
-  box-shadow: 0 18px 40px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    radial-gradient(circle at 88% 8%, rgba(228,240,234,0.1), transparent 34%),
+    linear-gradient(145deg, rgba(242,245,247,0.94), rgba(242,245,247,0.76));
+  box-shadow: none;
 }
 
 .logisticsItemCard:hover,
 .clickableCard:hover {
-  border-color: rgba(22, 104, 232, 0.34);
-  box-shadow: 0 22px 48px rgba(45, 92, 143, 0.15), 0 0 0 1px rgba(213, 173, 56, 0.12);
+  border-color: rgba(94,125,145,0.34);
+  box-shadow: none;
 }
 
 .logisticsTableWrap,
 .practiceTableWrap {
-  border-color: rgba(22, 104, 232, 0.14);
-  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(94,125,145,0.14);
+  background: rgba(242,245,247,0.72);
 }
 
 .logisticsTable,
 .practiceRankTable {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(242,245,247,0.82);
 }
 
 .logisticsTable th,
 .practiceRankTable th {
-  color: #9b7410;
-  background: rgba(234, 243, 255, 0.92);
+  color: #275b7b;
+  background: rgba(242,245,247,0.92);
 }
 
 .logisticsTable th,
 .logisticsTable td,
 .practiceRankTable th,
 .practiceRankTable td {
-  border-bottom-color: rgba(22, 104, 232, 0.1);
+  border-bottom-color: rgba(94,125,145,0.1);
 }
 
 .smallDangerButton,
 .ghostButton {
-  border-color: rgba(22, 104, 232, 0.18);
-  background: rgba(255, 255, 255, 0.84);
-  color: #315b91;
+  border-color: rgba(94,125,145,0.18);
+  background: rgba(242,245,247,0.84);
+  color: #275b7b;
 }
 
 .smallDangerButton {
-  border-color: rgba(190, 45, 45, 0.2);
-  color: #b32626;
+  border-color: rgba(185,46,59,0.2);
+  color: #a62230;
 }
 
 .workspaceSummary {
-  background: rgba(234, 243, 255, 0.58);
+  background: rgba(242,245,247,0.58);
 }
 
 .practiceToolbar,
@@ -3460,63 +3426,63 @@
 .diagnosticCard,
 .metricLeaderCard,
 .metricRankingCard {
-  border-color: rgba(22, 104, 232, 0.15);
+  border-color: rgba(94,125,145,0.15);
   background:
-    radial-gradient(circle at 88% 8%, rgba(22, 104, 232, 0.09), transparent 32%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 255, 0.76));
-  box-shadow: 0 18px 42px rgba(45, 92, 143, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    radial-gradient(circle at 88% 8%, rgba(228,240,234,0.09), transparent 32%),
+    linear-gradient(145deg, rgba(242,245,247,0.94), rgba(242,245,247,0.76));
+  box-shadow: none;
 }
 
 .practiceToolbar,
 .parameterPanel,
 .diagnosticPanel,
 .practiceRankPanel {
-  border-left: 2px solid rgba(213, 173, 56, 0.76);
+  border-left: 2px solid rgba(94,125,145,0.76);
 }
 
 .practicePlanBlock,
 .metricRankingRow,
 .diagnosticStats span {
-  border-color: rgba(22, 104, 232, 0.11);
-  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(94,125,145,0.11);
+  background: rgba(242,245,247,0.74);
 }
 
 .trainingScheduleTable {
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(242,245,247,0.84);
 }
 
 .trainingScheduleTable th {
-  background: rgba(234, 243, 255, 0.94);
-  color: #9b7410;
+  background: rgba(242,245,247,0.94);
+  color: #275b7b;
 }
 
 .trainingScheduleTable th,
 .trainingScheduleTable td {
-  border-bottom-color: rgba(22, 104, 232, 0.1);
+  border-bottom-color: rgba(94,125,145,0.1);
 }
 
 .trainingScheduleTable input {
-  border-color: rgba(22, 104, 232, 0.17);
-  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(94,125,145,0.17);
+  background: rgba(242,245,247,0.9);
   color: var(--gray-800);
 }
 
 .trainingScheduleTimeText {
-  color: #315b91;
+  color: #275b7b;
 }
 
 .scoreCalculatorShell { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
-.scoreSide { min-height:360px; padding:30px; border:1px solid rgba(22,104,232,.15); border-radius:24px; background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(232,244,255,.76)); box-shadow:0 18px 42px rgba(45,92,143,.1); display:grid; align-content:center; justify-items:center; gap:12px; text-align:center; }
-.scoreSide span { font-weight:900; letter-spacing:.12em; }.scoreSide h2 { margin:0; color:var(--gray-900); }.scoreSide strong { font-size:clamp(5rem,12vw,9rem); line-height:1; }.scoreSide p { margin:0; color:var(--gray-500); }.scoreRed { border-top:5px solid #ef3d4c; }.scoreRed span,.scoreRed strong { color:#d62f40; }.scoreBlue { border-top:5px solid #139ce8; }.scoreBlue span,.scoreBlue strong { color:#087fc2; }
+.scoreSide { min-height:360px; padding:30px; border:1px solid rgba(94,125,145,0.15); border-radius:24px; background:linear-gradient(145deg,rgba(242,245,247,0.94),rgba(242,245,247,0.76)); box-shadow:none; display:grid; align-content:center; justify-items:center; gap:12px; text-align:center; }
+.scoreSide span { font-weight:900; letter-spacing:.12em; }.scoreSide h2 { margin:0; color:var(--gray-900); }.scoreSide strong { font-size:clamp(5rem,12vw,9rem); line-height:1; }.scoreSide p { margin:0; color:var(--gray-500); }.scoreRed { border-top:5px solid #b92e3b; }.scoreRed span,.scoreRed strong { color:#a62230; }.scoreBlue { border-top:5px solid #5e7d91; }.scoreBlue span,.scoreBlue strong { color:#275b7b; }
 @media (max-width:760px) { .scoreCalculatorShell { grid-template-columns:1fr; }.scoreSide { min-height:250px; } }
 
 .summaryCard {
   padding: 16px 18px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  border: 1px solid rgba(157,172,185,0.1);
   background:
-    linear-gradient(145deg, rgba(0, 200, 255, 0.06), transparent 54%),
-    rgba(18, 25, 34, 0.74);
+    linear-gradient(145deg, rgba(228,240,234,0.06), transparent 54%),
+    rgba(232,237,241,0.74);
 }
 
 .summaryCard strong {
@@ -3650,10 +3616,10 @@
   justify-content: center;
   margin-left: 0.45rem;
   padding: 0.12rem 0.46rem;
-  border: 1px solid rgba(198, 157, 43, 0.5);
+  border: 1px solid rgba(94,125,145,0.5);
   border-radius: 999px;
-  background: linear-gradient(135deg, #fff8d7, #eaf3ff);
-  color: #946b0c;
+  background: linear-gradient(135deg, #f2f5f7, #f2f5f7);
+  color: #a62230;
   font-family: Arial, sans-serif;
   font-size: 0.68em;
   font-weight: 800;
@@ -3663,89 +3629,89 @@
 }
 
 .summaryCard {
-  border-color: rgba(22, 104, 232, 0.14);
-  background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(232,244,255,.84));
-  color: #506b89;
-  box-shadow: 0 10px 26px rgba(45, 92, 143, 0.08);
+  border-color: rgba(94,125,145,0.14);
+  background: linear-gradient(145deg, rgba(242,245,247,0.94), rgba(242,245,247,0.84));
+  color: #445464;
+  box-shadow: none;
 }
 
-.summaryCard strong { color: #102f5c; }
+.summaryCard strong { color: #275b7b; }
 
 /* Unified arena shell and portal surfaces */
 .app {
   background:
-    radial-gradient(circle at 8% 8%,rgba(255,43,43,.13),transparent 26%),
-    radial-gradient(circle at 92% 14%,rgba(53,242,255,.12),transparent 28%),
-    #070a10;
+    radial-gradient(circle at 8% 8%,rgba(247,229,232,0.13),transparent 26%),
+    radial-gradient(circle at 92% 14%,rgba(228,240,234,0.12),transparent 28%),
+    #e8edf1;
 }
-.app::before { background:repeating-linear-gradient(90deg,transparent 0,transparent 71px,rgba(53,242,255,.035) 72px); }
-.app::after { background:linear-gradient(125deg,transparent 0 48%,rgba(255,43,43,.05) 49%,transparent 50%); mix-blend-mode:screen; opacity:.7; }
-.container { background:rgba(9,12,19,.94); border-color:#2a323d; box-shadow:0 28px 70px rgba(0,0,0,.54),0 0 0 1px rgba(53,242,255,.08); }
-.container::before { background:linear-gradient(135deg,rgba(255,255,255,.025),transparent 26%),repeating-linear-gradient(135deg,transparent 0,transparent 36px,rgba(53,242,255,.02) 37px); }
+.app::before { background:repeating-linear-gradient(90deg,transparent 0,transparent 71px,rgba(228,240,234,0.035) 72px); }
+.app::after { background:linear-gradient(125deg,transparent 0 48%,rgba(247,229,232,0.05) 49%,transparent 50%); mix-blend-mode:screen; opacity:.7; }
+.container { background:rgba(232,237,241,0.94); border-color:#9dacb9; box-shadow:none; }
+.container::before { background:linear-gradient(135deg,rgba(242,245,247,0.025),transparent 26%),repeating-linear-gradient(135deg,transparent 0,transparent 36px,rgba(228,240,234,0.02) 37px); }
 .backButton,
-.accountChip { border-color:#38424e; background:#111720; color:#f5f7fa; box-shadow:inset 0 1px 0 rgba(255,255,255,.05); }
-.accountChip span { color:#9eacba; }
+.accountChip { border-color:#9dacb9; background:#e8edf1; color:#202a35; box-shadow:none; }
+.accountChip span { color:#202a35; }
 .accountButton,
-.portalButton { border-color:#FFD700; background:#FFD700; color:#090c13; box-shadow:0 0 20px rgba(255,215,0,.18); }
+.portalButton { border-color:#5e7d91; background:#e3edf6; color:#445464; box-shadow:none; }
 .accountButton:hover,
-.portalButton:hover { box-shadow:0 0 0 1px #FFD700,0 0 28px rgba(255,215,0,.3); }
-.portalSection { background:radial-gradient(circle at 90% 5%,rgba(53,242,255,.07),transparent 28%),#0a0e15; }
+.portalButton:hover { box-shadow:none; }
+.portalSection { background:radial-gradient(circle at 90% 5%,rgba(228,240,234,0.07),transparent 28%),#e8edf1; }
 .portalIntro,
 .installShortcutCard,
-.portalCard { border-color:#303a46; background:linear-gradient(145deg,rgba(53,242,255,.035),transparent 48%),#121821; box-shadow:0 16px 38px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.04); }
+.portalCard { border-color:#9dacb9; background:linear-gradient(145deg,rgba(228,240,234,0.035),transparent 48%),#e8edf1; box-shadow:none; }
 .portalPriorityCard,
-.portalIntro { border-left-color:#FFD700; }
-.portalCard { border-top-color:#3a4654; }
-.portalCard::before { background:linear-gradient(180deg,transparent,#ff2b2b 30%,#35f2ff 72%,transparent); }
+.portalIntro { border-left-color:#5e7d91; }
+.portalCard { border-top-color:#9dacb9; }
+.portalCard::before { background:linear-gradient(180deg,transparent,#f7e5e8 30%,#e4f0ea 72%,transparent); }
 .portalIntro h2,
 .portalCardTop h3,
-.installShortcutCard h3 { color:#fff; }
+.installShortcutCard h3 { color:#202a35; }
 .portalEyebrow,
-.portalCardLabel { color:#FFD700; }
+.portalCardLabel { color:#704f00; }
 .portalHint,
 .portalCardText,
-.installShortcutCard p { color:#bdc8d2; }
-.portalBadge { background:#151d27; border-color:#35f2ff; color:#35f2ff; box-shadow:0 0 14px rgba(53,242,255,.1); }
-.secondaryButton { border-color:#35f2ff; background:#121a24; color:#35f2ff; }
-.productCenterSection { background:radial-gradient(circle at 90% 8%,rgba(53,242,255,.1),transparent 28%),#0a0e15; }
-.productCenterIntro { color:#bdc8d2; }
-.productCenterIntro h2 { color:#fff; }
-.productModuleCard { border-color:#354352; border-top:3px solid #35f2ff; background:linear-gradient(145deg,rgba(53,242,255,.07),transparent 46%),#121821; color:#fff; box-shadow:0 16px 38px rgba(0,0,0,.32); }
-.productModuleCard > span { background:rgba(53,242,255,.08); color:#35f2ff; border:1px solid #35f2ff; }
-.productModuleCard > p:not(.workHubEnglish) { color:#bdc8d2; }
-.productModuleCard button { border-color:#465363; color:#9eacba; background:#171d26; }
-.productModuleLink { display:inline-flex; margin-top:18px; border:1px solid #35f2ff; border-radius:10px; padding:10px 18px; color:#35f2ff; background:rgba(53,242,255,.07); font-weight:800; text-decoration:none; }
-.productModuleLink:hover { background:rgba(53,242,255,.13); box-shadow:0 0 18px rgba(53,242,255,.14); }
-.courseDocumentLibrary { margin-top:34px; padding-top:30px; border-top:1px solid #354352; }
+.installShortcutCard p { color:#202a35; }
+.portalBadge { background:#e8edf1; border-color:#5e7d91; color:#275b7b; box-shadow:none; }
+.secondaryButton { border-color:#5e7d91; background:#e8edf1; color:#275b7b; }
+.productCenterSection { background:radial-gradient(circle at 90% 8%,rgba(228,240,234,0.1),transparent 28%),#e8edf1; }
+.productCenterIntro { color:#202a35; }
+.productCenterIntro h2 { color:#202a35; }
+.productModuleCard { border-color:#9dacb9; border-top:3px solid #5e7d91; background:linear-gradient(145deg,rgba(228,240,234,0.07),transparent 46%),#e8edf1; color:#202a35; box-shadow:none; }
+.productModuleCard > span { background:rgba(228,240,234,0.08); color:#275b7b; border:1px solid #5e7d91; }
+.productModuleCard > p:not(.workHubEnglish) { color:#202a35; }
+.productModuleCard button { border-color:#9dacb9; color:#202a35; background:#e8edf1; }
+.productModuleLink { display:inline-flex; margin-top:18px; border:1px solid #5e7d91; border-radius:10px; padding:10px 18px; color:#275b7b; background:rgba(228,240,234,0.07); font-weight:800; text-decoration:none; }
+.productModuleLink:hover { background:rgba(228,240,234,0.13); box-shadow:none; }
+.courseDocumentLibrary { margin-top:34px; padding-top:30px; border-top:1px solid #9dacb9; }
 .courseDocumentHeading { display:flex; align-items:end; justify-content:space-between; gap:18px; margin-bottom:20px; }
-.courseDocumentHeading h2 { margin:7px 0 0; color:#fff; font-size:clamp(25px,3vw,36px); }
-.courseDocumentHeading > span { border:1px solid #FFD700; border-radius:999px; padding:8px 14px; background:rgba(255,215,0,.08); color:#ffe766; font-weight:800; }
+.courseDocumentHeading h2 { margin:7px 0 0; color:#202a35; font-size:clamp(25px,3vw,36px); }
+.courseDocumentHeading > span { border:1px solid #5e7d91; border-radius:999px; padding:8px 14px; background:rgba(227,237,246,0.08); color:#704f00; font-weight:800; }
 .courseDocumentGrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
-.courseDocumentCard { position:relative; min-height:220px; padding:22px; overflow:hidden; border:1px solid #354352; border-top:3px solid #FFD700; border-radius:18px; background:linear-gradient(145deg,rgba(255,43,43,.055),transparent 48%),#121821; box-shadow:0 12px 28px rgba(0,0,0,.26); }
-.courseDocumentCard::after { content:''; position:absolute; right:-30px; bottom:-30px; width:95px; height:95px; border:1px solid rgba(53,242,255,.18); border-radius:50%; box-shadow:0 0 28px rgba(53,242,255,.08); }
-.courseDocumentCard > span { display:inline-grid; place-items:center; width:38px; height:38px; border:1px solid #ff4f4f; border-radius:10px; background:rgba(255,43,43,.08); color:#ff7373; font-weight:900; }
-.courseDocumentCard > p { margin:18px 0 5px; color:#35f2ff; font-size:11px; font-weight:800; letter-spacing:.15em; }
-.courseDocumentCard h3 { margin:0 0 8px; color:#fff; font-size:clamp(25px,2.5vw,34px); }
-.courseDocumentCard small { display:block; color:#c8d2dc; }
-.courseDocumentCard button { position:relative; z-index:1; width:100%; margin-top:20px; border:1px solid #465363; border-radius:10px; padding:10px 14px; background:#171d26; color:#aebac5; font-weight:800; }
-.courseDocumentCard:nth-child(3n+2) { border-top-color:#ff2b2b; }
-.courseDocumentCard:nth-child(3n) { border-top-color:#35f2ff; }
-.courseDocumentCard:hover { transform:translateY(-2px); border-color:#FFD700; box-shadow:0 16px 34px rgba(255,215,0,.08); }
+.courseDocumentCard { position:relative; min-height:220px; padding:22px; overflow:hidden; border:1px solid #9dacb9; border-top:3px solid #5e7d91; border-radius:18px; background:linear-gradient(145deg,rgba(247,229,232,0.055),transparent 48%),#e8edf1; box-shadow:none; }
+.courseDocumentCard::after { content:''; position:absolute; right:-30px; bottom:-30px; width:95px; height:95px; border:1px solid rgba(94,125,145,0.18); border-radius:50%; box-shadow:none; }
+.courseDocumentCard > span { display:inline-grid; place-items:center; width:38px; height:38px; border:1px solid #b92e3b; border-radius:10px; background:rgba(247,229,232,0.08); color:#a62230; font-weight:900; }
+.courseDocumentCard > p { margin:18px 0 5px; color:#275b7b; font-size:11px; font-weight:800; letter-spacing:.15em; }
+.courseDocumentCard h3 { margin:0 0 8px; color:#202a35; font-size:clamp(25px,2.5vw,34px); }
+.courseDocumentCard small { display:block; color:#202a35; }
+.courseDocumentCard button { position:relative; z-index:1; width:100%; margin-top:20px; border:1px solid #9dacb9; border-radius:10px; padding:10px 14px; background:#e8edf1; color:#202a35; font-weight:800; }
+.courseDocumentCard:nth-child(3n+2) { border-top-color:#b92e3b; }
+.courseDocumentCard:nth-child(3n) { border-top-color:#5e7d91; }
+.courseDocumentCard:hover { transform:translateY(-2px); border-color:#5e7d91; box-shadow:none; }
 @media (max-width: 980px) { .courseDocumentGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width: 560px) { .courseDocumentHeading { align-items:flex-start; flex-direction:column; }.courseDocumentGrid { grid-template-columns:1fr; } }
-.kcTeamBadge { border-color:#FFD700; background:#191a12; color:#FFD700; }
-.summaryCard { border-color:#354352; background:linear-gradient(145deg,rgba(53,242,255,.05),transparent),#121821; color:#bdc8d2; box-shadow:0 10px 26px rgba(0,0,0,.28); }
-.summaryCard strong { color:#fff; }
-.calendarWeekday { color:#bdc8d2; }
+.kcTeamBadge { border-color:#5e7d91; background:#e8edf1; color:#704f00; }
+.summaryCard { border-color:#9dacb9; background:linear-gradient(145deg,rgba(228,240,234,0.05),transparent),#e8edf1; color:#202a35; box-shadow:none; }
+.summaryCard strong { color:#202a35; }
+.calendarWeekday { color:#202a35; }
 .calendarDay,
 .trainingOverviewEventDay,
-.trainingOverviewSelfPracticeDay { border-color:#354352; background:linear-gradient(145deg,rgba(53,242,255,.045),transparent),#121821; color:#e8edf2; box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.24); }
-.calendarSelectedDay { border-color:#FFD700; background:linear-gradient(145deg,rgba(255,215,0,.1),transparent),#18180f; color:#fff; box-shadow:0 0 0 2px rgba(255,215,0,.2); }
+.trainingOverviewSelfPracticeDay { border-color:#9dacb9; background:linear-gradient(145deg,rgba(228,240,234,0.045),transparent),#e8edf1; color:#202a35; box-shadow:none; }
+.calendarSelectedDay { border-color:#5e7d91; background:linear-gradient(145deg,rgba(227,237,246,0.1),transparent),#e8edf1; color:#202a35; box-shadow:none; }
 .calendarSelfPracticeDay,
-.trainingOverviewSelfPracticeDay { border-color:#35f2ff; background:linear-gradient(145deg,rgba(53,242,255,.09),transparent),#111a21; }
+.trainingOverviewSelfPracticeDay { border-color:#5e7d91; background:linear-gradient(145deg,rgba(228,240,234,0.09),transparent),#e8edf1; }
 .trainingDateStatus,
 .trainingOverviewLevel,
-.trainingOverviewSelfPracticeDay .trainingOverviewLevel { border-color:#FFD700; background:rgba(255,215,0,.08); color:#ffe766; }
+.trainingOverviewSelfPracticeDay .trainingOverviewLevel { border-color:#5e7d91; background:rgba(227,237,246,0.08); color:#704f00; }
 
 /* Final dark arena overrides for legacy logistics glass surfaces. */
 .logisticsFormPanel,
@@ -3758,11 +3724,11 @@
 .rollCallNode,
 .mentorRollCallBlock,
 .personalTaskMeta span {
-  border-color: #354352;
-  border-left-color: #FFD700;
-  background: linear-gradient(145deg, rgba(53, 242, 255, 0.045), transparent 48%), #121821;
-  color: #f5f7fa;
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-color: #9dacb9;
+  border-left-color: #5e7d91;
+  background: linear-gradient(145deg, rgba(228,240,234,0.045), transparent 48%), #e8edf1;
+  color: #202a35;
+  box-shadow: none;
 }
 
 .logisticsFormPanel h2,
@@ -3773,7 +3739,7 @@
 .logisticsItemCard h3,
 .rollCallNode strong,
 .timelineItem strong {
-  color: #ffffff;
+  color: #202a35;
 }
 
 .logisticsFormPanel p,
@@ -3784,7 +3750,7 @@
 .rollCallTimeLabel span,
 .logisticsField label,
 .logisticsField > span {
-  color: #c8d2dc;
+  color: #202a35;
 }
 
 .logisticsField input,
@@ -3794,15 +3760,15 @@
 .logisticsTable input,
 .timelineEditGrid input,
 .timelineEditGrid select {
-  border-color: #465363;
-  background: #0d121a;
-  color: #f5f7fa;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  border-color: #9dacb9;
+  background: #e8edf1;
+  color: #202a35;
+  box-shadow: none;
 }
 
 .logisticsField input::placeholder,
 .logisticsField textarea::placeholder {
-  color: #9eacba;
+  color: #202a35;
   opacity: 1;
 }
 
@@ -3810,39 +3776,96 @@
 .portalBadgeButton,
 .statusPill,
 .attendanceToggleButton {
-  border-color: #35f2ff;
-  background: rgba(53, 242, 255, 0.075);
-  color: #c8faff;
+  border-color: #5e7d91;
+  background: rgba(228,240,234,0.075);
+  color: #202a35;
 }
 
 .logisticsTableWrap,
 .practiceTableWrap,
 .logisticsTable,
 .practiceRankTable {
-  border-color: #354352;
-  background: #0d121a;
+  border-color: #9dacb9;
+  background: #e8edf1;
 }
 
 .logisticsTable th,
 .practiceRankTable th {
-  color: #ffe766;
-  background: #171b24;
+  color: #704f00;
+  background: #e8edf1;
 }
 
 .rollCallTimeAlertSoon,
 .rollCallProgressComplete {
-  border-color: #FFD700 !important;
-  background: rgba(255, 215, 0, 0.1) !important;
-  color: #ffe766 !important;
+  border-color: #5e7d91 !important;
+  background: rgba(227,237,246,0.1) !important;
+  color: #704f00 !important;
 }
 
 .rollCallTimeAlertDue,
 .rollCallProgressWarning,
 .attendanceRemoveButton {
-  border-color: #ff4f4f !important;
-  background: rgba(255, 43, 43, 0.09) !important;
-  color: #ff8a8a !important;
+  border-color: #b92e3b !important;
+  background: rgba(247,229,232,0.09) !important;
+  color: #a62230 !important;
 }
 .trainingDateTime,
-.trainingOverviewNames { color:#bdc8d2; }
-.workHubNote { color:#9eacba; }
+.trainingOverviewNames { color:#202a35; }
+.workHubNote { color:#202a35; }
+.workHubCard { border-top: 4px solid #0066b3; box-shadow: 0 8px 24px #20304012; }
+.workHubInterview { border-top-color: #bd2635; }
+.workHubProduct { border-top-color: #326884; }
+.portalButton { background: #0066b3; color: #fff; border-color: #0066b3; }
+.portalButton:hover { background: #003974; }
+
+/* Editorial robotics workspace: scoped to the two entry pages. */
+.workHubSection, .productRedesign { background:#edf0f2; padding:48px 5%; font-family:'Microsoft YaHei','PingFang SC',Arial,sans-serif; }
+.workHubIntro { padding-bottom:20px; border-bottom:1px solid #bcc7d0; }
+.workHubIntro span:first-child { color:#003974; font-size:22px; }
+.workHubCard, .workHubInterview, .workHubProduct { border:0; border-top:5px solid #0066b3; border-radius:0; background:#f8f9fa; box-shadow:0 4px 12px #2030400a; padding:28px; }
+.workHubInterview { border-top-color:#cf3345; }
+.workHubProduct { border-top-color:#23445e; }
+.workHubCard::after { display:none!important; }
+.workHubCard h2 { color:#162f43; font-family:inherit; font-size:28px; font-weight:800; }
+.workHubCardTop { margin-bottom:30px; }
+.workHubCard .workHubIcon { color:#0066b3; font-family:Arial,sans-serif; font-size:38px; }
+.workHubCard .workHubEnglish { color:#52677a; font-weight:700; }
+.workHubCard .workHubStatus { color:#38546a; border:0; border-radius:2px; background:#e6edf2; }
+.workHubTags > span { border:0; border-radius:0; background:#e9eff4; color:#3d5263; }
+.workHubCard .workHubLink { color:#005da8; border-top:1px solid #c8d4dc; }
+.productRedesign .productCenterIntro { max-width:850px; margin-bottom:32px; }
+.productRedesign .portalCardLabel { color:#0066b3; font-weight:800; letter-spacing:.1em; }
+.productRedesign h2, .productRedesign h3 { font-family:inherit; color:#162f43; font-weight:800; }
+.productRedesign .productModuleCard { border:0; border-radius:0; border-top:5px solid #0066b3; background:#f8f9fa; padding:32px; }
+.productRedesign .productModuleCard:nth-child(2) { border-top-color:#cf3345; }
+.productRedesign .productModuleCard > span { background:transparent; color:#0066b3; font-size:36px; width:auto; height:auto; }
+.productRedesign .workHubEnglish { color:#52677a; font-weight:700; }
+.productRedesign .productModuleCard button, .productRedesign .productModuleLink { display:inline-block; background:#0066b3; color:#fff; border:0; border-radius:0; padding:14px 24px; font-weight:700; text-decoration:none; }
+.productRedesign .productModuleCard button:hover, .productRedesign .productModuleLink:hover { background:#003974; }
+.productRedesign .courseDocumentLibrary { border-radius:0; background:transparent; border:0; border-top:1px solid #b9c7d1; padding-top:32px; }
+.productRedesign .courseDocumentCard { border-radius:0; background:#e2e9ee; border:1px solid #b5c4cf; box-shadow:none; }
+.productRedesign .courseDocumentCard h3 { color:#003974; }
+.productRedesign .courseDocumentCard button { border-radius:0; color:#465a6b; background:#d5dfe6; }
+@media(max-width:700px) { .workHubSection, .productRedesign { padding:28px 20px; } }
+
+/* Ink-wash preview, confined to the workspace and product landing pages. */
+.app:has(.workHubSection), .app:has(.productRedesign) { background:#e8e3d8; }
+.container:has(.workHubSection), .container:has(.productRedesign) { border-radius:0; border-color:#c8c1b3; box-shadow:none; }
+.workHubSection, .productRedesign { background:radial-gradient(ellipse at 100% 100%,#dcd7c955,transparent 60%),#f2eee4; }
+.workHubIntro { border-color:#c7c0b2; }
+.workHubIntro span:first-child, .productRedesign h2, .productRedesign h3, .workHubCard h2 { color:#292b27; font-family:'STKaiti','KaiTi','SimSun',serif; }
+.workHubCard, .workHubInterview, .workHubProduct, .productRedesign .productModuleCard { background:#f7f3eb; border:1px solid #ccc5b7; border-top:2px solid #56564c; box-shadow:none; }
+.workHubInterview, .productRedesign .productModuleCard:nth-child(2) { border-top-color:#a43c30; }
+.workHubCard .workHubIcon, .productRedesign .productModuleCard > span { color:#a43c30; font-family:'KaiTi','SimSun',serif; }
+.workHubCard .workHubEnglish, .productRedesign .workHubEnglish, .workHubIntro, .workHubNote { color:#706a5e; }
+.workHubCard p, .productRedesign .productModuleCard > p:not(.workHubEnglish), .productRedesign .productCenterIntro { color:#514d45; }
+.workHubTags > span, .workHubCard .workHubStatus { color:#625b4e; background:#ebe5d9; }
+.workHubCard .workHubLink { color:#96382d; border-color:#d1c9ba; }
+.workHubCard:hover { border-color:#96382d; box-shadow:0 8px 20px #50402c0b; }
+.productRedesign .portalCardLabel { color:#96382d; }
+.productRedesign .productModuleCard button, .productRedesign .productModuleLink { background:#96382d; color:#fff8ef; border-radius:2px; }
+.productRedesign .productModuleCard button:hover, .productRedesign .productModuleLink:hover { background:#742b23; }
+.productRedesign .courseDocumentLibrary { border-color:#c7c0b2; }
+.productRedesign .courseDocumentCard { background:#eee8dc; border-color:#c7bfaf; }
+.productRedesign .courseDocumentCard h3 { color:#34382f; }
+.productRedesign .courseDocumentCard button { background:#e2dbcd; color:#625b4e; }

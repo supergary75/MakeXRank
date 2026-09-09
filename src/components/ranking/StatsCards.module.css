@@ -3,7 +3,7 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   padding: 24px;
-  background: rgba(238, 246, 255, 0.7);
+  background: rgba(242,245,247,0.7);
 }
 
 .card {
@@ -11,8 +11,8 @@
   padding: 24px 20px;
   border-radius: var(--radius-lg);
   text-align: center;
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(217, 226, 236, 0.1);
+  box-shadow: none;
+  border: 1px solid rgba(157,172,185,0.1);
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
@@ -24,26 +24,26 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 38%),
+    linear-gradient(135deg, rgba(242,245,247,0.06), transparent 38%),
     repeating-linear-gradient(
       135deg,
       transparent 0,
       transparent 34px,
-      rgba(0, 200, 255, 0.028) 34px,
-      rgba(0, 200, 255, 0.028) 35px
+      rgba(228,240,234,0.028) 34px,
+      rgba(228,240,234,0.028) 35px
     );
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg), var(--glow-amber);
-  border-color: rgba(225, 184, 90, 0.22);
+  box-shadow: none;
+  border-color: rgba(94,125,145,0.22);
 }
 
 .value {
   font-size: 2.5em;
   font-weight: 800;
-  background: linear-gradient(135deg, #0b4fbd 0%, #1668e8 55%, #b58a12 100%);
+  background: linear-gradient(135deg, #e4f0ea 0%, #e4f0ea 55%, #f7e5e8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

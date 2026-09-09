@@ -7,13 +7,13 @@
   grid-template-columns: 1.2fr 1fr;
   gap: 24px;
   padding: 28px;
-  border: 1px solid rgba(22, 104, 232, 0.14);
-  border-left: 3px solid #d5ad38;
+  border: 1px solid rgba(94,125,145,0.14);
+  border-left: 3px solid #5e7d91;
   background:
-    linear-gradient(135deg, rgba(255, 251, 232, 0.68), rgba(232, 243, 255, 0.72)),
-    rgba(255, 255, 255, 0.86);
+    linear-gradient(135deg, rgba(242,245,247,0.68), rgba(242,245,247,0.72)),
+    rgba(242,245,247,0.86);
   border-radius: var(--radius-lg);
-  box-shadow: 0 16px 36px rgba(42, 88, 136, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+  box-shadow: none;
 }
 
 .creatorCopy h2 {
@@ -47,8 +47,8 @@
   min-height: 52px;
   padding: 14px 16px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(217, 226, 236, 0.12);
-  background: rgba(8, 12, 18, 0.58);
+  border: 1px solid rgba(157,172,185,0.12);
+  background: rgba(232,237,241,0.58);
   color: var(--gray-800);
   font-size: 1rem;
   outline: none;
@@ -57,7 +57,7 @@
 
 .nameInput:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(225, 184, 90, 0.14);
+  box-shadow: none;
 }
 
 .nameInput::placeholder {
@@ -66,10 +66,10 @@
 
 .createButton {
   min-height: 52px;
-  border: 1px solid rgba(255, 244, 217, 0.12);
+  border: 1px solid rgba(157,172,185,0.12);
   border-radius: var(--radius-md);
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
-  color: #07111f;
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 52%, #f7e5e8 100%);
+  color: #445464;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -78,7 +78,7 @@
 
 .createButton:hover {
   transform: translateY(-1px);
-  box-shadow: var(--glow-amber);
+  box-shadow: none;
 }
 
 .sectionTitle {
@@ -101,9 +101,9 @@
 
 .emptyState {
   padding: 42px 24px;
-  border: 1px dashed rgba(93, 214, 255, 0.22);
+  border: 1px dashed rgba(94,125,145,0.22);
   border-radius: var(--radius-lg);
-  background: rgba(246, 251, 255, 0.86);
+  background: rgba(242,245,247,0.86);
   text-align: center;
   color: var(--gray-500);
 }
@@ -117,12 +117,12 @@
 .card {
   padding: 22px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(22, 104, 232, 0.14);
-  border-left: 3px solid rgba(213, 173, 56, 0.8);
+  border: 1px solid rgba(94,125,145,0.14);
+  border-left: 3px solid rgba(94,125,145,0.8);
   background:
-    linear-gradient(160deg, rgba(255, 251, 232, 0.68), transparent 44%),
-    rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16px 36px rgba(42, 88, 136, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    linear-gradient(160deg, rgba(242,245,247,0.68), transparent 44%),
+    rgba(242,245,247,0.88);
+  box-shadow: none;
 }
 
 .cardTop {
@@ -150,8 +150,8 @@
   min-height: 36px;
   padding: 8px 14px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(244, 201, 106, 0.24);
-  background: rgba(244, 201, 106, 0.1);
+  border: 1px solid rgba(94,125,145,0.24);
+  background: rgba(247,229,232,0.1);
   color: var(--gray-600);
   cursor: pointer;
 }
@@ -168,9 +168,9 @@
 .workspacePreview {
   padding: 16px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(22, 104, 232, 0.12);
+  border: 1px solid rgba(94,125,145,0.12);
   background:
-    linear-gradient(145deg, rgba(232, 243, 255, 0.88), rgba(255, 255, 255, 0.78));
+    linear-gradient(145deg, rgba(242,245,247,0.88), rgba(242,245,247,0.78));
 }
 
 .previewTitle {
@@ -188,7 +188,7 @@
 .previewTags span {
   padding: 7px 12px;
   border-radius: var(--radius-full);
-  background: rgba(93, 214, 255, 0.1);
+  background: rgba(228,240,234,0.1);
   color: var(--gray-700);
   font-size: 0.82rem;
 }
@@ -201,9 +201,9 @@
   width: 100%;
   min-height: 46px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(244, 214, 138, 0.34);
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
-  color: #07111f;
+  border: 1px solid rgba(94,125,145,0.34);
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 52%, #f7e5e8 100%);
+  color: #445464;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -212,7 +212,7 @@
 
 .enterButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 0 24px rgba(214, 169, 74, 0.24);
+  box-shadow: none;
 }
 
 @media (max-width: 900px) {

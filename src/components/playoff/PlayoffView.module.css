@@ -7,11 +7,11 @@
 .hero,
 .section {
   background:
-    linear-gradient(135deg, rgba(255, 244, 217, 0.05), transparent 28%),
-    linear-gradient(160deg, rgba(123, 35, 27, 0.9), rgba(76, 19, 16, 0.95));
-  border: 1px solid rgba(225, 184, 90, 0.16);
+    linear-gradient(135deg, rgba(242,245,247,0.05), transparent 28%),
+    linear-gradient(160deg, rgba(247,229,232,0.9), rgba(242,245,247,0.95));
+  border: 1px solid rgba(94,125,145,0.16);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .hero {
@@ -23,7 +23,7 @@
 
 .eyebrow {
   margin: 0 0 10px;
-  color: rgba(255, 231, 184, 0.78);
+  color: rgba(39,91,123,0.78);
   font-size: 0.8rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -32,14 +32,14 @@
 .hero h2,
 .section h3 {
   margin: 0;
-  color: #fff2d1;
+  color: #202a35;
 }
 
 .description,
 .sectionHeader p,
 .importHeader span {
   margin: 10px 0 0;
-  color: rgba(255, 238, 211, 0.82);
+  color: rgba(32,42,53,0.82);
   line-height: 1.7;
 }
 
@@ -54,9 +54,9 @@
 .allianceHeader span {
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(216, 189, 132, 0.14);
-  border: 1px solid rgba(216, 189, 132, 0.2);
-  color: #f4d28c;
+  background: rgba(227,237,246,0.14);
+  border: 1px solid rgba(94,125,145,0.2);
+  color: #275b7b;
   font-size: 0.88rem;
 }
 
@@ -76,7 +76,7 @@
   display: grid;
   gap: 8px;
   min-width: 180px;
-  color: rgba(255, 238, 211, 0.82);
+  color: rgba(32,42,53,0.82);
   font-weight: 700;
 }
 
@@ -84,9 +84,9 @@
 .numberControl select {
   min-height: 44px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(225, 184, 90, 0.22);
-  background: rgba(34, 8, 8, 0.54);
-  color: #fff4dc;
+  border: 1px solid rgba(94,125,145,0.22);
+  background: rgba(232,237,241,0.54);
+  color: #202a35;
   font: inherit;
   font-size: 1.08rem;
   font-weight: 800;
@@ -95,7 +95,7 @@
 
 .helperText {
   margin: -4px 0 0;
-  color: #f4d28c;
+  color: #275b7b;
   line-height: 1.7;
 }
 
@@ -117,8 +117,8 @@
 .matchCard,
 .podiumCard,
 .importPanel {
-  background: rgba(53, 15, 14, 0.48);
-  border: 1px solid rgba(225, 184, 90, 0.12);
+  background: rgba(232,237,241,0.48);
+  border: 1px solid rgba(94,125,145,0.12);
   border-radius: var(--radius-md);
 }
 
@@ -131,8 +131,8 @@
   margin-bottom: 10px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(216, 189, 132, 0.14);
-  color: #f4d28c;
+  background: rgba(227,237,246,0.14);
+  color: #275b7b;
   font-size: 0.82rem;
 }
 
@@ -140,7 +140,7 @@
 .powerTitle strong,
 .matchHeader strong,
 .podiumCard strong {
-  color: #fff4dc;
+  color: #202a35;
 }
 
 .seedMeta,
@@ -150,7 +150,7 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
-  color: rgba(255, 238, 211, 0.8);
+  color: rgba(32,42,53,0.8);
   font-size: 0.88rem;
 }
 
@@ -159,7 +159,7 @@
 .allianceStats span {
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(242,245,247,0.05);
 }
 
 .allianceGrid {
@@ -191,7 +191,7 @@
 }
 
 .selectBlock span {
-  color: rgba(255, 238, 211, 0.82);
+  color: rgba(32,42,53,0.82);
   font-size: 0.9rem;
 }
 
@@ -199,9 +199,9 @@
 .textarea {
   width: 100%;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(225, 184, 90, 0.18);
-  background: rgba(34, 8, 8, 0.54);
-  color: #fff4dc;
+  border: 1px solid rgba(94,125,145,0.18);
+  background: rgba(232,237,241,0.54);
+  color: #202a35;
   font: inherit;
   box-sizing: border-box;
 }
@@ -230,23 +230,23 @@
 .primaryButton {
   min-height: 46px;
   padding: 0 18px;
-  border: 1px solid rgba(255, 245, 217, 0.12);
-  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
-  color: #34170b;
+  border: 1px solid rgba(157,172,185,0.12);
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 100%);
+  color: #445464;
 }
 
 .secondaryButton {
   min-height: 42px;
   padding: 0 16px;
-  border: 1px solid rgba(225, 184, 90, 0.18);
-  background: rgba(225, 184, 90, 0.08);
-  color: #f4d28c;
+  border: 1px solid rgba(94,125,145,0.18);
+  background: rgba(247,229,232,0.08);
+  color: #275b7b;
 }
 
 .primaryButton:hover,
 .secondaryButton:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .importPanel {
@@ -279,7 +279,7 @@
 .metricGrid div {
   padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(242,245,247,0.05);
 }
 
 .metricGrid span,
@@ -287,7 +287,7 @@
 .teamRow span,
 .winnerTeam span {
   display: block;
-  color: rgba(255, 238, 211, 0.7);
+  color: rgba(32,42,53,0.7);
   font-size: 0.84rem;
 }
 
@@ -297,7 +297,7 @@
 .podiumCard em {
   display: block;
   margin-top: 6px;
-  color: #fff3d7;
+  color: #202a35;
 }
 
 .matchGrid {
@@ -312,7 +312,7 @@
 
 .roundBlock h4 {
   margin: 4px 0 0;
-  color: #f4d28c;
+  color: #275b7b;
   letter-spacing: 0.08em;
 }
 
@@ -321,7 +321,7 @@
 }
 
 .matchHeader span {
-  color: #f4d28c;
+  color: #275b7b;
   font-size: 0.86rem;
 }
 
@@ -340,25 +340,25 @@
 }
 
 .teamRow {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(242,245,247,0.05);
 }
 
 .winnerTeam {
-  background: linear-gradient(145deg, rgba(216, 189, 132, 0.2), rgba(166, 38, 47, 0.16));
-  border: 1px solid rgba(216, 189, 132, 0.2);
+  background: linear-gradient(145deg, rgba(227,237,246,0.2), rgba(247,229,232,0.16));
+  border: 1px solid rgba(94,125,145,0.2);
 }
 
 .teamRow em,
 .winnerTeam em {
   margin-top: 4px;
-  color: #f9d88f;
+  color: #275b7b;
   font-style: normal;
   font-weight: 700;
 }
 
 .matchReason {
   margin: 14px 0 0;
-  color: rgba(255, 238, 211, 0.82);
+  color: rgba(32,42,53,0.82);
   line-height: 1.7;
 }
 
@@ -389,8 +389,8 @@
   bottom: -25px;
   width: 14px;
   height: 14px;
-  border-right: 4px solid rgba(84, 191, 103, 0.85);
-  border-bottom: 4px solid rgba(84, 191, 103, 0.85);
+  border-right: 4px solid rgba(94,125,145,0.85);
+  border-bottom: 4px solid rgba(94,125,145,0.85);
   transform: translateX(-50%) rotate(45deg);
 }
 
@@ -401,22 +401,22 @@
   align-items: center;
   padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: linear-gradient(145deg, rgba(244, 210, 140, 0.16), rgba(91, 24, 20, 0.58));
-  border: 1px solid rgba(244, 210, 140, 0.18);
-  color: #fff4dc;
+  background: linear-gradient(145deg, rgba(227,237,246,0.16), rgba(242,245,247,0.58));
+  border: 1px solid rgba(94,125,145,0.18);
+  color: #202a35;
 }
 
 /* Light playoff workspace */
 .hero,
-.section { background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(232,244,255,.82)); border-color: rgba(22,104,232,.15); }
+.section { background: linear-gradient(145deg, rgba(242,245,247,0.94), rgba(242,245,247,0.82)); border-color: rgba(94,125,145,0.15); }
 .eyebrow,
-.helperText { color: #8a6710; }
+.helperText { color: #275b7b; }
 .hero h2,
 .section h3,
 .seedCard strong,
 .powerTitle strong,
 .matchHeader strong,
-.podiumCard strong { color: #102f5c; }
+.podiumCard strong { color: #275b7b; }
 .description,
 .sectionHeader p,
 .importHeader span,
@@ -424,28 +424,28 @@
 .selectBlock span,
 .seedMeta,
 .powerMeta,
-.allianceStats { color: #506b89; }
+.allianceStats { color: #445464; }
 .heroBadges span,
 .allianceHeader span,
-.seedNo { background: #fff8dc; border-color: rgba(213,173,56,.28); color: #8a6710; }
+.seedNo { background: #f2f5f7; border-color: rgba(94,125,145,0.28); color: #275b7b; }
 .numberControl input,
 .numberControl select,
 .selectBlock select,
-.textarea { background: #fff; color: #102f5c; border-color: rgba(22,104,232,.18); }
+.textarea { background: #f2f5f7; color: #275b7b; border-color: rgba(94,125,145,0.18); }
 .seedCard,
 .allianceCard,
 .powerCard,
 .matchCard,
 .podiumCard,
-.importPanel { background: rgba(255,255,255,.82); border-color: rgba(22,104,232,.13); }
+.importPanel { background: rgba(242,245,247,0.82); border-color: rgba(94,125,145,0.13); }
 .seedMeta span,
 .powerMeta span,
-.allianceStats span { background: #eef6ff; }
-.secondaryButton { background: #eef6ff; border-color: rgba(22,104,232,.18); color: #0b5dcc; }
-.bracketColumnTitle { background: linear-gradient(145deg, #fff9df, #eaf3ff); border-color: rgba(22,104,232,.15); }
+.allianceStats span { background: #f2f5f7; }
+.secondaryButton { background: #f2f5f7; border-color: rgba(94,125,145,0.18); color: #275b7b; }
+.bracketColumnTitle { background: linear-gradient(145deg, #f2f5f7, #f2f5f7); border-color: rgba(94,125,145,0.15); }
 
 .bracketColumnTitle span {
-  color: #f4d28c;
+  color: #275b7b;
   font-size: 0.84rem;
 }
 
@@ -459,10 +459,10 @@
   padding: 12px;
   border-radius: var(--radius-md);
   background:
-    linear-gradient(90deg, rgba(226, 43, 30, 0.11), transparent 46%, rgba(55, 163, 237, 0.12)),
-    rgba(53, 15, 14, 0.62);
-  border: 1px solid rgba(225, 184, 90, 0.14);
-  box-shadow: var(--shadow-sm);
+    linear-gradient(90deg, rgba(247,229,232,0.11), transparent 46%, rgba(228,240,234,0.12)),
+    rgba(232,237,241,0.62);
+  border: 1px solid rgba(94,125,145,0.14);
+  box-shadow: none;
 }
 
 .bracketMatchHeader {
@@ -471,11 +471,11 @@
   gap: 10px;
   align-items: center;
   margin-bottom: 10px;
-  color: #fff4dc;
+  color: #202a35;
 }
 
 .bracketMatchHeader span {
-  color: #f4d28c;
+  color: #275b7b;
   font-size: 0.8rem;
 }
 
@@ -485,7 +485,7 @@
   gap: 10px;
   align-items: center;
   padding: 9px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(157,172,185,0.08);
 }
 
 .bracketMatchHeader + .bracketAlliance {
@@ -498,17 +498,17 @@
 }
 
 .redBracketAlliance {
-  background: linear-gradient(135deg, rgba(239, 47, 33, 0.86), rgba(114, 24, 20, 0.82));
+  background: linear-gradient(135deg, rgba(247,229,232,0.86), rgba(242,245,247,0.82));
 }
 
 .blueBracketAlliance {
-  background: linear-gradient(135deg, rgba(70, 174, 241, 0.86), rgba(25, 80, 132, 0.82));
+  background: linear-gradient(135deg, rgba(228,240,234,0.86), rgba(228,240,234,0.82));
 }
 
 .bracketAlliance span,
 .medalCard span {
   display: block;
-  color: rgba(255, 245, 224, 0.78);
+  color: rgba(32,42,53,0.78);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -517,7 +517,7 @@
 .medalCard strong {
   display: block;
   margin-top: 4px;
-  color: #fffdf7;
+  color: #202a35;
   font-size: 0.92rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -525,18 +525,18 @@
 }
 
 .bracketAlliance em {
-  color: #fff8d7;
+  color: #202a35;
   font-style: normal;
   font-weight: 900;
 }
 
 .bracketWinner {
-  box-shadow: inset 0 0 0 2px rgba(255, 237, 158, 0.76), 0 0 20px rgba(244, 210, 140, 0.18);
+  box-shadow: none;
 }
 
 .bracketMatch p {
   margin: 10px 0 0;
-  color: rgba(255, 238, 211, 0.78);
+  color: rgba(32,42,53,0.78);
   font-size: 0.86rem;
   line-height: 1.55;
 }
@@ -554,13 +554,13 @@
 .medalCard {
   padding: 14px 16px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(244, 210, 140, 0.16);
+  border: 1px solid rgba(94,125,145,0.16);
 }
 
 .medalCard em {
   display: block;
   margin-top: 6px;
-  color: rgba(255, 238, 211, 0.84);
+  color: rgba(32,42,53,0.84);
   font-style: normal;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -568,22 +568,22 @@
 }
 
 .goldMedal {
-  background: linear-gradient(135deg, rgba(216, 189, 132, 0.32), rgba(226, 43, 30, 0.28));
+  background: linear-gradient(135deg, rgba(227,237,246,0.32), rgba(247,229,232,0.28));
 }
 
 .silverMedal {
-  background: linear-gradient(135deg, rgba(232, 232, 232, 0.24), rgba(216, 189, 132, 0.14));
+  background: linear-gradient(135deg, rgba(242,245,247,0.24), rgba(227,237,246,0.14));
 }
 
 .bronzeMedal {
-  background: linear-gradient(135deg, rgba(185, 111, 58, 0.28), rgba(70, 174, 241, 0.16));
+  background: linear-gradient(135deg, rgba(247,229,232,0.28), rgba(228,240,234,0.16));
 }
 
 .bronzePlayoffCard {
   margin-top: 18px;
   padding: 18px;
-  background: rgba(53, 15, 14, 0.48);
-  border: 1px solid rgba(225, 184, 90, 0.12);
+  background: rgba(232,237,241,0.48);
+  border: 1px solid rgba(94,125,145,0.12);
   border-radius: var(--radius-md);
 }
 
@@ -646,9 +646,9 @@
 .hero,
 .section {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 28%),
-    linear-gradient(160deg, rgba(214, 169, 74, 0.1), rgba(93, 214, 255, 0.06));
-  border-color: rgba(217, 226, 236, 0.1);
+    linear-gradient(135deg, rgba(242,245,247,0.06), transparent 28%),
+    linear-gradient(160deg, rgba(247,229,232,0.1), rgba(228,240,234,0.06));
+  border-color: rgba(157,172,185,0.1);
 }
 
 .eyebrow,
@@ -684,8 +684,8 @@
 .heroBadges span,
 .allianceHeader span,
 .seedNo {
-  background: rgba(93, 214, 255, 0.1);
-  border-color: rgba(93, 214, 255, 0.2);
+  background: rgba(228,240,234,0.1);
+  border-color: rgba(94,125,145,0.2);
   color: var(--gray-800);
 }
 
@@ -702,8 +702,8 @@
 .numberControl select,
 .selectBlock select,
 .textarea {
-  background: rgba(8, 12, 18, 0.58);
-  border-color: rgba(217, 226, 236, 0.12);
+  background: rgba(232,237,241,0.58);
+  border-color: rgba(157,172,185,0.12);
   color: var(--gray-800);
 }
 
@@ -715,8 +715,8 @@
 .importPanel,
 .bracketMatch,
 .bronzePlayoffCard {
-  background: rgba(18, 25, 34, 0.82);
-  border-color: rgba(217, 226, 236, 0.1);
+  background: rgba(232,237,241,0.82);
+  border-color: rgba(157,172,185,0.1);
 }
 
 .seedMeta span,
@@ -724,7 +724,7 @@
 .allianceStats span,
 .metricGrid div,
 .teamRow {
-  background: rgba(0, 200, 255, 0.07);
+  background: rgba(228,240,234,0.07);
 }
 
 .metricGrid strong,
@@ -735,28 +735,28 @@
 }
 
 .primaryButton {
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
-  color: #07111f;
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 52%, #f7e5e8 100%);
+  color: #445464;
 }
 
 .secondaryButton {
-  background: rgba(93, 214, 255, 0.08);
-  border-color: rgba(93, 214, 255, 0.18);
+  background: rgba(228,240,234,0.08);
+  border-color: rgba(94,125,145,0.18);
   color: var(--secondary);
 }
 
 .bracketColumnTitle {
-  background: linear-gradient(145deg, rgba(214, 169, 74, 0.12), rgba(18, 25, 34, 0.92));
-  border-color: rgba(93, 214, 255, 0.16);
+  background: linear-gradient(145deg, rgba(247,229,232,0.12), rgba(232,237,241,0.92));
+  border-color: rgba(94,125,145,0.16);
 }
 
 /* Final light-theme guard: this block must follow the legacy theme rules. */
 .hero,
-.section { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,244,255,.86)); border-color: rgba(22,104,232,.16); }
+.section { background: linear-gradient(145deg, rgba(242,245,247,0.96), rgba(242,245,247,0.86)); border-color: rgba(94,125,145,0.16); }
 .numberControl input,
 .numberControl select,
 .selectBlock select,
-.textarea { background: #fff; color: #102f5c; border-color: rgba(22,104,232,.2); }
+.textarea { background: #f2f5f7; color: #275b7b; border-color: rgba(94,125,145,0.2); }
 .seedCard,
 .allianceCard,
 .powerCard,
@@ -764,14 +764,14 @@
 .podiumCard,
 .importPanel,
 .bracketMatch,
-.bronzePlayoffCard { background: rgba(255,255,255,.9); border-color: rgba(22,104,232,.14); }
+.bronzePlayoffCard { background: rgba(242,245,247,0.9); border-color: rgba(94,125,145,0.14); }
 .seedMeta span,
 .powerMeta span,
 .allianceStats span,
 .metricGrid div,
-.teamRow { background: #eef6ff; }
-.secondaryButton { background: #eef6ff; border-color: rgba(22,104,232,.18); color: #0b5dcc; }
-.bracketColumnTitle { background: linear-gradient(145deg, #fff9df, #eaf3ff); border-color: rgba(22,104,232,.16); color:#102f5c; }
-.bracketMatchHeader { color:#102f5c; }
+.teamRow { background: #f2f5f7; }
+.secondaryButton { background: #f2f5f7; border-color: rgba(94,125,145,0.18); color: #275b7b; }
+.bracketColumnTitle { background: linear-gradient(145deg, #f2f5f7, #f2f5f7); border-color: rgba(94,125,145,0.16); color:#275b7b; }
+.bracketMatchHeader { color:#275b7b; }
 .bracketAlliance span,
-.medalCard span { color: #fff; }
+.medalCard span { color: #202a35; }

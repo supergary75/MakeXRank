@@ -5,12 +5,12 @@
 .intro {
   padding: 30px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(22, 104, 232, 0.14);
-  border-left: 3px solid #d5ad38;
+  border: 1px solid rgba(94,125,145,0.14);
+  border-left: 3px solid #5e7d91;
   background:
-    linear-gradient(130deg, rgba(255, 251, 232, 0.68), rgba(232, 243, 255, 0.72)),
-    rgba(255, 255, 255, 0.86);
-  box-shadow: 0 16px 36px rgba(42, 88, 136, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    linear-gradient(130deg, rgba(242,245,247,0.68), rgba(242,245,247,0.72)),
+    rgba(242,245,247,0.86);
+  box-shadow: none;
   backdrop-filter: blur(18px) saturate(1.08);
 }
 
@@ -47,13 +47,13 @@
   gap: 18px;
   padding: 24px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(22, 104, 232, 0.14);
-  border-left: 3px solid rgba(213, 173, 56, 0.8);
+  border: 1px solid rgba(94,125,145,0.14);
+  border-left: 3px solid rgba(94,125,145,0.8);
   background:
-    radial-gradient(circle at top right, rgba(77, 163, 255, 0.12), transparent 34%),
-    linear-gradient(160deg, rgba(255, 251, 232, 0.7), transparent 44%),
-    rgba(255, 255, 255, 0.86);
-  box-shadow: 0 16px 36px rgba(42, 88, 136, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    radial-gradient(circle at top right, rgba(228,240,234,0.12), transparent 34%),
+    linear-gradient(160deg, rgba(242,245,247,0.7), transparent 44%),
+    rgba(242,245,247,0.86);
+  box-shadow: none;
   backdrop-filter: blur(18px) saturate(1.08);
   overflow: hidden;
   position: relative;
@@ -71,7 +71,7 @@
   opacity: 0.16;
   pointer-events: none;
   transform: rotate(-8deg);
-  box-shadow: 0 18px 34px rgba(42, 88, 136, 0.14);
+  box-shadow: none;
 }
 
 .card:nth-child(2)::after {
@@ -98,7 +98,7 @@
 
 .cardLabel {
   margin-bottom: 8px;
-  color: #a47b0d;
+  color: #275b7b;
   font-size: 0.78rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -114,9 +114,9 @@
   flex-shrink: 0;
   padding: 8px 12px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(22, 104, 232, 0.14);
-  background: rgba(232, 243, 255, 0.82);
-  color: #0e5ccf;
+  border: 1px solid rgba(94,125,145,0.14);
+  background: rgba(242,245,247,0.82);
+  color: #275b7b;
   font-size: 0.84rem;
 }
 
@@ -134,8 +134,8 @@
 .keywordRow span {
   padding: 7px 12px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(22, 104, 232, 0.1);
-  background: rgba(238, 246, 255, 0.84);
+  border: 1px solid rgba(94,125,145,0.1);
+  background: rgba(242,245,247,0.84);
   color: var(--gray-700);
   font-size: 0.82rem;
 }
@@ -150,9 +150,9 @@
 .enterButton {
   min-height: 48px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(244, 214, 138, 0.34);
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
-  color: #07111f;
+  border: 1px solid rgba(94,125,145,0.34);
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 52%, #f7e5e8 100%);
+  color: #445464;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -161,7 +161,7 @@
 
 .enterButton:hover {
   transform: translateY(-1px);
-  box-shadow: var(--glow-amber);
+  box-shadow: none;
 }
 
 @media (max-width: 1024px) {
@@ -199,16 +199,16 @@
 }
 
 /* Arena theme */
-.selector { background:#0a0e15; }
+.selector { background:#e8edf1; }
 .intro,
-.card { border-color:#354352; border-left-color:#FFD700; background:linear-gradient(145deg,rgba(53,242,255,.045),transparent 48%),#121821; box-shadow:0 16px 36px rgba(0,0,0,.32); }
+.card { border-color:#9dacb9; border-left-color:#5e7d91; background:linear-gradient(145deg,rgba(228,240,234,0.045),transparent 48%),#e8edf1; box-shadow:none; }
 .intro h2,
-.card h3 { color:#fff; }
+.card h3 { color:#202a35; }
 .hint,
-.description { color:#bdc8d2; }
+.description { color:#202a35; }
 .eyebrow,
-.cardLabel { color:#FFD700; }
-.countBadge { border-color:#35f2ff; background:rgba(53,242,255,.08); color:#35f2ff; }
-.keywordRow span { border-color:#354352; background:#19212b; color:#e8edf2; }
-.footer { color:#bdc8d2; }
-.enterButton { border-color:#FFD700; background:#FFD700; color:#090c13; }
+.cardLabel { color:#704f00; }
+.countBadge { border-color:#5e7d91; background:rgba(228,240,234,0.08); color:#275b7b; }
+.keywordRow span { border-color:#9dacb9; background:#e8edf1; color:#202a35; }
+.footer { color:#202a35; }
+.enterButton { border-color:#5e7d91; background:#e3edf6; color:#445464; }

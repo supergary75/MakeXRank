@@ -73,6 +73,7 @@ import { mirrorLogisticsEventsToNormalizedTables } from './services/normalizedCo
 import { CompetitionLobby } from './components/competition/CompetitionLobby';
 import { EventTypeSelector } from './components/competition/EventTypeSelector';
 import { Header } from './components/layout/Header';
+import WorkspaceHero from './components/WorkspaceHero';
 import { Footer } from './components/layout/Footer';
 import { TabNavigation } from './components/layout/TabNavigation';
 import { DataControls } from './components/data-input/DataControls';
@@ -85,6 +86,7 @@ import { PlayoffView } from './components/playoff/PlayoffView';
 import { FocusScheduleView } from './components/schedule/FocusScheduleView';
 import { AuthPanel } from './components/auth/AuthPanel';
 import { InterviewCenter } from './components/interview/InterviewCenter';
+import { CurriculumSystem, curriculumModules, curriculumRoutes } from './components/CurriculumSystem';
 import { NotificationContainer } from './components/ui/Notification';
 import { SimulationSystem } from './components/simulation/SimulationSystem';
 import { ExplorerScheduleGenerator, PracticeEventHub } from './components/practice/PracticeEventHub';
@@ -258,7 +260,8 @@ const LOGISTICS_SYNC_TABLE = import.meta.env.VITE_SUPABASE_LOGISTICS_SYNC_TABLE?
 const LOGISTICS_SYNC_ID = 'global';
 const LOGISTICS_TOMBSTONE_PREFIX = '__makexrank_deleted_logistics__:';
 const VIEW_MODES: ViewMode[] = [
-  'work-hub', 'interview-center', 'product-center',
+  'work-hub', 'interview-center', 'product-center', 'curriculum-system',
+  ...curriculumRoutes,
   'home', 'login', 'my-tasks', 'event-types', 'logistics', 'logistics-roster',
   'logistics-event', 'logistics-event-roster', 'logistics-event-rooms',
   'training-plan', 'training-event', 'simulation-system', 'score-calculator',
@@ -6682,13 +6685,8 @@ export default function App() {
       <div className={styles.container}>
         {viewMode === 'work-hub' ? (
           <>
-            <Header
-              eyebrow="KCLUB Workspace"
-              title="俱乐部内部工作系统"
-              subtitle="让每一份工作有序开展。选择工作中心，开启今天的协作。"
+            <WorkspaceHero
               action={<div className={styles.workHubAccount}>{accountAction}</div>}
-              showLogo={false}
-              theme="darkGold"
             />
             <section className={styles.workHubSection} aria-label="工作中心入口">
               <div className={styles.workHubIntro}>
@@ -6730,14 +6728,22 @@ export default function App() {
               action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>{accountAction}</div>} />
             <InterviewCenter key={authUser?.authUserId || 'guest'} accountId={authUser?.authUserId} onLogin={() => setAuthPanelOpen(true)} />
           </>
+        ) : viewMode === 'curriculum-system' || curriculumRoutes.some(route => route === viewMode) ? (
+          <>
+            <Header eyebrow="Curriculum System" title={viewMode === 'curriculum-system' ? '课程体系' : curriculumModules[curriculumRoutes.findIndex(route => route === viewMode)]} subtitle="产品中心 / 课程体系"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode(viewMode === 'curriculum-system' ? 'product-center' : 'curriculum-system')}>{viewMode === 'curriculum-system' ? '← 返回产品中心' : '← 返回课程体系'}</button>{accountAction}</div>} />
+            <section className={styles.productCenterSection} aria-label="课程体系内容">
+              <CurriculumSystem key={viewMode} module={curriculumRoutes.findIndex(route => route === viewMode)} onOpen={setViewMode} />
+            </section>
+          </>
         ) : viewMode === 'product-center' ? (
           <>
-            <Header eyebrow="Product Center" title="产品中心" subtitle="KCLUB 课程产品与教学资料的统一入口。"
+            <WorkspaceHero product
               action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>{accountAction}</div>} />
-            <section className={styles.productCenterSection} aria-label="产品中心模块">
-              <div className={styles.productCenterIntro}><p className={styles.portalCardLabel}>PRODUCT WORKSPACE</p><h2>课程产品，持续沉淀</h2><p>这里将集中管理课程结构、教学目标、课次内容与配套文档。当前先建立入口，后续逐步接入实际内容。</p></div>
+            <section className={`${styles.productCenterSection} ${styles.productRedesign}`} aria-label="产品中心模块">
+              <div className={styles.productCenterIntro}><p className={styles.portalCardLabel}>EXPLORE THE PROGRAM</p><h2>从兴趣出发，向工程进阶。</h2><p>先了解培养路径，再查阅教学资料。把每一个级别的学习目标，落实到一次次动手实践。</p></div>
               <div className={styles.productModuleGrid}>
-                <article className={styles.productModuleCard}><span>01</span><p className={styles.workHubEnglish}>CURRICULUM SYSTEM</p><h3>课程体系</h3><p>规划课程阶段、年龄层、能力目标、课次路径和升级关系。</p><button type="button" disabled>待接入</button></article>
+                <article className={styles.productModuleCard}><span>01</span><p className={styles.workHubEnglish}>CURRICULUM SYSTEM</p><h3>课程体系</h3><p>查看七级培养路径、赛事定位与能力进阶。</p><button type="button" onClick={() => setViewMode('curriculum-system')}>查看课程体系</button></article>
                 <article className={styles.productModuleCard}><span>02</span><p className={styles.workHubEnglish}>COURSE DOCUMENTS</p><h3>课程文档</h3><p>归档教案、课程说明、课堂材料、教师指引和历史版本。</p><a className={styles.productModuleLink} href="#course-document-library">查看文档库</a></article>
               </div>
               <section className={styles.courseDocumentLibrary} id="course-document-library" aria-labelledby="course-document-title">

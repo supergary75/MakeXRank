@@ -1,9 +1,9 @@
 .footer {
   padding: 24px 30px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(232, 244, 255, 0.82));
+  background: linear-gradient(135deg, rgba(242,245,247,0.9), rgba(242,245,247,0.82));
   text-align: center;
   color: var(--gray-500);
-  border-top: 1px solid rgba(22, 104, 232, 0.14);
+  border-top: 1px solid rgba(94,125,145,0.14);
   font-size: 0.9em;
   letter-spacing: 0.04em;
 }
@@ -26,8 +26,8 @@
   color: var(--gray-300);
 }
 
-.footer { background:#0d121a; color:#bdc8d2; border-top-color:#303a46; }
-.lastUpdate { color:#9eacba; }
+.footer { background:#e8edf1; color:#202a35; border-top-color:#9dacb9; }
+.lastUpdate { color:#202a35; }
 
 @media (max-width: 768px) {
   .footer {

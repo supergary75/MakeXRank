@@ -9,11 +9,11 @@
 .resultPanel,
 .scheduleCard {
   background:
-    linear-gradient(135deg, rgba(255, 244, 217, 0.06), transparent 28%),
-    linear-gradient(160deg, rgba(123, 35, 27, 0.9), rgba(62, 16, 14, 0.96));
-  border: 1px solid rgba(225, 184, 90, 0.18);
+    linear-gradient(135deg, rgba(242,245,247,0.06), transparent 28%),
+    linear-gradient(160deg, rgba(247,229,232,0.9), rgba(242,245,247,0.96));
+  border: 1px solid rgba(94,125,145,0.18);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .hero {
@@ -26,7 +26,7 @@
 
 .eyebrow {
   margin: 0 0 10px;
-  color: rgba(255, 231, 184, 0.78);
+  color: rgba(39,91,123,0.78);
   font-size: 0.78rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -37,13 +37,13 @@
 .resultPanel h3,
 .scheduleHeader h4 {
   margin: 0;
-  color: #fff2d1;
+  color: #202a35;
 }
 
 .description,
 .panelHeader p {
   margin: 10px 0 0;
-  color: rgba(255, 238, 211, 0.82);
+  color: rgba(32,42,53,0.82);
   line-height: 1.7;
 }
 
@@ -58,9 +58,9 @@
 .queryLabel,
 .matchBadge {
   border-radius: 999px;
-  border: 1px solid rgba(216, 189, 132, 0.22);
-  background: rgba(216, 189, 132, 0.12);
-  color: #f4d28c;
+  border: 1px solid rgba(94,125,145,0.22);
+  background: rgba(227,237,246,0.12);
+  color: #275b7b;
   font-size: 0.88rem;
 }
 
@@ -101,7 +101,7 @@
 }
 
 .inputBlock span {
-  color: #f4d28c;
+  color: #275b7b;
   font-weight: 700;
 }
 
@@ -111,16 +111,16 @@
   box-sizing: border-box;
   resize: vertical;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(225, 184, 90, 0.2);
-  background: rgba(34, 8, 8, 0.58);
-  color: #fff4dc;
+  border: 1px solid rgba(94,125,145,0.2);
+  background: rgba(232,237,241,0.58);
+  color: #202a35;
   font: inherit;
   line-height: 1.6;
   padding: 14px 16px;
 }
 
 .textarea::placeholder {
-  color: rgba(255, 238, 211, 0.42);
+  color: rgba(32,42,53,0.42);
 }
 
 .primaryButton,
@@ -135,22 +135,22 @@
 
 .primaryButton {
   padding: 0 18px;
-  border: 1px solid rgba(255, 245, 217, 0.14);
-  background: linear-gradient(145deg, #d8bd84 0%, #b68a3d 100%);
-  color: #34170b;
+  border: 1px solid rgba(157,172,185,0.14);
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 100%);
+  color: #445464;
 }
 
 .secondaryButton {
   padding: 0 16px;
-  border: 1px solid rgba(225, 184, 90, 0.18);
-  background: rgba(225, 184, 90, 0.08);
-  color: #f4d28c;
+  border: 1px solid rgba(94,125,145,0.18);
+  background: rgba(247,229,232,0.08);
+  color: #275b7b;
 }
 
 .primaryButton:hover,
 .secondaryButton:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .actionFooter {
@@ -160,37 +160,37 @@
 .emptyState,
 .notFound {
   border-radius: var(--radius-md);
-  border: 1px dashed rgba(225, 184, 90, 0.26);
-  background: rgba(53, 15, 14, 0.44);
-  color: rgba(255, 238, 211, 0.78);
+  border: 1px dashed rgba(94,125,145,0.26);
+  background: rgba(232,237,241,0.44);
+  color: rgba(32,42,53,0.78);
   line-height: 1.7;
 }
 
 /* Light schedule analysis surfaces */
 .resultPanel,
-.scheduleCard { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,244,255,.84)); border-color: rgba(22,104,232,.2); box-shadow: 0 16px 40px rgba(45,92,143,.11); }
+.scheduleCard { background: linear-gradient(145deg, rgba(242,245,247,0.96), rgba(242,245,247,0.84)); border-color: rgba(94,125,145,0.2); box-shadow: none; }
 .resultPanel h3,
-.scheduleHeader h4 { color: #102f5c; text-shadow: none; }
-.resultPanel .panelHeader p { color: #506b89; }
-.table { background: #fff; border-color: rgba(22,104,232,.18); box-shadow: none; }
-.table th { background: linear-gradient(180deg, #e8f2ff, #f7fbff); color: #203b60; text-shadow: none; }
-.table td { color: #203b60; border-bottom-color: rgba(22,104,232,.1); }
-.tagPicker { background: #fff; color: #203b60; border-color: rgba(22,104,232,.22); box-shadow: 0 14px 32px rgba(45,92,143,.15); }
-.tagPicker strong { color: #0b5dcc; text-shadow: none; }
+.scheduleHeader h4 { color: #275b7b; text-shadow: none; }
+.resultPanel .panelHeader p { color: #445464; }
+.table { background: #f2f5f7; border-color: rgba(94,125,145,0.18); box-shadow: none; }
+.table th { background: linear-gradient(180deg, #f2f5f7, #f2f5f7); color: #275b7b; text-shadow: none; }
+.table td { color: #275b7b; border-bottom-color: rgba(94,125,145,0.1); }
+.tagPicker { background: #f2f5f7; color: #275b7b; border-color: rgba(94,125,145,0.22); box-shadow: none; }
+.tagPicker strong { color: #275b7b; text-shadow: none; }
 .tagOptions button,
-.customTagRow button { background: #eef6ff; color: #203b60; }
-.customTagRow input { background: #fff; color: #102f5c; }
-.redTeam { background: #fff1f3; color: #9f233c; text-shadow: none; }
-.blueTeam { background: #edf6ff; color: #0b5dcc; text-shadow: none; }
+.customTagRow button { background: #f2f5f7; color: #275b7b; }
+.customTagRow input { background: #f2f5f7; color: #275b7b; }
+.redTeam { background: #f2f5f7; color: #a62230; text-shadow: none; }
+.blueTeam { background: #f2f5f7; color: #275b7b; text-shadow: none; }
 .redAllianceCell,
 .sameAllianceRow .redAllianceCell,
-.headToHeadRow .redAllianceCell { background: #fff1f3; }
+.headToHeadRow .redAllianceCell { background: #f2f5f7; }
 .blueAllianceCell,
 .sameAllianceRow .blueAllianceCell,
-.headToHeadRow .blueAllianceCell { background: #edf6ff; }
+.headToHeadRow .blueAllianceCell { background: #f2f5f7; }
 .emptyState,
-.notFound { background: #f7fbff; color: #506b89; border-color: rgba(22,104,232,.18); }
-.textarea { background: #fff; color: #102f5c; }
+.notFound { background: #f2f5f7; color: #445464; border-color: rgba(94,125,145,0.18); }
+.textarea { background: #f2f5f7; color: #275b7b; }
 
 .emptyState {
   padding: 22px;
@@ -203,24 +203,22 @@
 
 .resultPanel {
   background:
-    radial-gradient(circle at 12% 0%, rgba(255, 42, 109, 0.22), transparent 30%),
-    radial-gradient(circle at 88% 8%, rgba(0, 218, 255, 0.24), transparent 32%),
-    linear-gradient(135deg, #080913 0%, #12101d 48%, #090a14 100%);
-  border-color: rgba(0, 218, 255, 0.32);
+    radial-gradient(circle at 12% 0%, rgba(247,229,232,0.22), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(228,240,234,0.24), transparent 32%),
+    linear-gradient(135deg, #e8edf1 0%, #e8edf1 48%, #e8edf1 100%);
+  border-color: rgba(94,125,145,0.32);
   box-shadow:
-    0 0 0 1px rgba(255, 42, 109, 0.18),
-    0 22px 60px rgba(0, 0, 0, 0.34),
-    inset 0 0 34px rgba(0, 218, 255, 0.08);
+    none;
 }
 
 .resultPanel h3,
 .scheduleHeader h4 {
-  color: #f8fbff;
-  text-shadow: 0 0 14px rgba(0, 218, 255, 0.34);
+  color: #202a35;
+  text-shadow: none;
 }
 
 .resultPanel .panelHeader p {
-  color: rgba(230, 244, 255, 0.78);
+  color: rgba(32,42,53,0.78);
 }
 
 .scheduleList {
@@ -230,14 +228,13 @@
 
 .scheduleCard {
   background:
-    linear-gradient(135deg, rgba(255, 42, 109, 0.08), transparent 28%),
-    linear-gradient(225deg, rgba(0, 218, 255, 0.08), transparent 28%),
-    rgba(8, 10, 22, 0.9);
-  border-color: rgba(0, 218, 255, 0.26);
+    linear-gradient(135deg, rgba(247,229,232,0.08), transparent 28%),
+    linear-gradient(225deg, rgba(228,240,234,0.08), transparent 28%),
+    rgba(232,237,241,0.9);
+  border-color: rgba(94,125,145,0.26);
   padding: 18px;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 42, 109, 0.12),
-    0 18px 42px rgba(0, 0, 0, 0.28);
+    none;
 }
 
 .scheduleHeader {
@@ -252,10 +249,10 @@
   display: inline-flex;
   padding: 5px 10px;
   margin-bottom: 8px;
-  background: rgba(0, 218, 255, 0.12);
-  border-color: rgba(0, 218, 255, 0.38);
-  color: #8ff6ff;
-  text-shadow: 0 0 10px rgba(0, 218, 255, 0.35);
+  background: rgba(228,240,234,0.12);
+  border-color: rgba(94,125,145,0.38);
+  color: #275b7b;
+  text-shadow: none;
 }
 
 .matchBadge {
@@ -265,19 +262,19 @@
 }
 
 .complete {
-  color: #2d1809;
-  background: #d8bd84;
+  color: #445464;
+  background: #e3edf6;
 }
 
 .warning {
-  color: #3b2209;
-  background: #f1c15f;
+  color: #445464;
+  background: #f7e5e8;
 }
 
 .empty {
-  color: #ffe4e0;
-  background: rgba(184, 50, 40, 0.4);
-  border-color: rgba(255, 130, 112, 0.34);
+  color: #202a35;
+  background: rgba(247,229,232,0.4);
+  border-color: rgba(185,46,59,0.34);
 }
 
 .tableWrap {
@@ -290,32 +287,31 @@
   border-spacing: 0;
   min-width: 860px;
   overflow: hidden;
-  border: 1px solid rgba(0, 218, 255, 0.34);
+  border: 1px solid rgba(94,125,145,0.34);
   border-radius: var(--radius-md);
-  background: rgba(5, 7, 18, 0.92);
+  background: rgba(232,237,241,0.92);
   box-shadow:
-    0 0 24px rgba(0, 218, 255, 0.12),
-    inset 0 0 0 1px rgba(255, 42, 109, 0.12);
+    none;
 }
 
 .table th,
 .table td {
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(121, 219, 255, 0.18);
+  border-bottom: 1px solid rgba(94,125,145,0.18);
   text-align: left;
 }
 
 .table th {
-  background: linear-gradient(180deg, rgba(15, 24, 48, 0.98), rgba(8, 10, 24, 0.98));
-  color: #dffbff;
+  background: linear-gradient(180deg, rgba(232,237,241,0.98), rgba(232,237,241,0.98));
+  color: #202a35;
   font-size: 0.88rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(0, 218, 255, 0.5);
+  text-shadow: none;
 }
 
 .table td {
-  color: #f8fbff;
+  color: #202a35;
 }
 
 .table tbody tr:last-child td {
@@ -331,13 +327,13 @@
 }
 
 .redAlliance {
-  background: rgba(255, 73, 64, 0.2);
-  color: #ffc7c1;
+  background: rgba(247,229,232,0.2);
+  color: #275b7b;
 }
 
 .blueAlliance {
-  background: rgba(73, 179, 255, 0.2);
-  color: #c5e8ff;
+  background: rgba(228,240,234,0.2);
+  color: #202a35;
 }
 
 .allianceTeams {
@@ -365,7 +361,7 @@
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: 0.02em;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  box-shadow: none;
   cursor: pointer;
   font: inherit;
   text-align: left;
@@ -384,7 +380,7 @@
   min-width: 38px;
   padding: 3px 7px;
   border-radius: 4px;
-  color: #ffffff;
+  color: #202a35;
   font-size: 0.78rem;
   font-weight: 950;
   line-height: 1.2;
@@ -392,11 +388,11 @@
 }
 
 .redSeatBadge {
-  background: #b83232;
+  background: #f7e5e8;
 }
 
 .blueSeatBadge {
-  background: #245f9e;
+  background: #e4f0ea;
 }
 
 .teamName {
@@ -422,10 +418,10 @@
   align-items: flex-start;
   gap: 2px;
   padding: 6px 8px;
-  border: 1px solid #8e6c19;
+  border: 1px solid #b92e3b;
   border-radius: 4px;
-  background: #fff7d6;
-  color: #664c0d;
+  background: #f2f5f7;
+  color: #275b7b;
   font-size: 0.76rem;
   font-weight: 950;
   line-height: 1.2;
@@ -439,7 +435,7 @@
 }
 
 .epaSource {
-  color: #735d25;
+  color: #275b7b;
   font-size: 0.68rem;
   font-weight: 750;
   line-height: 1.25;
@@ -450,9 +446,9 @@
   display: inline-flex;
   padding: 2px 7px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(255, 243, 107, 0.28), rgba(0, 218, 255, 0.2));
-  border: 1px solid rgba(255, 243, 107, 0.5);
-  color: #fffbd0;
+  background: linear-gradient(135deg, rgba(227,237,246,0.28), rgba(228,240,234,0.2));
+  border: 1px solid rgba(94,125,145,0.5);
+  color: #202a35;
   font-size: 0.78rem;
   font-weight: 950;
 }
@@ -462,22 +458,21 @@
   gap: 10px;
   min-width: 260px;
   padding: 12px;
-  border: 1px solid rgba(0, 218, 255, 0.38);
+  border: 1px solid rgba(94,125,145,0.38);
   border-radius: 14px;
   background:
-    linear-gradient(135deg, rgba(255, 42, 109, 0.12), rgba(0, 218, 255, 0.1)),
-    rgba(5, 7, 18, 0.98);
+    linear-gradient(135deg, rgba(247,229,232,0.12), rgba(228,240,234,0.1)),
+    rgba(232,237,241,0.98);
   box-shadow:
-    0 0 24px rgba(0, 218, 255, 0.18),
-    inset 0 0 0 1px rgba(255, 42, 109, 0.12);
-  color: #e2fbff;
+    none;
+  color: #202a35;
   z-index: 2;
 }
 
 .tagPicker strong {
-  color: #8ff6ff;
+  color: #275b7b;
   font-size: 0.88rem;
-  text-shadow: 0 0 10px rgba(0, 218, 255, 0.36);
+  text-shadow: none;
 }
 
 .tagPickerHeader {
@@ -490,9 +485,9 @@
 .tagPickerHeader button {
   min-height: 28px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 42, 109, 0.4);
-  background: rgba(255, 42, 109, 0.12);
-  color: #ffdce7;
+  border: 1px solid rgba(185,46,59,0.4);
+  background: rgba(247,229,232,0.12);
+  color: #202a35;
   cursor: pointer;
   font: inherit;
   font-size: 0.76rem;
@@ -501,8 +496,8 @@
 }
 
 .tagPickerHeader button:hover {
-  background: rgba(255, 42, 109, 0.22);
-  box-shadow: 0 0 12px rgba(255, 42, 109, 0.2);
+  background: rgba(247,229,232,0.22);
+  box-shadow: none;
 }
 
 .tagOptions,
@@ -516,9 +511,9 @@
 .customTagRow button {
   min-height: 32px;
   border-radius: 999px;
-  border: 1px solid rgba(0, 218, 255, 0.32);
-  background: rgba(0, 218, 255, 0.1);
-  color: #e2fbff;
+  border: 1px solid rgba(94,125,145,0.32);
+  background: rgba(228,240,234,0.1);
+  color: #202a35;
   cursor: pointer;
   font: inherit;
   font-size: 0.78rem;
@@ -529,14 +524,14 @@
 .tagOptions button:hover,
 .customTagRow button:hover,
 .activeTagOption {
-  background: linear-gradient(135deg, #ff2a6d, #00daff) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 14px rgba(0, 218, 255, 0.28);
+  background: linear-gradient(135deg, #f7e5e8, #e4f0ea) !important;
+  color: #202a35 !important;
+  box-shadow: none;
 }
 
 .clearTagOption {
-  border-color: rgba(255, 176, 57, 0.55) !important;
-  color: #ffdd9a !important;
+  border-color: rgba(185,46,59,0.55) !important;
+  color: #275b7b !important;
 }
 
 .customTagRow input {
@@ -544,99 +539,97 @@
   min-height: 32px;
   min-width: 0;
   border-radius: 999px;
-  border: 1px solid rgba(0, 218, 255, 0.32);
-  background: rgba(5, 7, 18, 0.82);
-  color: #e2fbff;
+  border: 1px solid rgba(94,125,145,0.32);
+  background: rgba(232,237,241,0.82);
+  color: #202a35;
   font: inherit;
   padding: 0 10px;
 }
 
 .redTeam {
-  background: rgba(25, 4, 12, 0.74);
-  border: 1px solid rgba(255, 91, 127, 0.72);
-  color: #ffe9ef;
-  text-shadow: 0 0 9px rgba(255, 42, 109, 0.44);
+  background: rgba(232,237,241,0.74);
+  border: 1px solid rgba(185,46,59,0.72);
+  color: #202a35;
+  text-shadow: none;
 }
 
 .blueTeam {
-  background: rgba(3, 16, 30, 0.78);
-  border: 1px solid rgba(0, 218, 255, 0.72);
-  color: #e2fbff;
-  text-shadow: 0 0 9px rgba(0, 218, 255, 0.44);
+  background: rgba(232,237,241,0.78);
+  border: 1px solid rgba(94,125,145,0.72);
+  color: #202a35;
+  text-shadow: none;
 }
 
 .redAllianceCell {
   background:
-    linear-gradient(135deg, rgba(255, 42, 109, 0.34), rgba(73, 8, 25, 0.9)),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 12px);
-  box-shadow: inset 5px 0 0 rgba(255, 42, 109, 0.9);
+    linear-gradient(135deg, rgba(247,229,232,0.34), rgba(242,245,247,0.9)),
+    repeating-linear-gradient(135deg, rgba(242,245,247,0.06) 0 1px, transparent 1px 12px);
+  box-shadow: none;
 }
 
 .blueAllianceCell {
   background:
-    linear-gradient(135deg, rgba(0, 218, 255, 0.34), rgba(4, 24, 52, 0.9)),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 12px);
-  box-shadow: inset 5px 0 0 rgba(0, 218, 255, 0.9);
+    linear-gradient(135deg, rgba(228,240,234,0.34), rgba(232,237,241,0.9)),
+    repeating-linear-gradient(135deg, rgba(242,245,247,0.06) 0 1px, transparent 1px 12px);
+  box-shadow: none;
 }
 
 .sameAllianceRow .redAllianceCell,
 .headToHeadRow .redAllianceCell {
   background:
-    linear-gradient(135deg, rgba(255, 42, 109, 0.36), rgba(73, 8, 25, 0.92)),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 12px);
+    linear-gradient(135deg, rgba(247,229,232,0.36), rgba(242,245,247,0.92)),
+    repeating-linear-gradient(135deg, rgba(242,245,247,0.07) 0 1px, transparent 1px 12px);
 }
 
 .sameAllianceRow .blueAllianceCell,
 .headToHeadRow .blueAllianceCell {
   background:
-    linear-gradient(135deg, rgba(0, 218, 255, 0.36), rgba(4, 24, 52, 0.92)),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 12px);
+    linear-gradient(135deg, rgba(228,240,234,0.36), rgba(232,237,241,0.92)),
+    repeating-linear-gradient(135deg, rgba(242,245,247,0.07) 0 1px, transparent 1px 12px);
 }
 
 .focusTeam {
-  border-color: #fff36b;
+  border-color: #5e7d91;
   box-shadow:
-    0 0 0 2px rgba(255, 243, 107, 0.18),
-    0 0 18px rgba(255, 243, 107, 0.5);
-  color: #fffbd0;
+    none;
+  color: #202a35;
   font-weight: 950;
 }
 
 .otherFocusTeam {
-  border-color: #39ffb6;
+  border-color: #5e7d91;
   box-shadow:
-    0 0 0 2px rgba(57, 255, 182, 0.14),
-    0 0 16px rgba(57, 255, 182, 0.42);
-  color: #ddfff4;
+    none;
+  color: #202a35;
   font-weight: 950;
 }
 
 .sameAllianceRow td {
-  background: rgba(57, 255, 182, 0.1);
-  border-top: 2px solid rgba(57, 255, 182, 0.85);
-  border-bottom: 2px solid rgba(57, 255, 182, 0.85);
+  background: rgba(228,240,234,0.1);
+  border-top: 2px solid rgba(94,125,145,0.85);
+  border-bottom: 2px solid rgba(94,125,145,0.85);
 }
 
 .headToHeadRow td {
-  background: rgba(255, 176, 57, 0.12);
-  border-top: 2px solid rgba(255, 176, 57, 0.95);
-  border-bottom: 2px solid rgba(255, 176, 57, 0.95);
+  background: rgba(247,229,232,0.12);
+  border-top: 2px solid rgba(185,46,59,0.95);
+  border-bottom: 2px solid rgba(185,46,59,0.95);
 }
 
 .sameAllianceRow td:first-child {
-  border-left: 8px solid #39ffb6;
+  border-left: 8px solid #5e7d91;
 }
 
 .sameAllianceRow td:last-child {
-  border-right: 2px solid #39ffb6;
+  border-right: 2px solid #5e7d91;
 }
 
 .headToHeadRow td:first-child {
-  border-left: 8px solid #ffb039;
+  border-left: 8px solid #b92e3b;
 }
 
 .headToHeadRow td:last-child {
-  border-right: 2px solid #ffb039;
+  border-right: 2px solid #b92e3b;
 }
 
 .sameAllianceGroup {
@@ -644,11 +637,10 @@
   padding: 8px;
   padding-top: 28px;
   border-radius: 14px;
-  background: rgba(57, 255, 182, 0.12);
-  border: 2px solid rgba(57, 255, 182, 0.78);
+  background: rgba(228,240,234,0.12);
+  border: 2px solid rgba(94,125,145,0.78);
   box-shadow:
-    0 0 18px rgba(57, 255, 182, 0.18),
-    inset 0 0 18px rgba(57, 255, 182, 0.08);
+    none;
 }
 
 .headToHeadGroup {
@@ -656,11 +648,10 @@
   padding: 8px;
   padding-top: 28px;
   border-radius: 14px;
-  background: rgba(255, 176, 57, 0.13);
-  border: 2px solid rgba(255, 176, 57, 0.88);
+  background: rgba(247,229,232,0.13);
+  border: 2px solid rgba(185,46,59,0.88);
   box-shadow:
-    0 0 18px rgba(255, 176, 57, 0.18),
-    inset 0 0 18px rgba(255, 176, 57, 0.08);
+    none;
 }
 
 .sameAllianceGroup::before,
@@ -670,7 +661,7 @@
   left: 8px;
   padding: 2px 7px;
   border-radius: 999px;
-  color: #ffffff;
+  color: #202a35;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -678,45 +669,43 @@
 
 .sameAllianceGroup::before {
   content: "同联盟";
-  background: #24a148;
+  background: #e4f0ea;
 }
 
 .headToHeadGroup::before {
   content: "重点对战";
-  background: #e4572e;
+  background: #f7e5e8;
 }
 
 .versusCell {
-  color: #f8fbff;
+  color: #202a35;
   font-weight: 950;
   letter-spacing: 0.12em;
   text-align: center;
   text-shadow:
-    0 0 8px rgba(255, 42, 109, 0.45),
-    0 0 12px rgba(0, 218, 255, 0.38);
+    none;
 }
 
 .headToHeadBadge {
   display: inline-flex;
   padding: 6px 10px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ff2a6d, #00daff);
-  color: #ffffff;
+  background: linear-gradient(135deg, #f7e5e8, #e4f0ea);
+  color: #202a35;
   box-shadow:
-    0 0 14px rgba(255, 42, 109, 0.32),
-    0 0 18px rgba(0, 218, 255, 0.28);
+    none;
 }
 
 .sameAllianceGroup::before {
-  background: linear-gradient(135deg, #00bf84, #39ffb6);
-  color: #06110d;
-  box-shadow: 0 0 12px rgba(57, 255, 182, 0.38);
+  background: linear-gradient(135deg, #e4f0ea, #e4f0ea);
+  color: #445464;
+  box-shadow: none;
 }
 
 .headToHeadGroup::before {
-  background: linear-gradient(135deg, #ff8f1f, #ff2a6d);
-  color: #ffffff;
-  box-shadow: 0 0 12px rgba(255, 42, 109, 0.36);
+  background: linear-gradient(135deg, #f7e5e8, #f7e5e8);
+  color: #202a35;
+  box-shadow: none;
 }
 
 @media (max-width: 860px) {
@@ -760,9 +749,9 @@
 .hero,
 .panel {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 28%),
-    linear-gradient(160deg, rgba(214, 169, 74, 0.1), rgba(93, 214, 255, 0.06));
-  border-color: rgba(217, 226, 236, 0.1);
+    linear-gradient(135deg, rgba(242,245,247,0.06), transparent 28%),
+    linear-gradient(160deg, rgba(247,229,232,0.1), rgba(228,240,234,0.06));
+  border-color: rgba(157,172,185,0.1);
 }
 
 .eyebrow,
@@ -785,13 +774,13 @@
 .heroStats span,
 .queryLabel,
 .matchBadge {
-  background: rgba(93, 214, 255, 0.1);
-  border-color: rgba(93, 214, 255, 0.2);
+  background: rgba(228,240,234,0.1);
+  border-color: rgba(94,125,145,0.2);
 }
 
 .textarea {
-  background: rgba(8, 12, 18, 0.58);
-  border-color: rgba(217, 226, 236, 0.12);
+  background: rgba(232,237,241,0.58);
+  border-color: rgba(157,172,185,0.12);
   color: var(--gray-800);
 }
 
@@ -800,20 +789,20 @@
 }
 
 .primaryButton {
-  background: linear-gradient(145deg, #f4d68a 0%, #d6a94a 52%, #8f6421 100%);
-  color: #07111f;
+  background: linear-gradient(145deg, #e3edf6 0%, #f7e5e8 52%, #f7e5e8 100%);
+  color: #445464;
 }
 
 .secondaryButton {
-  background: rgba(93, 214, 255, 0.08);
-  border-color: rgba(93, 214, 255, 0.18);
+  background: rgba(228,240,234,0.08);
+  border-color: rgba(94,125,145,0.18);
   color: var(--secondary);
 }
 
 .emptyState,
 .notFound {
-  background: rgba(18, 25, 34, 0.78);
-  border-color: rgba(217, 226, 236, 0.1);
+  background: rgba(232,237,241,0.78);
+  border-color: rgba(157,172,185,0.1);
   color: var(--gray-600);
 }
 
@@ -821,31 +810,31 @@
 .hero,
 .panel,
 .resultPanel,
-.scheduleCard { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,244,255,.84)); border-color: rgba(22,104,232,.18); }
+.scheduleCard { background: linear-gradient(145deg, rgba(242,245,247,0.96), rgba(242,245,247,0.84)); border-color: rgba(94,125,145,0.18); }
 .resultPanel h3,
-.scheduleHeader h4 { color:#102f5c; text-shadow:none; }
-.resultPanel .panelHeader p { color:#506b89; }
+.scheduleHeader h4 { color:#275b7b; text-shadow:none; }
+.resultPanel .panelHeader p { color:#445464; }
 .textarea,
-.customTagRow input { background:#fff; color:#102f5c; border-color:rgba(22,104,232,.18); }
-.table { background:#fff; border-color:rgba(22,104,232,.18); box-shadow:none; }
-.table th { background:linear-gradient(180deg,#e8f2ff,#f7fbff); color:#203b60; text-shadow:none; }
-.table td { color:#203b60; border-bottom-color:rgba(22,104,232,.1); }
-.tagPicker { background:#fff; color:#203b60; border-color:rgba(22,104,232,.22); box-shadow:0 14px 32px rgba(45,92,143,.15); }
-.redTeam { background:#fff1f3; color:#9f233c; text-shadow:none; }
-.blueTeam { background:#edf6ff; color:#0b5dcc; text-shadow:none; }
+.customTagRow input { background:#f2f5f7; color:#275b7b; border-color:rgba(94,125,145,0.18); }
+.table { background:#f2f5f7; border-color:rgba(94,125,145,0.18); box-shadow:none; }
+.table th { background:linear-gradient(180deg,#f2f5f7,#f2f5f7); color:#275b7b; text-shadow:none; }
+.table td { color:#275b7b; border-bottom-color:rgba(94,125,145,0.1); }
+.tagPicker { background:#f2f5f7; color:#275b7b; border-color:rgba(94,125,145,0.22); box-shadow:none; }
+.redTeam { background:#f2f5f7; color:#a62230; text-shadow:none; }
+.blueTeam { background:#f2f5f7; color:#275b7b; text-shadow:none; }
 .emptyState,
-.notFound { background:#f7fbff; border-color:rgba(22,104,232,.18); color:#506b89; }
+.notFound { background:#f2f5f7; border-color:rgba(94,125,145,0.18); color:#445464; }
 
 /* Focus schedule results: keep this deliberately plain and table-first. */
 .resultPanel {
-  background: #f5f7fa;
-  border: 1px solid #c8d1dc;
-  box-shadow: 0 10px 28px rgba(31, 45, 61, 0.1);
+  background: #f2f5f7;
+  border: 1px solid #9dacb9;
+  box-shadow: none;
 }
 
 .resultPanel h3,
 .resultPanel .panelHeader p {
-  color: #172b4d;
+  color: #445464;
   text-shadow: none;
 }
 
@@ -856,22 +845,22 @@
 .scheduleCard {
   padding: 0;
   overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #aeb9c7;
+  background: #f2f5f7;
+  border: 1px solid #9dacb9;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
+  box-shadow: none;
 }
 
 .scheduleHeader {
   align-items: center;
   margin: 0;
   padding: 16px 18px;
-  background: #eef2f6;
-  border-bottom: 1px solid #aeb9c7;
+  background: #f2f5f7;
+  border-bottom: 1px solid #9dacb9;
 }
 
 .scheduleHeader h4 {
-  color: #172b4d;
+  color: #445464;
   font-size: 1.08rem;
   text-shadow: none;
 }
@@ -882,39 +871,39 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #52677f;
+  color: #445464;
   font-size: 0.78rem;
 }
 
 .matchBadge {
-  border: 1px solid #8e9bab;
+  border: 1px solid #9dacb9;
   border-radius: 5px;
-  background: #ffffff;
-  color: #172b4d;
+  background: #f2f5f7;
+  color: #445464;
   box-shadow: none;
 }
 
 .complete {
-  border-color: #2f855a;
-  background: #e6f4ec;
-  color: #19643f;
+  border-color: #5e7d91;
+  background: #f2f5f7;
+  color: #166847;
 }
 
 .warning {
-  border-color: #b7791f;
-  background: #fff5d6;
-  color: #7a4b00;
+  border-color: #b92e3b;
+  background: #f2f5f7;
+  color: #a62230;
 }
 
 .empty {
-  border-color: #c53030;
-  background: #fff0f0;
-  color: #9b2525;
+  border-color: #b92e3b;
+  background: #f2f5f7;
+  color: #a62230;
 }
 
 .tableWrap {
   padding: 0;
-  background: #ffffff;
+  background: #f2f5f7;
 }
 
 .table {
@@ -922,16 +911,16 @@
   border: 0;
   border-radius: 0;
   border-collapse: collapse;
-  background: #ffffff;
+  background: #f2f5f7;
   box-shadow: none;
 }
 
 .table th,
 .table td {
   padding: 13px 14px;
-  border-right: 1px solid #b8c2ce;
-  border-bottom: 1px solid #b8c2ce;
-  color: #172b4d;
+  border-right: 1px solid #9dacb9;
+  border-bottom: 1px solid #9dacb9;
+  color: #445464;
   text-shadow: none;
   vertical-align: middle;
 }
@@ -942,8 +931,8 @@
 }
 
 .table th {
-  background: #263b55;
-  color: #ffffff;
+  background: #f2f5f7;
+  color: #202a35;
   font-size: 0.86rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -961,21 +950,21 @@
 }
 
 .table tbody tr:nth-child(even) td {
-  background-color: #f7f9fb;
+  background-color: #f2f5f7;
 }
 
 .resultPanel .redAllianceCell,
 .resultPanel .sameAllianceRow .redAllianceCell,
 .resultPanel .headToHeadRow .redAllianceCell {
-  background: #fff2f2;
-  box-shadow: inset 4px 0 0 #d64545;
+  background: #f2f5f7;
+  box-shadow: none;
 }
 
 .resultPanel .blueAllianceCell,
 .resultPanel .sameAllianceRow .blueAllianceCell,
 .resultPanel .headToHeadRow .blueAllianceCell {
-  background: #eef6ff;
-  box-shadow: inset 4px 0 0 #2b6cb0;
+  background: #f2f5f7;
+  box-shadow: none;
 }
 
 .teamPill,
@@ -988,43 +977,43 @@
   padding: 7px 9px;
   border-radius: 5px;
   box-shadow: none;
-  color: #172b4d;
+  color: #445464;
   text-shadow: none;
 }
 
 .redTeam {
-  border: 1px solid #e2a4a4;
-  background: #ffffff;
+  border: 1px solid #9dacb9;
+  background: #f2f5f7;
 }
 
 .blueTeam {
-  border: 1px solid #9fc2e8;
-  background: #ffffff;
+  border: 1px solid #9dacb9;
+  background: #f2f5f7;
 }
 
 .focusTeam {
-  border: 2px solid #1f6f43;
-  background: #e8f5ee;
-  color: #164c31;
+  border: 2px solid #9dacb9;
+  background: #f2f5f7;
+  color: #445464;
   box-shadow: none;
 }
 
 .otherFocusTeam {
-  border: 2px solid #8a5a00;
-  background: #fff5d6;
-  color: #684400;
+  border: 2px solid #b92e3b;
+  background: #f2f5f7;
+  color: #a62230;
   box-shadow: none;
 }
 
 .sameAllianceRow td,
 .headToHeadRow td {
-  border-top: 2px solid #738297;
-  border-bottom: 2px solid #738297;
+  border-top: 2px solid #9dacb9;
+  border-bottom: 2px solid #9dacb9;
 }
 
 .sameAllianceRow td:first-child,
 .headToHeadRow td:first-child {
-  border-left: 5px solid #2f855a;
+  border-left: 5px solid #5e7d91;
 }
 
 .sameAllianceRow td:last-child,
@@ -1036,9 +1025,9 @@
 .headToHeadGroup {
   padding: 8px;
   padding-top: 29px;
-  border: 1px solid #738297;
+  border: 1px solid #9dacb9;
   border-radius: 6px;
-  background: #ffffff;
+  background: #f2f5f7;
   box-shadow: none;
 }
 
@@ -1049,22 +1038,22 @@
 }
 
 .versusCell {
-  color: #52677f;
+  color: #445464;
   text-shadow: none;
 }
 
 .headToHeadBadge {
-  border: 1px solid #8a5a00;
+  border: 1px solid #b92e3b;
   border-radius: 4px;
-  background: #fff5d6;
-  color: #684400;
+  background: #f2f5f7;
+  color: #a62230;
   box-shadow: none;
 }
 
 .inlineTag {
-  border-color: #8e9bab;
-  background: #eef2f6;
-  color: #34495e;
+  border-color: #9dacb9;
+  background: #f2f5f7;
+  color: #445464;
 }
 
 .notFound {
