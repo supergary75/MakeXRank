@@ -148,6 +148,7 @@ export type ViewMode =
   | 'curriculum-building'
   | 'curriculum-modeling'
   | 'curriculum-knowledge'
+  | 'curriculum-personal'
   | 'home'
   | 'login'
   | 'my-tasks'

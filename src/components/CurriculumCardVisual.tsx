@@ -7,5 +7,6 @@ export function CurriculumCardVisual({ index }: { index: number }) {
     {index === 2 && <><svg viewBox="0 0 64 64"><path d="M40 9a14 14 0 0 0-16 18L9 42a7 7 0 0 0 10 10l15-15A14 14 0 0 0 52 21l-9 9-9-9 9-9Z" /><circle cx="15" cy="47" r="2" /><path d="m47 43 8 5v9l-8 5-8-5v-9Z" /><circle cx="47" cy="52" r="3" /></svg><div className={styles.visualWords}>ASSEMBLE · TEST<br /><b>零件 / 连接 / 传动</b></div></>}
     {index === 3 && <><svg viewBox="0 0 64 64"><path d="m32 6 24 14v26L32 60 8 46V20Z M8 20l24 14 24-14 M32 34v26 M8 46l24-14 24 14 M32 6v26" /></svg><div className={styles.visualWords}>SKETCH → MODEL<br /><b>2D → 3D → 制造</b></div></>}
     {index === 4 && <div className={styles.formulaPreview}><b>U = IR</b><b>v = s / t</b><div>测量 · 数量 · 运动 · 能量</div></div>}
+    {index === 5 && <><svg viewBox="0 0 64 64"><circle cx="32" cy="15" r="8" /><path d="M18 47v-9a14 14 0 0 1 28 0v9 M10 54h44 M20 54V43 M44 54V43 M8 30l5 5 7-9 M45 12h12 M51 6v12" /></svg><div className={styles.visualWords}>LEARN · COLLABORATE<br /><b>自主 / 协作 / 责任 / 成长</b></div></>}
   </div>;
 }

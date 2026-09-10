@@ -3,6 +3,9 @@ import { CurriculumCardVisual } from './CurriculumCardVisual';
 import { CurriculumRadar } from './CurriculumRadar';
 import { ProgrammingSystem } from './ProgrammingSystem';
 import { BuildingSystem } from './BuildingSystem';
+import { KnowledgeSystem } from './KnowledgeSystem';
+import { ModelingSystem } from './ModelingSystem';
+import { PersonalCoreSystem } from './PersonalCoreSystem';
 import styles from './CurriculumSystem.module.css';
 
 const makex = 'https://www.makex.cc/en/2026-makex';
@@ -67,18 +70,18 @@ export const competitionLevels = [
     source: 'https://www.firstinspires.org/community/teams', sourceName: 'FIRST 官方团队介绍' },
 ];
 
-export const curriculumModules = ['级别与比赛体系', '级别与编程体系', '级别与搭建体系', '级别与设计建模体系', '级别与学科知识对应体系'];
-export const curriculumRoutes = ['curriculum-competition', 'curriculum-programming', 'curriculum-building', 'curriculum-modeling', 'curriculum-knowledge'] as const;
-const descriptions = ['赛事定义、比赛方式、难度与七级进阶路径', '编程语言、开发工具与控制能力', '工具使用、机械结构与装配调试', '设计表达、零件建模与工程图纸', '机器人项目中的数学、物理及相关知识'];
+export const curriculumModules = ['级别与比赛体系', '级别与编程体系', '级别与搭建体系', '级别与设计建模体系', '级别与学科知识对应体系', '级别与个人核心能力'];
+export const curriculumRoutes = ['curriculum-competition', 'curriculum-programming', 'curriculum-building', 'curriculum-modeling', 'curriculum-knowledge', 'curriculum-personal'] as const;
+const descriptions = ['赛事定义、比赛方式、难度与七级进阶路径', '编程语言、开发工具与控制能力', '工具使用、机械结构与装配调试', '设计表达、零件建模与工程图纸', '机器人项目中的数学、物理及相关知识', '比赛心态管理 · 情绪调节与抗挫成长，以及学习、协作与担当'];
 
 export function CurriculumSystem({ module = -1, onOpen }: { module?: number; onOpen: (route: typeof curriculumRoutes[number]) => void }) {
   const [selected, setSelected] = useState(0);
   const item = competitionLevels[selected];
   return <section id="curriculum-system" className={`${styles.root} ${module < 0 ? styles.silverLanding : ''}`} aria-labelledby="curriculum-title">
-    <header><p className={styles.eyebrow}>CURRICULUM / 课程体系</p><h2 id="curriculum-title">{module < 0 ? '五个维度，构建成长路径' : curriculumModules[module]}</h2></header>
+    <header><p className={styles.eyebrow}>CURRICULUM / 课程体系</p><h2 id="curriculum-title">{module < 0 ? '六个维度，构建成长路径' : curriculumModules[module]}</h2></header>
     {module < 0 ? <nav className={styles.modules} aria-label="课程体系模块">{curriculumModules.map((name, i) =>
-      <button key={name} type="button" onClick={() => onOpen(curriculumRoutes[i])}><small>0{i + 1}</small><CurriculumCardVisual index={i} /><strong>{name}</strong><p>{descriptions[i]}</p><span>{i > 2 ? '待编写 · 进入模块 →' : i === 2 ? '查看搭建培养草案 →' : i === 1 ? '查看编程培养草案 →' : '查看七级比赛体系 →'}</span></button>
-    )}</nav> : module === 1 ? <ProgrammingSystem /> : module === 2 ? <BuildingSystem /> : module !== 0 ? <div className={styles.empty}><p>尚未录入正式课程内容，后续按七个级别分别编写。</p></div> : <>
+      <button key={name} type="button" onClick={() => onOpen(curriculumRoutes[i])}><small>0{i + 1}</small><CurriculumCardVisual index={i} /><strong>{name}</strong><p>{descriptions[i]}</p><span>{i === 5 ? '查看八维能力七级成长 →' : i === 4 ? '查看学科对应体系 →' : i === 3 ? '查看设计建模培养路线 →' : i === 2 ? '查看搭建培养草案 →' : i === 1 ? '查看编程培养草案 →' : '查看七级比赛体系 →'}</span></button>
+    )}</nav> : module === 1 ? <ProgrammingSystem /> : module === 2 ? <BuildingSystem /> : module === 3 ? <ModelingSystem /> : module === 4 ? <KnowledgeSystem /> : module === 5 ? <PersonalCoreSystem /> : module !== 0 ? <div className={styles.empty}><p>尚未录入正式课程内容，后续按七个级别分别编写。</p></div> : <>
       <div className={styles.progression}><h4>以 FRC 为目标，倒推每一级的锻炼</h4><p>我们的赛事选择，不只是按年龄由易到难排列，而是从 FRC 所需的自主解决问题、机器人设计制造、联盟协作与对抗决策能力出发，把训练拆解到每一个成长阶段。</p></div>
       <p className={styles.note}>七个级别为俱乐部培养路径，年级由俱乐部设定，不等同于赛事报名资格。“-1 / -2”表示内部培养阶段。以下培养目标与难度说明为课程草案，非官方难度评级。</p>
       <div className={styles.path} aria-label="选择培养级别">{competitionLevels.map((level, i) =>

@@ -1,0 +1,16 @@
+.root { color: #233440; }
+.intro { font-weight: 700; padding: 16px; border-left: 4px solid #a6363f; background: #f4f5f1; }
+.levels { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; margin: 24px 0; }
+.levels button { display: flex; flex-direction: column; gap: 6px; }
+.levels button span { font-size: 14px; }
+.layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; align-items: start; }
+.panel { min-width: 0; padding: clamp(14px,2vw,24px); border: 1px solid #a9b8c1; background: #f6f6f0; border-radius: 12px; margin-bottom: 20px; }
+.panel svg { display: block; width: 100%; height: auto; }
+.legend { font-size: 14px; font-weight: 700; }
+.panel summary { padding: 10px 0; cursor: pointer; font-weight: 700; }
+.panel li { margin-bottom: 10px; }
+.panel table { width: 100%; font-size: 14px; border-collapse: collapse; }
+.panel th, .panel td { padding: 6px; border-bottom: 1px solid #b7c2ca; color: #233440 !important; background: #f6f6f0 !important; text-align: left; }
+.boundary { border-left: 3px solid #a6363f; padding-left: 12px; margin-top: 16px !important; font-size: 14px; }
+@media(max-width: 950px) { .layout { grid-template-columns: 1fr; } .levels { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media(max-width: 480px) { .levels { grid-template-columns: repeat(2,minmax(0,1fr)); } }
