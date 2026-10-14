@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import express from 'express';
 import pg from 'pg';
 import { mountInterviewRoutes } from './interviews.mjs';
+import { canManageStaff } from './staff-access.mjs';
+import { mountCurriculumRoutes } from './curriculum.mjs';
 
 const { Pool } = pg;
 const app = express();
@@ -10,7 +12,6 @@ const databaseUrl = process.env.DATABASE_URL;
 const jwtSecret = process.env.JWT_SECRET;
 if (!databaseUrl || !jwtSecret) throw new Error('DATABASE_URL and JWT_SECRET are required');
 const pool = new Pool({ connectionString: databaseUrl, max: 10 });
-await pool.query("update user_profiles set display_name='supergary' where lower(username)='supergary' and display_name<>'supergary'");
 await pool.query(`create table if not exists competition_deletions (
   id text primary key,
   deleted_at timestamptz not null default now()
@@ -53,7 +54,7 @@ function auth(req) {
   const value = req.get('authorization') || '';
   return value.startsWith('Bearer ') ? verify(value.slice(7)) : null;
 }
-const requireAuth = (req,res,next) => { const user=auth(req); if(!user)return res.status(401).json({message:'Authentication required'}); req.user=user; next(); };
+const requireAuth = async (req,res,next) => { try { const user=auth(req); if(!user || !(await profile(user.sub))?.is_active)return res.status(401).json({message:'Authentication required'}); req.user=user; next(); } catch(e){next(e);} };
 async function profile(id) {
   const {rows}=await pool.query('select auth_user_id,username,display_name,role,is_active,allowed_event_types,allowed_competition_ids,created_at from user_profiles where auth_user_id=$1',[id]); return rows[0];
 }
@@ -67,7 +68,7 @@ app.post('/auth/v1/token', async (req,res,next) => { try {
   if(req.query.grant_type==='refresh_token'){
     const hash=crypto.createHash('sha256').update(req.body.refresh_token||'').digest('hex');
     const {rows}=await pool.query('delete from refresh_tokens where token_hash=$1 and expires_at>now() returning auth_user_id',[hash]);
-    if(!rows[0])return res.status(401).json({message:'Invalid refresh token'}); return res.json(await issue(rows[0].auth_user_id));
+    if(!rows[0] || !(await profile(rows[0].auth_user_id))?.is_active)return res.status(401).json({message:'Invalid refresh token'}); return res.json(await issue(rows[0].auth_user_id));
   }
   const username=String(req.body.email||'').split('@')[0].toLowerCase();
   const {rows}=await pool.query('select * from user_profiles where username=$1',[username]); const user=rows[0];
@@ -79,11 +80,20 @@ app.post('/auth/v1/logout',requireAuth,(_req,res)=>res.status(204).end());
 
 app.post('/functions/v1/manage-users', async (req,res,next) => { try {
   const action=req.body.action; const caller=auth(req); const count=(await pool.query('select count(*)::int n from user_profiles')).rows[0].n;
+  if(!['bootstrap_admin','create_user','delete_user','reset_password'].includes(action))return res.status(400).json({message:'Unknown action'});
   if(action!=='bootstrap_admin'){
-    const me=caller&&await profile(caller.sub); if(!me||me.role!=='admin'||!me.is_active)return res.status(403).json({message:'Only an active admin can create users'});
+    const me=caller&&await profile(caller.sub); if(!canManageStaff(me))return res.status(403).json({message:'Only supergary can manage staff'});
   } else if(count>0) return res.status(409).json({message:'Admin account already exists'});
+  if(action==='delete_user' && req.body.authUserId===caller?.sub)return res.status(400).json({message:'Cannot delete your own account'});
   if(action==='delete_user'){await pool.query('delete from user_profiles where auth_user_id=$1',[req.body.authUserId]);return res.json({success:true});}
-  if(action==='reset_password'){await pool.query('update user_profiles set password_hash=$1 where auth_user_id=$2',[hashPassword(req.body.password),req.body.authUserId]);return res.json({success:true});}
+  if(typeof req.body.password!=='string'||req.body.password.length<8||req.body.password.length>128)return res.status(400).json({message:'Password must be 8-128 characters'});
+  if(action==='reset_password'){
+    const result=await pool.query('update user_profiles set password_hash=$1 where auth_user_id=$2',[hashPassword(req.body.password),req.body.authUserId]);
+    if(!result.rowCount)return res.status(404).json({message:'User not found'});
+    await pool.query('delete from refresh_tokens where auth_user_id=$1',[req.body.authUserId]);
+    return res.json({success:true});
+  }
+  if(!['admin','editor','viewer'].includes(req.body.role)||!String(req.body.displayName||'').trim()||!String(req.body.username||'').trim())return res.status(400).json({message:'Invalid user profile'});
   const id=crypto.randomUUID(); const role=action==='bootstrap_admin'?'admin':req.body.role;
   const {rows}=await pool.query(`insert into user_profiles(auth_user_id,username,display_name,password_hash,role,allowed_event_types,allowed_competition_ids) values($1,$2,$3,$4,$5,$6,$7) returning auth_user_id,username,display_name,role,is_active,allowed_event_types,allowed_competition_ids,created_at`,[id,String(req.body.username).trim().toLowerCase(),req.body.displayName,hashPassword(req.body.password),role,req.body.allowedEventTypes||null,req.body.allowedCompetitionIds||null]);
   res.json({profile:rows[0],success:true});
@@ -95,11 +105,24 @@ app.all('/rest/v1/:table', async (req,res,next) => { try {
   const user=auth(req); if(req.method==='GET'&&!publicRead&&!user)return res.status(401).json({message:'Authentication required'});
   if(req.method!=='GET'&&!user)return res.status(401).json({message:'Authentication required'});
   const table=req.params.table;
+  const callerProfile=user && await profile(user.sub);
+  if(user && !callerProfile?.is_active)return res.status(403).json({message:'Account is disabled'});
+  if(table==='user_profiles') {
+    const target=req.query.auth_user_id;
+    if(!canManageStaff(callerProfile) && !(req.method==='GET' && target===`eq.${user?.sub}`))return res.status(403).json({message:'Only supergary can manage staff'});
+    if(req.method==='POST'||req.method==='DELETE')return res.status(405).json({message:'Use manage-users endpoint'});
+    if(req.method==='PATCH') {
+      for(const key of ['allowed_event_types','allowed_competition_ids'])if(key in req.body && req.body[key]!==null && (!Array.isArray(req.body[key])||req.body[key].some(value=>typeof value!=='string')))return res.status(400).json({message:'Invalid permission scope'});
+      if(!Object.keys(req.body).length || Object.keys(req.body).some(key=>!['display_name','role','is_active','allowed_event_types','allowed_competition_ids'].includes(key)))return res.status(400).json({message:'Invalid profile fields'});
+      if(('role' in req.body && !['admin','editor','viewer'].includes(req.body.role))||('is_active' in req.body && typeof req.body.is_active!=='boolean')||('display_name' in req.body && (typeof req.body.display_name!=='string'||!req.body.display_name.trim())))return res.status(400).json({message:'Invalid profile values'});
+      if(target===`eq.${user.sub}` && (req.body.is_active===false || ('role' in req.body && req.body.role!=='admin')))return res.status(400).json({message:'Cannot disable or demote your own account'});
+    }
+  }
   if(req.method==='GET'){
     const selected=String(req.query.select||'*').split(',').filter(c=>c==='*'||cols.includes(c));
     const values=[]; const where=[];
     for(const c of cols){const q=req.query[c];if(typeof q==='string'&&q.startsWith('eq.')){values.push(q.slice(3));where.push(`${c}=$${values.length}`);}}
-    let sql=`select ${selected.includes('*')?'*':selected.join(',')} from ${table}`; if(where.length)sql+=` where ${where.join(' and ')}`;
+    let sql=`select ${selected.includes('*')?cols.join(','):selected.join(',')} from ${table}`; if(where.length)sql+=` where ${where.join(' and ')}`;
     if(typeof req.query.order==='string'){const [c,d]=req.query.order.split('.');if(cols.includes(c))sql+=` order by ${c} ${d==='desc'?'desc':'asc'}`;}
     if(req.query.limit)sql+=` limit ${Math.max(1,Math.min(10000,Number(req.query.limit)||1000))}`;
     return res.json((await pool.query(sql,values)).rows);
@@ -136,5 +159,6 @@ app.all('/rest/v1/:table', async (req,res,next) => { try {
   res.status(405).end();
 } catch(e){next(e);} });
 await mountInterviewRoutes(app, pool, requireAuth);
+await mountCurriculumRoutes(app, pool, requireAuth);
 app.use((err,_req,res,_next)=>{console.error(err);res.status(500).json({message:'Server error'});});
 app.listen(port,'127.0.0.1',()=>console.log(`MakeXRank API listening on ${port}`));

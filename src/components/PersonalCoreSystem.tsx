@@ -6,6 +6,7 @@ export function PersonalCoreSystem() {
   return <section className={styles.detail} aria-label="个人核心能力培养方向">
     <h3>从自主学习，到工程担当</h3>
     <p>技术成长与个人成长并行；比赛心态管理是独立、明确的培养目标。</p>
+    <PersonalAbilityProgression />
     <section className={styles.progression} aria-labelledby="competition-mindset-title">
       <p className={styles.eyebrow}>重点能力 · 比赛心态管理</p>
       <h3 id="competition-mindset-title">情绪调节与抗挫成长</h3>
@@ -20,7 +21,6 @@ export function PersonalCoreSystem() {
       <p className={styles.note}>不以输赢、是否哭泣、恢复速度或表面冷静给孩子排名；不强迫孩子立即恢复比赛或复盘。这是教学观察，不是心理诊断。</p>
     </section>
     <MindsetProgression />
-    <PersonalAbilityProgression />
     <p className={styles.note}>八项能力均已提供七级课程目标，属于教研草案，不代表学生已有成绩或人格标签。</p>
   </section>;
 }

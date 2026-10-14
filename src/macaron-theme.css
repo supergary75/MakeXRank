@@ -1,0 +1,52 @@
+/* Pastel surfaces, dark ink: keep decoration separate from information. */
+:root {
+  color-scheme: light;
+  --primary:#514581; --primary-dark:#403466; --primary-light:#65558e; --primary-bg:#ece5f6;
+  --secondary:#285c67; --accent:#514581; --success:#225e49; --success-dark:#194c3b;
+  --danger:#963d50; --danger-dark:#7b293e; --warning:#755018; --info:#285c67;
+  --gray-50:#f6f3fa; --gray-100:#efebf5; --gray-200:#dcd6e6; --gray-300:#b3a9c4;
+  --gray-400:#70647e; --gray-500:#62566f; --gray-600:#554960; --gray-700:#40374c; --gray-800:#352d41; --gray-900:#292334;
+  --bg-dark:#f5f1f7; --bg-mid:#f5f1f7; --bg-panel:#faf7fc; --bg-panel-soft:#eee8f5;
+  --bg-steel:linear-gradient(130deg,#f4edf9,#e6f2ef); --bg-steel-soft:linear-gradient(130deg,#faf6fc,#eef6f2);
+  --line-strong:#b4a7c5; --line-soft:#dcd3e5; --radius-sm:8px; --radius-md:12px; --radius-lg:20px; --radius-xl:26px;
+}
+html body {background:#f5f1f7!important;color:#40374c;font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif;}
+body::before {background:radial-gradient(ellipse at 5% 0%,#f6dfe8,transparent 55%),radial-gradient(ellipse at 95% 40%,#dceee9,transparent 55%)!important;opacity:.65;}
+/* Legacy pages contain literal colors and inline styles. Reset paired surface/ink
+   together; restore semantic states below rather than relying on pale text. */
+#root :where(div,section,article,main,header,footer,nav,aside,details,summary,figure,figcaption,span,p,small,strong,b,i,em,label,li,ul,ol,h1,h2,h3,h4,h5,h6,a,button,form,fieldset,legend,table,thead,tbody,tr,th,td) {
+  color:#40374c!important; text-shadow:none!important; -webkit-text-fill-color:currentColor!important;
+  border-color:#cfc3dc!important;
+}
+#root :where(div,section,article,main,header,footer,nav,aside,details,figure,form,fieldset,table,thead,tbody,tr,th,td):where(:not([role="img"]):not(:empty)) {background-color:transparent!important;background-image:none!important;}
+#root :is(h1,h2,h3,h4,h5,h6,button,summary) {font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif!important;}
+#root :is([class*="_card_"],[class*="_panel_"],[class*="_section_"],[class*="_modal_"],[class*="_student_"],[class*="Card_"],[class*="_dialog_"],[class*="_content_"]) {background:#faf7fc!important;border-radius:18px;box-shadow:0 5px 22px #65537f0b!important;}
+#root :is([class*="_hero_"],[class*="_header_"],[class*="_nav_"],[class*="_stub_"]) {background:#eae4f4!important;}
+#root :is([class*="_hero_"],[class*="_heroBody_"]) {background:linear-gradient(120deg,#eee5f7,#e1f0eb 65%,#fae7dd)!important;}
+#root :is([class*="_card_"],[class*="Card_"]):nth-child(4n+2) {background:#e8f3ed!important;}
+#root :is([class*="_card_"],[class*="Card_"]):nth-child(4n+3) {background:#f9e9e2!important;}
+#root :is([class*="_card_"],[class*="Card_"]):nth-child(4n) {background:#e8eff9!important;}
+#root :is(button,a[role="button"]) {background:#e8def3!important;color:#403466!important;border-color:#b7a6ce!important;border-radius:10px;text-shadow:none!important;}
+#root button:hover:not(:disabled) {background:#dcd0ed!important;}
+#root button:disabled {opacity:1!important;color:#554960!important;background:#e9e5ed!important;cursor:not-allowed;}
+#root :is(span,a,small,strong,b,i,em):not(:empty) {background-color:transparent!important;background-image:none!important;}
+#root caption {background:#eee8f5!important;color:#40374c!important;}
+#root :is([class*="_cardOpen_"],[class*="_studentName_"],[class*="_identity_"]) {background:transparent!important;}
+#root :is(input,textarea,select,option) {background:#fffafc!important;color:#352d41!important;-webkit-text-fill-color:#352d41!important;border-color:#9a8caa!important;color-scheme:light;}
+#root ::placeholder {color:#70647e!important;opacity:1;}
+#root a {color:#514581!important;text-decoration-thickness:1px;}
+#root :is(code,pre) {background:#eae5f2!important;color:#352d41!important;}
+#root :is(th,thead) {background:#e5ddef!important;color:#352d41!important;}
+#root td {background:#faf7fc!important;}
+#root :is([class*="_badge_"],[class*="_status_"],[class*="_tag_"]) {background:#e5eaf5!important;color:#35485f!important;}
+#root :is([class*="_arrived_"],[class*="_success_"],[class*="_present_"]) {background:#dceee3!important;color:#225e49!important;}
+#root :is([class*="_error_"],[class*="_danger_"],[role="alert"]) {background:#f8e1e7!important;color:#863247!important;}
+#root :is([class*="_warning_"],[class*="_late_"]) {background:#f8edcf!important;color:#755018!important;}
+#root [aria-pressed="true"],#root [aria-selected="true"] {background:#d9e9e3!important;color:#194c3b!important;border-color:#5f8d78!important;}
+#root :is([class*="_overlay_"],[class*="_backdrop_"]) {background:#30283d80!important;}
+#root :is([class*="_mechaBackdrop_"],[class*="_craftArt_"],[class*="_decorStickers_"]) {display:none!important;}
+#root :is([class*="_card_"],[class*="Card_"],[class*="_hero_"],[class*="_hub_"])::before,
+#root :is([class*="_card_"],[class*="Card_"],[class*="_hero_"],[class*="_hub_"])::after {background-image:none!important;opacity:.12;pointer-events:none;}
+#root svg text {fill:#40374c!important;stroke:none!important;}
+#root :focus-visible {outline:3px solid #695292!important;outline-offset:3px;}
+::selection {background:#d8c7ed;color:#292334;}

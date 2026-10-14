@@ -1,0 +1,14 @@
+.root { padding: clamp(14px, 2vw, 24px); background: #f4f5f0; border: 1px solid #a9b8c1; border-radius: 14px; margin: 20px 0; color: #233440; }
+.layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; align-items: start; }
+.layout > div { min-width: 0; }
+.root svg { display: block; width: 100%; height: auto; }
+.legend { font-size: 14px; font-weight: 700; }
+.axes { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.axes button { font-size: 14px; }
+.axes button[aria-pressed='true'] { background: #dbeaf0; border: 2px solid #176c80; }
+.evidence { border-left: 4px solid #a52a3a; padding: 14px; background: #fafaf6; }
+.root summary { cursor: pointer; padding: 12px 0; font-weight: 700; }
+.table { overflow-x: auto; }
+.table table { width: 100%; border-collapse: collapse; }
+.table th, .table td { color: #233440 !important; background: #f4f5f0 !important; padding: 8px; text-align: left; border-bottom: 1px solid #bbc6cc; }
+@media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }

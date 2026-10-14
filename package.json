@@ -14,7 +14,9 @@
     "build": "tsc -b && vite build",
     "build:tencent": "tsc -b && vite build --mode tencent",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "vitest run src --exclude src/components/lessonSimulation.test.tsx",
+    "test:server": "node --test server/staff-access.test.mjs server/curriculum.check.mjs",
     "check": "npm run lint && npm run test && npm run build && npm audit --omit=dev --audit-level=high",
     "preview": "vite preview"
   },

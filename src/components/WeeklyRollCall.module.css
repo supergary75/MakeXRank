@@ -1,0 +1,55 @@
+.workspace { min-width:0; }
+.lessonCard { min-width:0; }
+.expandedCard { grid-column:1 / -1; outline:2px solid #ffd700; outline-offset:2px; }
+.classSelect { position:relative; }
+.inlineRoster { border-top:1px solid #c1ced2; padding-top:18px; margin-top:18px; min-width:0; }
+.inlineHint { margin:0 0 12px; font-size:15px; line-height:1.7; }
+.scheduleSummary { margin:10px 0; font-size:17px; font-weight:600; line-height:1.7; }
+.scheduleActions { margin:16px 0; gap:10px; }
+.datePicker { margin-bottom:20px; }
+.datePicker label { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:8px 0; }
+.progress { display:block; width:100%; height:9px; margin:12px 0; accent-color:#347a66; border:0; border-radius:6px; overflow:hidden; }
+.progress::-webkit-progress-bar { background:#dce6e3; border-radius:6px; }
+.progress::-webkit-progress-value { background:#347a66; border-radius:6px; }
+.enterHint { margin-top:14px; font-weight:700; }
+.emptySchedule { margin:18px 0; padding:20px; background:#f8faf8; border:1px solid #bdc9cc; border-radius:10px; }
+.emptySchedule h3 { margin:0 0 10px; }
+.emptySchedule p { margin:8px 0; line-height:1.7; }
+.lessonSummary { display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; padding:16px; margin:16px 0; background:#edf3f1; border-radius:10px; }
+.lessonSummary strong { font-size:20px; }
+.lessonSummary .progress { flex-basis:100%; margin:2px 0 0; }
+.workspace .submitBar { border-color:#a5b5bb; background:#fbfcfa; box-shadow:0 -4px 18px #243d4a15; gap:12px; }
+.submitBar > div { display:flex; flex:1; flex-direction:column; gap:5px; min-width:190px; }
+.submitBar strong { font-size:20px; }
+.submitBar span { font-size:14px; line-height:1.5; }
+.submitBar > p { flex-basis:100%; margin:0; font-size:14px; }
+.workspace .submitBar button { min-height:48px; padding:12px 20px; font-weight:700; }
+.roster { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:start; }
+.student { border:1px solid #c9c0af; border-radius:9px; background:#fffaf1; padding:16px; min-width:0; }
+.arrived { border-color:#8ba993; background:#edf4eb; }
+.rowTop { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; }
+.workspace .studentName { display:flex; align-items:center; gap:8px; text-align:left; font-size:20px; font-weight:700; min-height:56px; padding:10px; border:0; background:transparent; color:#302e29; min-width:0; width:100%; }
+.studentName span:last-child { overflow-wrap:anywhere; }
+.workspace .studentName:disabled { opacity:1; }
+.workspace .studentName[aria-pressed="true"] { color:#24543a; background:transparent; }
+.workspace .editButton { font-size:15px; min-height:44px; padding:10px 12px; white-space:nowrap; }
+.workspace .status { font-size:13px; margin:3px 8px 0; color:#76441c; }
+.attendanceState { display:inline-flex; align-items:center; min-height:25px; padding:3px 9px; border-radius:5px; font-size:13px; font-weight:600; background:#e5ecee; }
+.workspace .editor { display:grid; grid-template-columns:1fr; margin:8px 0 0; gap:10px; padding:10px 4px 4px; border-top:1px solid #d8d0c0; }
+.editor label { display:grid; grid-template-columns:70px minmax(0,1fr); min-width:0; }
+.editor select,.editor input { width:100%; min-width:0; min-height:44px; font-size:16px; }
+.help { margin:8px 0 12px; font-size:13px; }
+/* Desktop/tablet retain a two-column workspace; compact rules are phone-only. */
+@media(max-width:650px) {
+ .roster { grid-template-columns:1fr; gap:7px; }
+ .workspace { font-size:14px; }
+ .workspace h2 { font-size:22px; margin:10px 0; }
+ .workspace h3 { font-size:18px; margin:10px 0 6px; }
+ .workspace > p { margin:8px 0; line-height:1.5; }
+ .workspace label { min-width:0; max-width:100%; }
+ .workspace select,.workspace input { font-size:16px; min-height:44px; min-width:0; }
+ .workspace button { min-height:44px; }
+ .student { padding:5px 7px; }
+ .workspace .studentName { font-size:16px; min-height:48px; padding:6px; }
+ .workspace .editButton { font-size:13px; padding:8px; }
+}

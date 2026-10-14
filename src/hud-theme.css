@@ -1,0 +1,87 @@
+/* Shared flight-console theme. Loaded last to retire earlier visual themes. */
+:root:has([data-hud-home]) {
+  color-scheme: dark;
+  --primary:#63dfe7; --primary-dark:#269cad; --primary-light:#99edf2; --primary-bg:#12313e;
+  --secondary:#8ec8e4; --accent:#63dfe7; --success:#82dfac; --success-dark:#23734f;
+  --danger:#ff9b9b; --danger-dark:#8b3445; --warning:#f3ce7b; --info:#88d9f2;
+  --gray-50:#102632; --gray-100:#142e3b; --gray-200:#284653; --gray-300:#6b8c9e;
+  --gray-400:#9ebaca; --gray-500:#aec7d3; --gray-600:#bcd2de;
+  --gray-700:#d2e4ed; --gray-800:#e0eff6; --gray-900:#f0f8fc;
+  --bg-dark:#06121c; --bg-mid:#091b27; --bg-panel:#0b202d; --bg-panel-soft:#102935;
+  --bg-steel:linear-gradient(120deg,#102935,#081923);
+  --bg-steel-soft:linear-gradient(120deg,#102935,#0c2230);
+  --line-strong:#527a8a; --line-soft:#2d4c5b;
+  --radius-sm:3px; --radius-md:4px; --radius-lg:6px; --radius-xl:8px;
+}
+html:has([data-hud-home]) body { background:#06121c; color:#d2e4ed; font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif; }
+body:has([data-hud-home])::before { background:repeating-linear-gradient(90deg,transparent 0 79px,#71ccdf0b 79px 80px),repeating-linear-gradient(0deg,transparent 0 79px,#71ccdf0b 79px 80px); opacity:1; }
+#root:has([data-hud-home]) h1,#root:has([data-hud-home]) h2,#root:has([data-hud-home]) h3,#root:has([data-hud-home]) h4,#root:has([data-hud-home]) h5,#root:has([data-hud-home]) button,#root:has([data-hud-home]) th { font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif; letter-spacing:.02em; }
+#root:has([data-hud-home]) h1,#root:has([data-hud-home]) h2,#root:has([data-hud-home]) h3,#root:has([data-hud-home]) h4,#root:has([data-hud-home]) h5 { color:#e8f5fa; text-shadow:none; }
+#root:has([data-hud-home]) p,#root:has([data-hud-home]) label,#root:has([data-hud-home]) li,#root:has([data-hud-home]) summary { color:#bfd3df; }
+#root:has([data-hud-home]) small { color:#a7c3d1; }
+#root:has([data-hud-home]) a { color:#7ae4ed; }
+#root:has([data-hud-home]) button { background-color:#14313f; color:#d9f2f6; border-color:#527b8a; border-radius:3px; text-shadow:none; }
+#root:has([data-hud-home]) button:hover:not(:disabled) { border-color:#70e4ed; }
+#root:has([data-hud-home]) button:focus-visible,#root:has([data-hud-home]) a:focus-visible,#root:has([data-hud-home]) summary:focus-visible { outline:3px solid #74e8ee; outline-offset:3px; }
+#root:has([data-hud-home]) input,#root:has([data-hud-home]) textarea,#root:has([data-hud-home]) select { color:#e4f2f8!important; background:#071925!important; border-color:#567989!important; }
+#root:has([data-hud-home]) input::placeholder,#root:has([data-hud-home]) textarea::placeholder { color:#a1bccb; }
+#root:has([data-hud-home]) input[type=checkbox],#root:has([data-hud-home]) input[type=radio] { accent-color:#55d4de; }
+#root:has([data-hud-home]) table { color:#d2e4ed; background:#0b202d; }
+#root:has([data-hud-home]) thead,#root:has([data-hud-home]) th { background:#14303e!important; color:#e0f4fa!important; }
+#root:has([data-hud-home]) td { border-color:#2d4c5b!important; }
+#root:has([data-hud-home]) tbody tr:hover { background:#173543!important; }
+#root:has([data-hud-home]) :is([class*="_app_"],[class*="_container_"]) { background:transparent; border-radius:3px; }
+#root:has([data-hud-home]) [class*="_app_"] { background:#06121c; }
+#root:has([data-hud-home]) [class*="_container_"] { border:1px solid #2d4c5b; }
+#root:has([data-hud-home]) :is([class*="_header_"],[class*="_hero_"]) { background:linear-gradient(115deg,#0c2533,#081823)!important; border-color:#365866; }
+#root:has([data-hud-home]) :is([class*="_eyebrow_"],[class*="_kicker_"],[class*="_english_"],[class*="_number_"]) { color:#70dfe8!important; }
+#root:has([data-hud-home]) :is([class*="_subtitle_"],[class*="_description_"],[class*="_meta_"],[class*="_note_"]) { color:#adc7d5!important; }
+#root:has([data-hud-home]) :is([class*="_card_"],[class*="_panel_"],[class*="_section_"],[class*="_modal_"],[class*="_productModuleCard_"],[class*="_courseDocumentCard_"],[class*="_productRedesign_"],[class*="_productCenterSection_"],[class*="_courseDocumentLibrary_"]) {
+  background:linear-gradient(120deg,#102935,#091d29); color:#d2e4ed; border-color:#3a5e70; border-radius:4px; box-shadow:none;
+}
+/* Decorative art from the previous theme is not content. */
+#root:has([data-hud-home]) :is([class*="_decorStickers_"],[class*="_craftArt_"]) { display:none; }
+#root:has([data-hud-home]) [class*="tiangong"]::before,#root:has([data-hud-home]) [class*="tiangong"]::after,
+#root:has([data-hud-home]) [class*="_productModuleCard_"]::after,#root:has([data-hud-home]) [class*="_courseDocumentCard_"]::after { background-image:none; }
+#root:has([data-hud-home]) [class*="_nav_"] button { background:#14313f!important; color:#d9f2f6!important; border-color:#527b8a!important; }
+#root:has([data-hud-home]) [class*="_nav_"] strong { color:#e0eff6; }
+#root:has([data-hud-home]) [class*="_cardVisual_"],#root:has([data-hud-home]) [class*="_cardVisual_"] :is(b,code,em),#root:has([data-hud-home]) [class*="_formulaPreview_"]>div { color:#82dce9!important; }
+#root:has([data-hud-home]) [class*="_modules_"] strong { font-family:Arial,"Microsoft YaHei",sans-serif; }
+#root:has([data-hud-home]) [class*="_logoBadge_"] { background:#102935!important; border-color:#426777!important; }
+#root:has([data-hud-home]) [class*="_logoTitle_"],#root:has([data-hud-home]) [class*="_logoSub_"] { color:#c6e7f0!important; }
+body:has([data-hud-home]) ::selection { background:#63dfe7; color:#06121c; }
+@media(prefers-reduced-motion:reduce) { #root:has([data-hud-home]) * { scroll-behavior:auto; } }
+/* Existing module surfaces, including compact roster and curriculum panels. */
+#root:has([data-hud-home]) :is([class*="_root_"],[class*="_shell_"],[class*="_detail_"],[class*="_progression_"],[class*="_module_"],[class*="_student_"],[class*="_portalCard_"],[class*="_accountChip_"],[class*="_instrument_"],[class*="_gauge_"],[class*="_stub_"],[class*="_emblem_"]) { background:#0c2330; color:#d2e4ed; border-color:#426777; box-shadow:none; }
+#root:has([data-hud-home]) :is([class*="_accountChip_"],[class*="_stub_"],[class*="_gauge_"]) :is(strong,span,b),
+#root:has([data-hud-home]) :is([class*="_modules_"],[class*="_path_"]) :is(strong,span,b),
+#root:has([data-hud-home]) :is([class*="_top_"],[class*="_bottom_"],[class*="_footer_"],[class*="_names_"],[class*="_seating_"]) span { color:#adcbd9; }
+#root:has([data-hud-home]) [class*="_instruments_"] { background:#2d4c5b; border-color:#426777; }
+#root:has([data-hud-home]) [class*="_instruments_"]>div { background:#102935; }
+#root:has([data-hud-home]) [class*="_instruments_"] dt { color:#adcbd9; }
+#root:has([data-hud-home]) [class*="_instrument_"] svg { stroke:#69dae6; }
+#root:has([data-hud-home]) [class*="_instrument_"]>span { color:#adcbd9; }
+#root:has([data-hud-home]) [class*="_gauge_"] text { fill:#b8dce8; }
+#root:has([data-hud-home]) [class*="_arrived_"] { background:#12392f; border-color:#60b78e; }
+#root:has([data-hud-home]) [class*="_studentName_"] { background:transparent; color:#d2e4ed; }
+#root:has([data-hud-home]) [class*="_studentName_"][aria-pressed="true"] { color:#9defba; background:transparent; }
+#root:has([data-hud-home]) button[aria-pressed="true"]:not([class*="_studentName_"]),#root:has([data-hud-home]) button[aria-selected="true"] { background:#174858; border-color:#6de2eb; color:#e3fcff; }
+#root:has([data-hud-home]) [class*="_actions_"][open]>div { background:#102935; border-color:#426777; }
+#root:has([data-hud-home]) [class*="_actions_"] button:last-child { color:#ffadad; }
+#root:has([data-hud-home]) [class*="_productModuleCard_"]>span,#root:has([data-hud-home]) [class*="_courseDocumentCard_"]>span,#root:has([data-hud-home]) [class*="_portalBadge_"],#root:has([data-hud-home]) [class*="_nav_"]>span { color:#7adfe9; }
+#root:has([data-hud-home]) [class*="_productModuleCard_"] button,#root:has([data-hud-home]) [class*="_productModuleLink_"] { background:#174555; color:#def8fc; }
+#root:has([data-hud-home]) [class*="_rule_"] { background:#63dfe7; transform:none; }
+#root:has([data-hud-home]) [class*="_modules_"] button::before,#root:has([data-hud-home]) [class*="_modules_"] button::after { background-image:none!important; }
+@media print { body:has([data-hud-home]),#root:has([data-hud-home]) { background:white!important; color:black!important; } }
+
+/* Reference refinement: neutral midnight panels, not broad teal blocks. */
+html:has([data-hud-home]) body,#root:has([data-hud-home]) [class*="_app_"] { background:#040d16; }
+#root:has([data-hud-home]) :is([class*="_header_"],[class*="_hero_"]) { background:#050f19!important; }
+#root:has([data-hud-home]) :is([class*="_card_"],[class*="_panel_"],[class*="_section_"],[class*="_modal_"],[class*="_productModuleCard_"],[class*="_courseDocumentCard_"],[class*="_productRedesign_"],[class*="_productCenterSection_"],[class*="_courseDocumentLibrary_"],[class*="_root_"],[class*="_shell_"],[class*="_detail_"],[class*="_module_"]) { background:#08141f; border-color:#354b59; }
+#root:has([data-hud-home]) [class*="_heroBody_"] { grid-template-columns:1.1fr 1fr; padding-top:24px;padding-bottom:24px;background:repeating-radial-gradient(ellipse at 83% 53%,transparent 0 65px,#668d9e12 66px 67px,transparent 68px 105px); }
+#root:has([data-hud-home]) [class*="_heroBody_"] h1 { color:#f1f6fa; }
+#root:has([data-hud-home]) [class*="_heroBody_"] h1 span { color:#dce9f0; }
+#root:has([data-hud-home]) [class*="_card_"]:hover { background:#0c202c; }
+#root:has([data-hud-home]) [class*="_centers_"] { background:repeating-linear-gradient(90deg,transparent 0 79px,#8caeb309 79px 80px); }
+#root:has([data-hud-home]) [class*="_status_"] { background:#0b2029;color:#bcdee6;border-color:#395661; }
+@media(max-width:700px){#root:has([data-hud-home]) [class*="_heroBody_"] {grid-template-columns:1fr;}}

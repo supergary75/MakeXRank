@@ -2,6 +2,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import './macaron-theme.css';
+import './frc-theme.css';
 import { registerPwaFeatures } from './pwaInstall';
 
 createRoot(document.getElementById('root')!).render(

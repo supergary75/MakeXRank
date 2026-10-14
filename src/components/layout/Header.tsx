@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import styles from './Header.module.css';
+import TeamPhotoBanner, { type TeamBannerKind } from '../TeamPhotoBanner';
 
 interface Props {
   title: string;
@@ -7,15 +8,18 @@ interface Props {
   eyebrow?: string;
   action?: ReactNode;
   showLogo?: boolean;
-  theme?: 'default' | 'darkGold';
+  theme?: 'default' | 'darkGold' | 'tiangong';
 }
 
 export function Header({ title, subtitle, eyebrow, action, showLogo = true, theme = 'default' }: Props) {
   const resolvedEyebrow = eyebrow === 'Event Selection' ? 'Event Analytics' : eyebrow;
   const resolvedTitle = eyebrow === 'Event Selection' ? '赛事数据分析' : title;
+  const photoKinds: Record<string, TeamBannerKind> = { '赛事管理中心': 'competition', '面试流程中心': 'interview', '教务管理中心': 'academic' };
+  const photoKind = photoKinds[resolvedTitle];
+  if (photoKind) return <TeamPhotoBanner kind={photoKind} title={resolvedTitle} eyebrow={resolvedEyebrow} description={subtitle} action={action} />;
 
   return (
-    <header className={`${styles.header} ${theme === 'darkGold' ? styles.darkGold : ''}`}>
+    <header className={`${styles.header} ${theme === 'darkGold' ? styles.darkGold : theme === 'tiangong' ? styles.tiangong : ''}`}>
       <div className={styles.decorStickers} aria-hidden="true">
         <span className={styles.surfSticker} />
         <span className={styles.cablecarSticker} />

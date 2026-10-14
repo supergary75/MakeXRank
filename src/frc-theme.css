@@ -1,0 +1,147 @@
+/* FRC-inspired engineering palette: warm steel, navy ink and solid gold details. */
+:root {
+  --primary:#163d57;--primary-dark:#102e43;--primary-light:#305f76;--primary-bg:#e4edf0;
+  --secondary:#24516a;--accent:#ffd700;--info:#24516a;
+  --gray-50:#f8f8f5;--gray-100:#f0f2ef;--gray-200:#dbe1e1;--gray-300:#aab8bc;
+  --gray-400:#61737b;--gray-500:#52646c;--gray-600:#42545e;--gray-700:#33434d;--gray-800:#253642;--gray-900:#172b37;
+  --bg-dark:#edf1ef;--bg-mid:#edf1ef;--bg-panel:#fbfcfa;--bg-panel-soft:#e7eeee;
+  --bg-steel:linear-gradient(125deg,#f8f9f6,#e1e9eb);--bg-steel-soft:linear-gradient(125deg,#fbfcfa,#e9eff0);
+  --line-strong:#a5b5bb;--line-soft:#d1dadc;
+}
+html body{background:#edf1ef!important;color:#253642;}
+body::before{background:linear-gradient(90deg,#aabdc41a 1px,transparent 1px),linear-gradient(#aabdc41a 1px,transparent 1px)!important;background-size:48px 48px!important;opacity:.28;}
+#root :where(div,section,article,main,header,footer,nav,aside,details,summary,figure,figcaption,span,p,small,strong,b,i,em,label,li,ul,ol,h1,h2,h3,h4,h5,h6,a,button,form,fieldset,legend,table,thead,tbody,tr,th,td){color:#253642!important;border-color:#b5c3c7!important;}
+#root :is([class*="_card_"],[class*="_panel_"],[class*="_section_"],[class*="_modal_"],[class*="_student_"],[class*="Card_"],[class*="_dialog_"],[class*="_content_"]){background:#fbfcfa!important;border-radius:10px;box-shadow:0 6px 20px #243d4a0d!important;}
+#root :is([class*="_hero_"],[class*="_header_"],[class*="_nav_"],[class*="_stub_"]){background:#e3eaeb!important;}
+#root :is([class*="_hero_"],[class*="_heroBody_"]){background:linear-gradient(115deg,#f6f7f3 4%,#e2e9eb 67%,#edf0e9)!important;}
+#root :is([class*="_card_"],[class*="Card_"]):nth-child(4n+2){background:#edf3f3!important;}
+#root :is([class*="_card_"],[class*="Card_"]):nth-child(4n+3){background:#f5f3eb!important;}
+#root :is([class*="_card_"],[class*="Card_"]):nth-child(4n){background:#ebf0f4!important;}
+/* Class and member cards share a single surface instead of positional theme tints. */
+#root [data-class-directory] article[data-class-card]{background:#fbfcfa!important;}
+#root [data-class-directory] article[data-class-card][data-class-full="true"]{background:#eaf5ed!important;border-color:#55946b!important;}
+#root [data-class-directory] span[data-class-full="true"]{background:#d2ead9!important;color:#24643a!important;}
+#root [data-class-directory] [data-class-full="true"] [data-class-count]{color:#24643a!important;}
+#root [data-class-directory] article[data-class-card][data-class-underfilled="true"]{background:#fff1ef!important;border-color:#c9554c!important;}
+#root [data-class-directory] [data-class-warning="true"]{background:#ffe0dc!important;color:#9e2e26!important;}
+#root [data-class-directory] [data-class-underfilled="true"] [data-class-count]{color:#9e2e26!important;}
+#root :is(button,a[role="button"]){background:#e5ecee!important;color:#163d57!important;border-color:#9eb2b9!important;border-radius:7px;}
+#root button:hover:not(:disabled){background:#d7e5e9!important;border-color:#416b7e!important;}
+#root button:disabled{background:#e9edec!important;color:#4c5c64!important;}
+#root :is(input,textarea,select,option){background:#fcfcfa!important;color:#253642!important;-webkit-text-fill-color:#253642!important;border-color:#879ba4!important;}
+#root ::placeholder{color:#53656c!important;}
+#root a{color:#164865!important;}
+#root :is(code,pre){background:#e5ecee!important;color:#173949!important;}
+#root :is(th,thead){background:#dce7e9!important;color:#203845!important;}
+#root td{background:#fafbf9!important;}
+#root caption{background:#dce7e9!important;color:#203845!important;}
+#root :is([class*="_badge_"],[class*="_status_"],[class*="_tag_"]){background:#e1e9eb!important;color:#244757!important;}
+#root :is([class*="_overlay_"],[class*="_backdrop_"]){background:#18334188!important;}
+/* Gold is a solid accent. Use navy text on any gold fill for reliable contrast. */
+#root :is([class*="_eyebrow_"],[class*="_kicker_"],[class*="_english_"],[class*="_number_"]){color:#244757!important;}
+#root :is([class*="_hub_"]) {border-top:4px solid #ffd700!important;}
+#root :is([class*="_card_"],[class*="Card_"]){border-top:2px solid #ffd700!important;}
+#root :is([class*="_card_"],[class*="Card_"]):hover{border-color:#ffd700!important;}
+#root :is([class*="_cardBottom_"]>span:last-child,[class*="_stubRule_"]){background:#ffd700!important;color:#1a2d39!important;}
+#root :is([class*="_mechaBackdrop_"]){display:flex!important;align-items:center;justify-content:center;position:absolute;inset:8% 3% 8% 56%;background:transparent!important;opacity:.52;mix-blend-mode:multiply;mask-image:linear-gradient(90deg,transparent,#000 25%);pointer-events:none;}
+#root :is([class*="_mechaBackdrop_"]) svg{width:100%;max-height:100%;filter:none;}
+#root [data-hud-home] [class*="_heroBody_"]{position:relative;isolation:isolate;}
+/* Full-card hit areas sit above the content and must stay transparent in every state. */
+#root button[class*="_cardOpen_"][aria-label],
+#root button[class*="_cardOpen_"][aria-label]:hover:not(:disabled),
+#root button[class*="_cardOpen_"][aria-label]:disabled{background:transparent!important;box-shadow:none!important;}
+#root :is([class*="_studentName_"],[class*="_identity_"]){background:transparent!important;}
+#root svg text{fill:#253642!important;}
+#root [data-attendance-row="present"]{background:#e5f2e9!important;border-color:#5e9278!important;}
+#root [data-attendance-row="late"]{background:#fff1de!important;border-color:#b68a4e!important;}
+#root [data-attendance-row="absent"]{background:#e9eff7!important;border-color:#8298b0!important;}
+#root [data-attendance-row="unverified"]{background:#f9e8e7!important;border-color:#b1807d!important;}
+#root [data-attendance-state="present"],#root [data-roll-call-phase="submitted"]{background:#cfe8d7!important;color:#1c5133!important;}
+#root [data-attendance-state="late"]{background:#f9dfb6!important;color:#694107!important;}
+#root [data-attendance-state="absent"]{background:#dbe5f2!important;color:#23466c!important;}
+#root [data-attendance-state="unverified"]{background:#efd2d0!important;color:#752d29!important;}
+#root button[data-attendance-submit],#root button[data-attendance-submit]:hover:not(:disabled){background:#ffd700!important;color:#172b37!important;border-color:#bd9f00!important;}
+#root button[data-attendance-submit]:disabled{background:#e3e9e6!important;color:#52646c!important;border-color:#a5b5bb!important;}
+#root button[data-roll-call-mode][aria-pressed="true"]{background:#163d57!important;color:#fff!important;border-color:#163d57!important;}
+#root [data-roll-call-list] article[data-roll-call-card]{background:#fbfcfa!important;}
+#root [data-attendance-summary] tbody th{background:#fafbf9!important;}
+#root [data-attendance-summary] tfoot :is(th,td){background:#eaf0ee!important;}
+#root [data-attendance-summary-status="submitted"]{background:#d7ebde!important;color:#23543b!important;}
+#root [data-attendance-summary-status="draft"],#root [data-attendance-summary-status="missing"]{background:#fff0ca!important;color:#6f5110!important;}
+#root [data-attendance-summary-status="off"]{background:#e5ecef!important;color:#435963!important;}
+#root button[data-roll-call-entry],#root button[data-roll-call-entry]:hover{background:#ffd700!important;color:#172b37!important;border-color:#bd9f00!important;}
+#root :focus-visible{outline:3px solid #ffd700!important;outline-offset:3px;}
+@media(max-width:700px){#root :is([class*="_mechaBackdrop_"]){inset:0 0 0 48%;opacity:.13;}}
+
+/* Every center receives its own engineering drawing. The tint protects text contrast. */
+#root [data-blueprint]{--drawing:url('/MakeXRank/images/blueprint-drive.svg');}
+#root [data-blueprint="interview-center"]{--drawing:url('/MakeXRank/images/blueprint-interview.svg');}
+#root [data-blueprint="academic-center"],#root [data-blueprint="weekly-roll-call"],#root [data-blueprint="class-member-management"],#root [data-blueprint="attendance-dashboard"]{--drawing:url('/MakeXRank/images/blueprint-academic.svg');}
+#root [data-blueprint="product-center"],#root [data-blueprint="curriculum-system"],#root [data-blueprint="curriculum-building"],#root [data-blueprint="curriculum-modeling"]{--drawing:url('/MakeXRank/images/blueprint-mechanism.svg');}
+#root [data-blueprint="curriculum-programming"]{--drawing:url('/MakeXRank/images/blueprint-control.svg');}
+#root [data-blueprint="curriculum-competition"]{--drawing:url('/MakeXRank/images/blueprint-drive.svg');}
+#root [data-blueprint="curriculum-knowledge"]{--drawing:url('/MakeXRank/images/blueprint-knowledge.svg');}
+#root [data-blueprint="curriculum-personal"]{--drawing:url('/MakeXRank/images/blueprint-team.svg');}
+#root [data-blueprint] :is([class*="_hero_"],[class*="_heroBody_"],[class*="_header_"]) {
+  background-image:linear-gradient(90deg,#f4f7f6 0%,#edf3f4f5 45%,#eaf2f4d8 100%),var(--drawing)!important;
+  background-position:center,right center!important;
+  background-size:cover,auto 100%!important;
+  background-repeat:no-repeat!important;
+}
+/* The home drawing and section drawings use the same subdued blueprint ink. */
+#root [data-blueprint="work-hub"] [class*="_mechaBackdrop_"]{opacity:.35;}
+#root [data-blueprint] :is([class*="_card_"],[class*="Card_"]){border-top-color:#ffd700!important;}
+#root [data-blueprint] :is([class*="_rule_"],[class*="_stubRule_"]){background:#ffd700!important;transform:none!important;}
+#root [data-blueprint] :is([class*="_hero_"],[class*="_header_"]){border-bottom-color:#ffd700!important;}
+#root [data-blueprint] :is(button,a[role="button"]):focus-visible{outline-color:#ffd700!important;}
+@media(max-width:700px){#root [data-blueprint] :is([class*="_hero_"],[class*="_heroBody_"],[class*="_header_"]){background-size:cover,auto 70%!important;background-position:center,right bottom!important;}}
+
+/* Home is the editorial cover: WCP components, legible white metal surfaces, pure gold details. */
+#root [data-hud-home]{background:#f8faf9!important;border:0!important;padding:0!important;}
+#root [data-hud-home] [class*="_nav_"]{background:#fff!important;}
+#root [data-hud-home] [class*="_heroBody_"]{background-image:linear-gradient(90deg,#fbfcfb 0%,#f8fbfbe8 48%,#f5f9f9b0 100%),url('/MakeXRank/images/blueprint-mechanism.svg')!important;background-size:cover,auto 100%!important;background-position:center,right center!important;}
+#root [data-hud-home] [class*="_centers_"]{background:linear-gradient(#f1f5f6,#fbfcfa)!important;}
+#root [data-hud-home] [class*="_grid_"]>[class*="_card_"]{background:#fff!important;border:1px solid #b5c0c2!important;border-top:3px solid #ffd700!important;border-radius:12px!important;box-shadow:0 12px 30px #1a2f3e1c!important;}
+#root [data-hud-home] [class*="_grid_"]>[class*="_card_"]:hover{background:#f7fafb!important;border-color:#ffd700!important;transform:translateY(-3px);}
+#root [data-hud-home] [class*="_cardBottom_"]>span:last-child{background:#ffd700!important;border-color:#ffd700!important;color:#142d3d!important;}
+#root [data-hud-home] [class*="_navLinks_"] button{background:transparent!important;border:0!important;border-bottom:3px solid transparent!important;border-radius:0!important;}
+#root [data-hud-home] [class*="_navLinks_"] button:hover{border-bottom-color:#ffd700!important;}
+#root [data-hud-home] [class*="_account_"] button:last-child{background:#ffd700!important;border-color:#ffd700!important;color:#142b3b!important;font-weight:800;}
+#root [data-hud-home] [class*="_heroTagline_"]{border-color:#ffd700!important;}
+@media(max-width:700px){#root [data-hud-home] [class*="_heroBody_"]{background-size:cover,auto 70%!important;}}
+#root button[data-training-day="training"],
+#root button[data-training-day="training"]:hover:not(:disabled){
+  background:#ffe36b!important;
+  border:2px solid #987600!important;
+  color:#302600!important;
+  opacity:1;
+}
+#root button[data-training-day="self"],
+#root button[data-training-day="self"]:hover:not(:disabled){
+  background:#bde9dc!important;
+  border:2px solid #28775d!important;
+  color:#173f32!important;
+  opacity:1;
+}
+#root button[data-training-day] :is(span,strong,small){
+  color:inherit!important;
+  background:transparent!important;
+  border-color:currentColor!important;
+}
+#root button[data-training-editing="true"]{
+  outline:3px solid #174f91!important;
+  outline-offset:3px;
+  box-shadow:0 0 0 5px #fff!important;
+}
+#root [data-training-overview-day]{min-height:140px;height:auto;min-width:0;padding:10px;border:1px solid #acbcc4!important;border-radius:10px;background:#f7fafb;display:flex;flex-direction:column;gap:8px;overflow:visible;}
+#root [data-training-overview-day][data-outside-month]{background:#e9edef;}
+#root button[data-training-overview-entry],#root button[data-training-overview-entry]:hover:not(:disabled){width:100%;height:auto;min-height:90px;white-space:normal;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:10px;border:1px solid var(--group-line,#596979)!important;border-left:5px solid var(--group-line,#596979)!important;background:var(--group-bg,#e7edf2)!important;color:#192f40!important;overflow:visible;}
+#root [data-training-overview-entry] :is(strong,span,small){color:#192f40!important;white-space:normal;overflow:visible;overflow-wrap:anywhere;display:block;-webkit-line-clamp:unset;line-height:1.4;}
+#root [data-training-group="MakeX Inspire小低组"]{--group-bg:#fff1b8;--group-line:#a87900;}
+#root [data-training-group="MakeX Inspire小高组"]{--group-bg:#ffddc8;--group-line:#b45722;}
+#root [data-training-group="MakeX Explorer小学组"]{--group-bg:#cbebdd;--group-line:#25754f;}
+#root [data-training-group="MakeX Explorer初中组"]{--group-bg:#cee4ff;--group-line:#336eae;}
+#root [data-training-group="MakeX Challenge"]{--group-bg:#e5d9ff;--group-line:#7755a8;}
+#root [data-training-group="FRC"]{--group-bg:#ffdce7;--group-line:#aa4166;}
+#root [data-training-group="Inspire"]{--group-bg:#fff1b8;--group-line:#a87900;}
+#root [data-training-group="Explorer"]{--group-bg:#cee4ff;--group-line:#336eae;}

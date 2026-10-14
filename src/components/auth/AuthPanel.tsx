@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AuthUserProfile, EventType, UserRole } from '../../types';
 import styles from './AuthPanel.module.css';
+import { canManageStaff } from '../../services/staffAccess';
 
 const EVENT_TYPE_OPTIONS: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
 
@@ -22,6 +23,7 @@ interface ExistingUserForm {
 }
 
 interface Props {
+  embedded?: boolean;
   authAvailable: boolean;
   currentUser: AuthUserProfile | null;
   managedUsers: AuthUserProfile[];
@@ -90,6 +92,7 @@ function formatScopeSummary(user: AuthUserProfile): string {
 }
 
 export function AuthPanel({
+  embedded = false,
   authAvailable,
   currentUser,
   managedUsers,
@@ -109,8 +112,9 @@ export function AuthPanel({
   const [userForm, setUserForm] = useState<ManagedUserForm>(DEFAULT_USER_FORM);
   const [editingUsers, setEditingUsers] = useState<Record<string, ExistingUserForm>>({});
 
-  const canManageUsers = currentUser?.role === 'admin';
-  const visibleManagedUsers = managedUsers.filter((user) => user.authUserId !== currentUser?.authUserId);
+  const canManageUsers = canManageStaff(currentUser);
+  const [search,setSearch] = useState('');
+  const visibleManagedUsers = (embedded && currentUser ? [currentUser,...managedUsers.filter(user=>user.authUserId!==currentUser.authUserId)] : managedUsers.filter(user=>user.authUserId!==currentUser?.authUserId)).filter(user=>(user.username+' '+user.displayName).toLowerCase().includes(search.trim().toLowerCase()));
 
   const getUserDraft = (user: AuthUserProfile): ExistingUserForm =>
     editingUsers[user.authUserId] ?? {
@@ -126,13 +130,14 @@ export function AuthPanel({
     updater: (draft: ExistingUserForm) => ExistingUserForm,
   ) => {
     setEditingUsers((previous) => {
-      const current = previous[authUserId] ?? {
+      const existing = managedUsers.find(user=>user.authUserId===authUserId) ?? (currentUser?.authUserId===authUserId?currentUser:null);
+      const current = previous[authUserId] ?? (existing ? getUserDraft(existing) : {
         displayName: '',
         role: 'viewer' as UserRole,
         allowedEventTypes: [],
         allowedCompetitionIdsText: '',
         resetPassword: '',
-      };
+      });
 
       return {
         ...previous,
@@ -189,12 +194,12 @@ export function AuthPanel({
   };
 
   return (
-    <div className={styles.overlay}>
+    <div className={embedded ? styles.embedded : styles.overlay}>
       <div className={styles.panel}>
         <div className={styles.header}>
           <div>
             <p className={styles.eyebrow}>Account Center</p>
-            <h2>账号与权限</h2>
+            <h2>{embedded?'员工账号与权限':'账号与权限'}</h2>
           </div>
           <button className={styles.closeButton} onClick={onClose}>
             关闭
@@ -371,6 +376,9 @@ export function AuthPanel({
                   还没有其他用户。创建成功后，新账号会直接显示在这里。
                 </div>
               )}
+              <h3>已有员工账号</h3>
+              <p>直接读取当前系统的已有账号，保留原密码、角色及历史关联，无需重新创建。已停用账号也会显示在这里。</p>
+              <label className={styles.field}><span>查找员工 · 当前显示 {visibleManagedUsers.length} 个账号</span><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="姓名或登录用户名" /></label>
               {visibleManagedUsers.map((user) => {
                 const draft = getUserDraft(user);
 
@@ -409,6 +417,7 @@ export function AuthPanel({
                         <span>角色</span>
                         <select
                           value={draft.role}
+                          disabled={user.authUserId===currentUser.authUserId}
                           onChange={(event) => updateUserDraft(user.authUserId, (current) => ({
                             ...current,
                             role: event.target.value as UserRole,
@@ -434,12 +443,15 @@ export function AuthPanel({
                         <span>重置密码</span>
                         <input
                           type="password"
+                          minLength={8}
+                          maxLength={128}
+                          autoComplete="new-password"
                           value={draft.resetPassword}
                           onChange={(event) => updateUserDraft(user.authUserId, (current) => ({
                             ...current,
                             resetPassword: event.target.value,
                           }))}
-                          placeholder="输入新密码后点击重置"
+                          placeholder="输入 8–128 位新密码后点击重置"
                         />
                       </label>
                     </div>
@@ -473,7 +485,7 @@ export function AuthPanel({
                       </button>
                       <button
                         className={styles.inlineButton}
-                        disabled={busy || !draft.resetPassword.trim()}
+                        disabled={busy || draft.resetPassword.length<8 || draft.resetPassword.length>128}
                         onClick={() => handleResetPassword(user)}
                       >
                         重置密码

@@ -1,0 +1,16 @@
+.gallery { margin:48px 0; color:#34352e; border-top:1px solid #b9ad97; padding-top:32px; }
+.gallery header { margin-bottom:24px; }
+.gallery header > p { color:#88392d; letter-spacing:.15em; font-size:13px; }
+.gallery header h2 { margin:10px 0; font-size:clamp(28px,3vw,40px); font-family:'KaiTi','STKaiti','SimSun',serif; }
+.gallery header > span { color:#585145; line-height:1.8; }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px; }
+.grid article { background:#faf6ed; border:1px solid #c7beab; min-width:0; }
+.grid img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:contain; mix-blend-mode:multiply; }
+.copy { padding:20px 24px 24px; border-top:1px solid #ddd3c1; }
+.number { float:right; border:1px solid #9a4537; color:#88392d; padding:4px; font:16px/1.2 'KaiTi',serif; }
+.copy h3 { margin:0 0 14px; font:700 28px/1.4 'KaiTi','STKaiti','SimSun',serif; }
+.copy h4 { font-size:15px; line-height:1.8; margin:0 0 8px; color:#444b3c; }
+.copy p { font-size:14px; line-height:1.9; margin:0; color:#585145; }
+.gallery .note { color:#665e51; font-size:12px; line-height:1.8; margin:16px 0 0; }
+@media(max-width:800px) { .grid { grid-template-columns:1fr; } .grid article { display:grid; grid-template-columns:1fr 1fr; align-items:center; } .copy { border-top:0; } }
+@media(max-width:500px) { .grid article { display:block; } .copy { border-top:1px solid #ddd3c1; } }

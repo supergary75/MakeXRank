@@ -1,0 +1,37 @@
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.card { position:relative; min-width:0; border:1px solid #bbc3c5; border-left:3px solid #bf5026; border-radius:3px 18px 3px 3px; background:linear-gradient(120deg,#faf9f3 65%,#e4eceb); box-shadow:0 3px 8px #23343d0a; color:#23343d; font-family:Arial,"Microsoft YaHei",sans-serif; transition:box-shadow .15s,border-color .15s; }
+.card:hover { border-color:#8b9fa4; box-shadow:0 5px 14px #23343d18; }
+.card { display:grid; grid-template-columns:minmax(0,1fr) 62px; border-left:0; border-radius:8px; background:#f9f8f2; }
+.header,.card .identity,.footer { grid-column:1; }
+.stub { grid-column:2; grid-row:1 / 4; position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:8px; border-left:1px dashed #94a4a8; border-radius:0 8px 8px 0; background:#e5edec; color:#344e59; font:10px Consolas,monospace; letter-spacing:.04em; }
+.stub::before,.stub::after { content:''; position:absolute; left:-7px; width:12px; height:6px; background:#e8edf1; border:1px solid #bbc3c5; }
+.stub::before { top:-1px; border-top:0; border-radius:0 0 8px 8px; }
+.stub::after { bottom:-1px; border-bottom:0; border-radius:8px 8px 0 0; }
+.stub strong { font:700 30px/1 Consolas,monospace; letter-spacing:-.06em; color:#25434f; }
+.stub small { font:10px Arial,"Microsoft YaHei",sans-serif; color:#53656d; }
+.stubRule { width:24px; height:3px; background:#be5229; transform:skew(-25deg); }
+.card:has(.actions[open]) { z-index:11; }
+.header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:5px; padding:10px 12px 0; font-family:Consolas,"Microsoft YaHei",monospace; font-size:10px; font-weight:700; letter-spacing:.03em; }
+.classCode { color:#425862; border:1px solid #b8c6c8; padding:2px 5px; border-radius:2px; }
+.serial { border-left:4px solid #c65123; padding-left:8px; color:#8c3719; }
+.card .identity { display:flex; align-items:center; gap:11px; width:100%; min-width:0; min-height:76px; padding:12px; border:0; background:transparent; border-radius:0; text-align:left; color:#23343d; font-family:inherit; text-transform:none; cursor:pointer; }
+.identity:hover { background:#ffffff70; }
+.emblem { flex:0 0 30px; height:34px; display:grid; place-items:center; font-size:16px; font-weight:700; color:#8d3d1d; background:#f4e8da; border:1px solid #d8b699; border-radius:50%; }
+.names { display:flex; flex-direction:column; gap:5px; min-width:0; overflow-wrap:anywhere; }
+.names strong { font-size:19px; line-height:1.35; font-family:inherit; letter-spacing:0; }
+.names > span { font-size:14px; color:#53656d; text-transform:none; letter-spacing:0; }
+.arrow { margin-left:auto; font-size:22px; color:#9b431e; }
+.footer { display:flex; align-items:center; justify-content:space-between; gap:4px; padding:0 4px 0 12px; border-top:1px solid #dce2df; font-size:11px; color:#53656d; }
+.footer .wings { font-size:9px; letter-spacing:-1px; padding:0 6px 0 0; color:#8b431f; }
+.footer > span > span { color:#b84921; padding:0 5px; }
+.actions { position:relative; }
+.card .actions summary { list-style:none; cursor:pointer; min-width:44px; min-height:44px; display:grid; place-items:center; padding:0; font-size:17px; color:#344e59; }
+.actions summary::-webkit-details-marker { display:none; }
+.actions[open] > div { position:absolute; right:0; top:44px; z-index:10; width:140px; background:#fffdf6; padding:6px; border:1px solid #abbdbf; border-radius:8px; box-shadow:0 8px 20px #23343d22; }
+.card .actions button { display:block; width:100%; min-height:44px; border:0; font:14px Arial,"Microsoft YaHei",sans-serif; color:#344e59; background:transparent; text-align:left; padding:10px; }
+.card .actions button:last-child { color:#a13a26; }
+.card .actions button:hover { background:#e8eeed; }
+.card button:focus-visible,.actions summary:focus-visible { outline:3px solid #bd532b; outline-offset:2px; }
+@media(max-width:1100px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(min-width:1101px) and (max-width:1350px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:650px) { .grid { grid-template-columns:1fr; gap:10px; } .card .identity { min-height:72px; padding:10px 12px; } .names strong { font-size:18px; } }

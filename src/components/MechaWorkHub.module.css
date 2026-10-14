@@ -1,0 +1,74 @@
+.hub{color:#e5f4fa;background:#040d16;font-family:Arial,"Microsoft YaHei",sans-serif;padding:18px;border:1px solid #294956}
+.hub .heroBody{position:relative;isolation:isolate;min-height:330px}
+.copy{position:relative;z-index:1}
+.mechaBackdrop{position:absolute;inset:0 0 0 52%;z-index:-1;pointer-events:none;background:url('/MakeXRank/images/mecha-wireframe-v1.png') center 28% / cover no-repeat;opacity:.22;mask-image:linear-gradient(90deg,transparent,#000 35%);mix-blend-mode:screen}
+@media(max-width:700px){.mechaBackdrop{inset:0 0 0 42%;opacity:.12}.hub .heroBody{min-height:0}}
+.mechaDrawing{margin:0;min-width:0;position:relative;border-left:1px solid #294451;padding:0 0 0 24px}
+.mechaDrawing img{display:block;width:100%;height:480px;object-fit:contain;mix-blend-mode:screen}
+.drawingLabel,.mechaDrawing figcaption{display:flex;justify-content:space-between;gap:12px;font:10px/1.8 Consolas,"Microsoft YaHei",monospace;color:#bdd4dc;letter-spacing:.08em}
+.drawingLabel{border-bottom:1px solid #34505c;padding-bottom:10px;color:#67e0e8}
+.mechaDrawing figcaption{border-top:1px solid #34505c;padding-top:10px}.mechaDrawing figcaption span{color:#9eb4c1}
+@media(max-width:700px){.mechaDrawing{padding:0;border-left:0}.mechaDrawing img{height:330px}}
+.hero{background:linear-gradient(110deg,#091a26,#0b2330);border:1px solid #365867;border-top:3px solid #45dce6}
+.nav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 30px;border-bottom:1px solid #294956}
+.brand{font:700 13px Consolas,monospace;letter-spacing:.16em}.brand i{color:#4edce5;padding:0 8px}.account{max-width:100%}
+.heroBody{display:grid;grid-template-columns:1.35fr 1fr;gap:40px;padding:45px 36px;align-items:center;background:repeating-linear-gradient(90deg,transparent 0 79px,#54d5e009 80px),repeating-linear-gradient(0deg,transparent 0 79px,#54d5e009 80px)}
+.eyebrow{font:12px Consolas,monospace;letter-spacing:.2em;color:#53dce5}.hub h1{font:700 clamp(32px,4.6vw,60px)/1.25 Arial,"Microsoft YaHei",sans-serif;color:#f1f8fc;margin:20px 0}.hub h1 span{color:#63dfe7}
+.description{color:#b4cbd7;font-size:15px;line-height:1.9}.meta{display:flex;flex-wrap:wrap;gap:18px;border-top:1px solid #355462;padding-top:18px;margin-top:26px;font:11px Consolas,"Microsoft YaHei",monospace;color:#a9c4d0}
+.armor{position:relative;width:100%;max-width:390px;justify-self:center;padding:18px;border:1px solid #446674;background:#091721;box-shadow:inset 0 0 0 5px #102631}
+.armor::before,.armor::after{content:"";position:absolute;width:25px;height:25px;border-color:#70e4ed;border-style:solid;pointer-events:none}.armor::before{left:-2px;top:-2px;border-width:2px 0 0 2px}.armor::after{right:-2px;bottom:-2px;border-width:0 2px 2px 0}
+.armorLabel{display:flex;justify-content:space-between;align-items:center;color:#a4c2cf;font:10px Consolas,monospace;letter-spacing:.1em}.armorLabel b{font-size:24px;color:#64e0e9}.console{margin-top:14px;padding:20px;background:repeating-linear-gradient(0deg,#4edce505 0 1px,transparent 1px 5px),#041019;border:1px solid #355563}
+.console>span,.console>small{font:10px Consolas,monospace;letter-spacing:.12em;color:#9fbeca}.console>strong{display:block;font:700 32px Consolas,monospace;color:#e4f7fa;margin:9px 0 20px}
+.screenRows>div{display:grid;grid-template-columns:25px 1fr 8px;gap:8px;padding:10px 0;border-top:1px solid #284452;font:11px Consolas,monospace;color:#b5d6df}.screenRows>div>span:first-child{color:#5fdce5}.screenRows i{height:5px;background:#52c7d4;align-self:center}.console>small{display:block;margin-top:16px}.hardware{display:flex;justify-content:space-between;align-items:center;margin-top:14px}.vent{display:flex;gap:5px}.vent span{width:9px;height:17px;background:#2d5263;transform:skew(-20deg)}.armorFoot{font:10px/1.6 Consolas,"Microsoft YaHei",monospace;color:#98b5c4;text-align:right}
+.centers{padding:30px 10px 8px}.sectionHeading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}.hub .sectionHeading h2{font:700 22px Arial,"Microsoft YaHei",sans-serif;color:#e6f4fa;margin:0}.sectionHeading>span{font:10px Consolas,monospace;letter-spacing:.1em;color:#9dbbc9}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.hub .card{position:relative;display:flex;flex-direction:column;min-width:0;text-align:left;padding:26px;color:#d7ebf3;background:linear-gradient(120deg,#0d2330,#091a26);border:1px solid #365866;border-radius:0;font-family:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.card::before{content:"";position:absolute;top:-1px;left:-1px;width:30px;height:15px;border-top:2px solid #65e6ed;border-left:2px solid #65e6ed;pointer-events:none}.card::after{content:"";position:absolute;bottom:-1px;right:-1px;width:30px;height:15px;border-bottom:2px solid #65e6ed;border-right:2px solid #65e6ed;pointer-events:none}.hub .card:hover{background:#112d3b;border-color:#6bcedb}.card:focus-visible{outline:3px solid #6cebf0;outline-offset:4px}
+.cardTop{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}.number{font:400 32px Consolas,monospace;color:#6ee8ed}.number small{font-size:10px;color:#9fbecb}.status{font-size:11px;color:#acd6df;border:1px solid #396675;padding:5px 8px;background:#102b36}.english{font:11px Consolas,monospace;letter-spacing:.16em;color:#6dd5e1}.hub .card h3{font:700 25px/1.4 Arial,"Microsoft YaHei",sans-serif;margin:9px 0 13px;color:#edf6fa}.card p{font:14px/1.8 Arial,"Microsoft YaHei",sans-serif;color:#b5cbd7;margin:0 0 18px}.tags{font-size:11px;color:#a2becb;margin-top:auto;padding-bottom:20px}.cardBottom{border-top:1px solid #31505d;padding-top:13px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;color:#66dfe8}.cardBottom>span:last-child{display:grid;place-items:center;background:#123542;border:1px solid #447887;width:32px;height:28px}.note{color:#a6beca;font-size:12px;line-height:1.8;margin:20px 0 0}
+@media(max-width:700px){.hub{padding:7px}.nav{padding:15px}.heroBody{grid-template-columns:1fr;gap:24px;padding:26px 20px}.armor{max-width:100%}.console{padding:14px}.grid{grid-template-columns:1fr;gap:14px}.centers{padding:22px 8px 8px}.hub .card{padding:20px}.hub .card h3{font-size:22px}}
+
+/* Precision-manufacturing landing page: real component photography remains separate from copy. */
+.hub{background:#f8faf9;padding:0;border:0;overflow:hidden}
+.hero{background:#f5f8f8;border:0}
+.nav{padding:15px 3%;min-height:76px;background:#fff;border-bottom:1px solid #d4dcdf}
+.brand{display:flex;align-items:center;gap:13px;color:#172b37;font:800 16px/1.2 Arial,"Microsoft YaHei",sans-serif;letter-spacing:.07em}
+.brandMark{display:grid;place-items:center;width:46px;height:46px;color:#172b37;font-size:36px;border-right:4px solid #ffd700}
+.brand small{display:block;margin-top:5px;color:#60737d;font:9px/1.3 Consolas,monospace;letter-spacing:.19em}
+.navLinks{display:flex;align-items:center;gap:7px}
+.quickAttendance{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:16px 3%;background:#f8faf8;border-bottom:1px solid #c5d0d2}
+.quickAttendance strong{font-size:20px}.quickAttendance p{margin:5px 0 0;font-size:14px;line-height:1.6}
+.quickAttendance button{min-height:48px;padding:12px 20px;font-size:16px;font-weight:700;cursor:pointer}
+.navLinks button{border:0;background:transparent;padding:12px 18px;color:#263946;font-weight:700;cursor:pointer}
+.navLinks button:hover{border-bottom:3px solid #ffd700}
+.account{display:flex;align-items:center;justify-content:flex-end}
+.heroBody{display:grid;grid-template-columns:minmax(0,.91fr) minmax(0,1.09fr);gap:0;min-height:480px;padding:54px 3% 34px;background:#f4f7f8;overflow:hidden}
+.copy{z-index:2;align-self:center}
+.eyebrow{color:#647884;font:12px Consolas,monospace;letter-spacing:.4em}
+.hub h1{margin:16px 0 12px;color:#142638;font:800 clamp(38px,4.6vw,67px)/1.16 Arial,"Microsoft YaHei",sans-serif;letter-spacing:.03em}
+.hub h1 span{color:#142638}
+.heroTagline{margin:0 0 25px;padding-left:18px;border-left:4px solid #ffd700;color:#1e3547;font-size:18px;letter-spacing:.18em}
+.description{font-size:15px;color:#415668;line-height:1.9}
+.meta{display:flex;gap:24px;border:0;padding:0;margin-top:24px;color:#5f7281;font-size:10px;letter-spacing:.12em}
+.heroMedia{position:relative;min-width:0;min-height:390px;align-self:stretch;display:grid;place-items:center}
+.heroMedia::before{content:"";position:absolute;inset:0;background:url('/MakeXRank/images/blueprint-mechanism.svg') center/contain no-repeat;opacity:.35}
+.heroMedia img{position:relative;z-index:1;width:115%;height:100%;min-height:400px;object-fit:contain;mix-blend-mode:multiply;filter:contrast(1.09) saturate(.8)}
+.heroMediaLabel{position:absolute;z-index:2;right:10px;bottom:1px;color:#526775;font:10px Consolas,monospace;letter-spacing:.12em}
+.centers{padding:24px 3% 22px;background:linear-gradient(#f2f5f5,#f9faf8)}
+.sectionHeading{margin-bottom:18px}.hub .sectionHeading h2{color:#172b37;font-size:20px}.sectionHeading>span{color:#61747d}
+.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.hub .card{position:relative;min-height:344px;padding:20px 18px 17px;background:#fff;color:#172b37;border:1px solid #b5c0c2;border-top:3px solid #ffd700;border-radius:12px;box-shadow:0 12px 30px #1a2f3e1c;overflow:hidden}
+.cardArt{position:absolute;z-index:0;right:-30%;bottom:-3%;width:115%;height:75%;pointer-events:none;mask-image:linear-gradient(90deg,transparent 0%,#000 45%)}
+.cardArt img{width:100%;height:100%;object-fit:contain;object-position:right bottom;filter:contrast(1.1) saturate(.55)}
+.cardTop,.english,.hub .card h3,.card p,.tags,.cardBottom{position:relative;z-index:1}
+.cardTop{margin-bottom:26px}.number{color:#243b4a;font-size:23px}.number small{font-size:9px;color:#536875}.status{font-size:10px;color:#2c4350;border-color:#b2bfc6;background:#ffffffd9}
+.english{color:#485e6a;font-size:10px;letter-spacing:.14em}
+.hub .card h3{color:#152b3c;font-size:22px;line-height:1.3;margin:8px 0 11px}
+.card p{max-width:75%;color:#334c5b;font-size:12px;line-height:1.7;margin-bottom:10px}
+.tags{max-width:78%;color:#536978;font-size:10px;padding:0}
+.cardBottom{margin-top:auto;border:0;color:#1b3547;padding:14px 0 0;font-size:11px}
+.cardBottom>span:last-child{width:34px;height:34px;border:2px solid #ffd700;border-radius:50%;background:#fff;color:#1b3547;font-size:18px}
+.note{color:#586e7c;font-size:11px;margin:17px 0 0}.note a{color:#24495f;text-decoration:underline}
+.cardArt.pulleyArt{right:10px;bottom:58px;width:43%;height:31%;mask-image:none}
+.cardArt.pulleyArt img{object-fit:contain;object-position:right bottom;mix-blend-mode:multiply;filter:none}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hub .card{min-height:290px}.navLinks{display:none}}
+@media(max-width:700px){.nav{padding:12px 16px}.brand{font-size:12px}.brandMark{width:34px;height:34px;font-size:28px}.brand small{font-size:7px}.heroBody{grid-template-columns:1fr;padding:30px 18px 16px}.hub h1{font-size:38px}.heroTagline{font-size:14px}.heroMedia{min-height:260px}.heroMedia img{min-height:260px;width:100%;height:280px}.grid{grid-template-columns:1fr}.hub .card{min-height:265px}.cardArt{right:-15%;width:84%;height:78%}.centers{padding:22px 16px}}

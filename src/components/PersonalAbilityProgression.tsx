@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { personalAbilities } from './personalAbilities';
 import { mindsetProgression } from './mindsetCurriculum';
 import styles from './CurriculumSystem.module.css';
+import { PersonalAbilityRadar } from './PersonalAbilityRadar';
 
 export function PersonalAbilityProgression() {
   const [selected, setSelected] = useState(0);
@@ -10,7 +11,8 @@ export function PersonalAbilityProgression() {
     <h3>七级工程成长 · 学习、思考与共同担当</h3>
     <p>每个级别都练习全部能力；进阶体现在任务复杂度、独立程度和责任范围，不以年龄直接判定个人水平。</p>
     <nav className={styles.path} aria-label="选择个人能力培养级别">{mindsetProgression.map((row,index) => <button key={row.level} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)}><strong>{row.level}</strong><span>{row.grades}</span><b>{row.event}</b></button>)}</nav>
-    <h4>{level.level} · {level.event} · 七项能力任务</h4>
+    <h4>{level.level} · {level.event} · 八维课程目标</h4>
+    <PersonalAbilityRadar selected={selected} />
     <div className={styles.modules} key={level.level}>{personalAbilities.map(ability => {
       const step = ability.steps[selected];
       return <section className={styles.detail} key={ability.name}><h4>{ability.name}</h4><p>{ability.definition}</p><p><strong>本级目标：</strong>{step.goal}</p><details><summary>展开练习与成长证据</summary><p><strong>建议练习：</strong>{step.practice}</p><p><strong>观察证据：</strong>{step.evidence}</p><p className={styles.note}>参考关联：{ability.foundation}。任务为俱乐部原创设计。</p></details></section>;

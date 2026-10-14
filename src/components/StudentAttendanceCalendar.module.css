@@ -1,0 +1,10 @@
+.calendar {margin:28px 0;padding:20px;background:#f7f3eb;border:1px solid #c9c0af;border-radius:10px;color:#302e29;}
+.toolbar {display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+.grid {display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:20px;}
+.weekday {text-align:center;font-weight:700;padding:8px 0;}
+.calendar .day {display:flex;flex-direction:column;align-items:stretch;gap:5px;min-height:100px;min-width:0;padding:8px;text-align:left;background:#fffdf7;color:#302e29;}
+.day span {font-size:12px;padding:4px;border-radius:3px;overflow-wrap:anywhere;}
+.calendar .selected {outline:3px solid #8a4435;outline-offset:0;}
+.present {background:#dcecdf;color:#244c30;}.sick {background:#e0ecf9;color:#224e7a;}.leave {background:#f8e7cc;color:#714310;}.holiday {background:#eae0f4;color:#5b337b;}.pending {background:#ebe6db;color:#575044;}
+.detail {margin-top:20px;padding-top:12px;border-top:1px solid #c9c0af;}.detail button {margin:10px;}
+@media(max-width:600px){.calendar{padding:10px}.grid{gap:3px}.calendar .day{padding:4px;min-height:84px}.weekday{font-size:12px}.day span{font-size:11px;padding:2px}.toolbar{gap:6px}}

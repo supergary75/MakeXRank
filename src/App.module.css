@@ -446,7 +446,7 @@
 }
 .workHubIntro { color: #445464; }
 .workHubIntro span:first-child { color: #704f00; font-weight: 800; }
-.workHubGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.workHubGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .workHubCard,
 .workHubInterview,
 .workHubProduct {
@@ -3869,3 +3869,22 @@
 .productRedesign .courseDocumentCard { background:#eee8dc; border-color:#c7bfaf; }
 .productRedesign .courseDocumentCard h3 { color:#34382f; }
 .productRedesign .courseDocumentCard button { background:#e2dbcd; color:#625b4e; }
+
+/* Tiangong sample is intentionally limited to the two approved landing pages. */
+.app.tiangongPreview { background:#e6dfd0; }
+.tiangongPreview .container { background:#f5f0e5; border:1px solid #b9ad97; border-radius:3px; box-shadow:0 16px 60px #40382712; }
+.tiangongPreview .productCenterSection { background:#f5f0e5; }
+.tiangongPreview .productRedesign { background:radial-gradient(ellipse at 100% 100%,#d8d1bd66,transparent 65%),#f5f0e5; }
+.tiangongPreview .productModuleCard { border-radius:3px; background:#faf6ed; border-color:#b9ad97; }
+.tiangongPreview .productModuleCard h3 { font-size:32px; }
+.tiangongPreview .courseDocumentCard { background:#eee7d9; color:#34352e; }
+.tiangongPreview .courseDocumentCard p, .tiangongPreview .courseDocumentCard small { color:#585145; }
+.tiangongPreview .backButton { color:#78372d; background:#faf6ed; border-color:#b9ad97; }
+.tiangongPreview button:focus-visible, .tiangongPreview a:focus-visible { outline:3px solid #88392d; outline-offset:4px; }
+.tiangongPreview .productModuleCard { position:relative; isolation:isolate; overflow:hidden; }
+.tiangongPreview .productModuleCard > * { position:relative; z-index:1; }
+.tiangongPreview .productModuleCard::after { content:''; position:absolute; top:12px; right:0; width:150px; height:110px; background:url('/MakeXRank/images/tiangong-structures-v1.png') right top/contain no-repeat; opacity:.48; mix-blend-mode:multiply; mask-image:linear-gradient(90deg,transparent,#000 28%); pointer-events:none; z-index:0; }
+.tiangongPreview .productModuleCard:nth-child(2)::after { background-image:url('/MakeXRank/images/tiangong-scroll-v1.png'); }
+.tiangongPreview .courseDocumentCard { isolation:isolate; }
+.tiangongPreview .courseDocumentCard::after { border-radius:0; transform:none; }
+.tiangongPreview .courseDocumentCard::after { content:''; position:absolute; top:0; right:0; width:150px; height:110px; background:url('/MakeXRank/images/tiangong-scroll-v1.png') right top/contain no-repeat; opacity:.48; mix-blend-mode:multiply; mask-image:linear-gradient(90deg,transparent,#000 28%); pointer-events:none; z-index:-1; }

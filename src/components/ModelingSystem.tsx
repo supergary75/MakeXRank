@@ -28,7 +28,7 @@ export function ModelingSystem() {
           {item.scores.map((score,i) => { const [cx,cy] = point(i,score); return <circle key={i} cx={cx} cy={cy} r="4" fill="#176c80" />; })}
           {[1,2,3,4,5].map(value => <text key={value} x="258" y={220-value*29+12} fontSize="12" fill="#233440">{value}</text>)}
         </svg>
-        <p className={styles.legend}>实线：{item.level}　{previous ? `长虚线：${previous.level}　` : ''}点虚线：FRC进阶目标</p>
+        <p className={styles.legend}>实线：{item.level} · {previous ? `长虚线：${previous.level} · ` : ''}点虚线：FRC进阶目标</p>
         <p>这是俱乐部课程目标，不是学生实际成绩或官方赛事评级。U18A进阶目标与外圈重合；0阶表示暂不独立考核。</p>
         <details><summary>查看数值与评价刻度</summary><table><thead><tr><th>能力</th><th>本级</th><th>上一级</th><th>FRC目标</th></tr></thead><tbody>{modelingAxes.map((axis,i) => <tr key={axis}><th scope="row">{axis}</th><td>{item.scores[i]}</td><td>{previous ? previous.scores[i] : '—'}</td><td>5</td></tr>)}</tbody></table><p>1：引导下体验；2：按示例完成；3：独立完成限定任务；4：系统协同与取舍；5：教练评审下工程分析、交付与验证。</p><p>刻度为教学规划草案，不是等距能力测量；不计算总分或面积增长率。个人评价需结合下方项目证据。</p></details>
       </section>

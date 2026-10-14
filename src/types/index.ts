@@ -140,8 +140,15 @@ export interface AuthUserProfile {
 export type TabName = 'ranking' | 'playoff' | 'focusSchedule';
 export type ViewMode =
   | 'work-hub'
+  | 'academic-center'
+  | 'staff-admin'
+  | 'class-member-management'
+  | 'weekly-roll-call'
+  | 'attendance-dashboard'
   | 'interview-center'
   | 'product-center'
+  | 'course-documents'
+  | 'curriculum-u9' | 'curriculum-u12b' | 'curriculum-u12a' | 'curriculum-u15b' | 'curriculum-u15a' | 'curriculum-u18b' | 'curriculum-u18a'
   | 'curriculum-system'
   | 'curriculum-competition'
   | 'curriculum-programming'

@@ -45,13 +45,35 @@
 .root .modules button { border-top: 3px solid #0066b3; }
 .root .modules button:nth-child(2) { border-top-color: #bd2635; }
 .root .path button[aria-pressed='true'] { background: #dcecf7; border-color: #0066b3; box-shadow: inset 0 3px #0066b3; }
-.root.silverLanding { background: #f2f5f7; color: #445464; border-color: #9dacb9; }
-.silverLanding > header .eyebrow { color: #275b7b; }
-.silverLanding .modules button { background: linear-gradient(135deg, #f2f5f7, #f2f5f7); color: #445464; border-color: #9dacb9; box-shadow: none; }
-.silverLanding .modules button:hover { background: #f2f5f7; border-color: #b92e3b; }
+.root.silverLanding { background: #f5f0e5; color: #34352e; border-color: #b9ad97; border-radius: 3px; }
+.silverLanding > header .eyebrow { color: #8a3329; }
+.silverLanding .modules button { background: #faf6ed; color: #34352e; border:1px solid #b9ad97; border-top:3px solid #56584b; border-radius:3px; box-shadow: 0 5px 16px #463e2b08; }
+.silverLanding .modules button:hover { background: #fffaf0; border-color: #8a3329; }
 .silverLanding .modules button:focus-visible { outline-color: #b92e3b; }
-.silverLanding .modules strong { color: #445464; }
-.silverLanding .modules small, .silverLanding .modules button > span { color: #a62230; }
+.silverLanding .modules strong { color: #34352e; font-family:'KaiTi','STKaiti','SimSun',serif; font-size:1.5rem; }
+.silverLanding .modules small, .silverLanding .modules button > span { color: #8a3329; }
+.silverLanding .modules small { border:1px solid #a04738; width:2rem; text-align:center; line-height:2rem; }
+.root.silverLanding .cardVisual[data-kind] { background:#eae4d6; color:#424a3e; border-color:#c7beab; border-radius:2px; }
+.silverLanding .cardVisual b, .silverLanding .cardVisual code, .silverLanding .formulaPreview > div { color:#34352e; }
+.silverLanding .cardVisual em { color:#8a3329; }
+.craftHeading { display:block; border-bottom:1px solid #b9ad97; }
+.craftHeading h2 { font-family:'KaiTi','STKaiti','SimSun',serif; font-size:clamp(26px,3vw,40px); }
+.craftHeading img { display:block; width:100%; height:auto; mix-blend-mode:multiply; }
+.craftHeading p { max-width:40rem; }
+.craftCardVisual { width:100%; background:#efe8da; border:1px solid #c7beab; }
+.craftCardVisual img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:contain; mix-blend-mode:multiply; }
+.modules .craftCardVisual > span { color:#514b40; font-size:12px; letter-spacing:.12em; padding:8px 12px; border-top:1px solid #c7beab; margin:0; }
+.root.silverLanding .modules .cardVisual { min-height:104px; background:transparent; border:0; padding:0; position:relative; }
+.silverLanding .modules button { position:relative; overflow:hidden; isolation:isolate; }
+.silverLanding .modules button > * { position:relative; z-index:1; }
+.silverLanding .modules button::after { content:''; position:absolute; right:-12px; top:0; width:150px; height:110px; background-size:contain; background-repeat:no-repeat; background-position:right top; opacity:.48; mix-blend-mode:multiply; pointer-events:none; z-index:0; mask-image:linear-gradient(90deg,transparent,#000 28%); }
+.silverLanding .modules button:nth-child(3)::after { background-image:url('/MakeXRank/images/tiangong-tools-v1.png'); }
+.silverLanding .modules button:nth-child(1)::after { background-image:url('/MakeXRank/images/tiangong-cart-v1.png'); }
+.silverLanding .modules button:nth-child(2)::after { background-image:url('/MakeXRank/images/tiangong-abacus-v1.png'); }
+.silverLanding .modules button:nth-child(6)::after { background-image:url('/MakeXRank/images/tiangong-structures-v1.png'); }
+.silverLanding .modules button:nth-child(4)::after { background-image:url('/MakeXRank/images/tiangong-structures-v1.png'); }
+.silverLanding .modules button:nth-child(5)::after { background-image:url('/MakeXRank/images/tiangong-mechanisms-v1.png'); }
+@media(max-width:600px) { .craftHeading { grid-template-columns:1fr; } .craftHeading img { max-width:260px; justify-self:end; } }
 .frcFeature { display: grid; grid-template-columns: minmax(200px, .65fr) minmax(0, 1.35fr); gap: 2rem; align-items: center; padding: 1.5rem; margin: 1.5rem 0; border-radius: 16px; background: #e8edf1; color: #202a35; border-top: 4px solid #b92e3b; }
 .frcFeature figure { margin: 0; text-align: center; }
 .frcFeature img { display: block; width: 100%; height: 300px; object-fit: contain; background: #e8edf1; border-radius: 8px; }

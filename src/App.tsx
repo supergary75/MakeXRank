@@ -1,4 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import ClassMemberManagement from './components/ClassMemberManagement';
+import WeeklyRollCall from './components/WeeklyRollCall';
+import AttendanceDashboard from './components/AttendanceDashboard';
+import TrainingRosterPanel from './components/TrainingRosterPanel';
+import TrainingBatchPlanner from './components/TrainingBatchPlanner';
+import TrainingVenuePicker, { normalizeDateVenues } from './components/TrainingVenuePicker';
+import TrainingCoachPicker from './components/TrainingCoachPicker';
+import {normalizeTrainingRoster,type TrainingRoster} from './components/trainingRoster';
 import type {
   AuthUserProfile,
   CompetitionRecord,
@@ -74,6 +82,7 @@ import { CompetitionLobby } from './components/competition/CompetitionLobby';
 import { EventTypeSelector } from './components/competition/EventTypeSelector';
 import { Header } from './components/layout/Header';
 import WorkspaceHero from './components/WorkspaceHero';
+import LevelSyllabus, { syllabusRoutes } from './components/LevelSyllabus';
 import { Footer } from './components/layout/Footer';
 import { TabNavigation } from './components/layout/TabNavigation';
 import { DataControls } from './components/data-input/DataControls';
@@ -100,6 +109,10 @@ import {
 } from './pwaInstall';
 
 import styles from './App.module.css';
+import MechaWorkHub from './components/MechaWorkHub';
+import { canManageStaff } from './services/staffAccess';
+import AcademicFlightDeck from './components/AcademicFlightDeck';
+import aviation from './components/AcademicFlightDeck.module.css';
 
 type TrainingDateMode = 'training' | 'self';
 
@@ -186,7 +199,8 @@ const EXPLORER_PRIMARY_GROUP = 'MakeX Explorer小学组';
 const EXPLORER_JUNIOR_GROUP = 'MakeX Explorer初中组';
 const TRAINING_GROUP_OPTIONS = [
   'FRC',
-  'MakeX Inspire',
+  'MakeX Inspire小低组',
+  'MakeX Inspire小高组',
   EXPLORER_PRIMARY_GROUP,
   EXPLORER_JUNIOR_GROUP,
   'MakeX Challenge',
@@ -226,7 +240,8 @@ const LOGISTICS_ROSTER_STORAGE_KEY = 'competitive-ranking-board::logistics-maste
 const TRAINING_EVENTS_STORAGE_KEY = 'competitive-ranking-board::training-events';
 const TRAINING_SCHEDULES_STORAGE_KEY = 'competitive-ranking-board::training-schedules';
 const LOGISTICS_EVENT_ITEM_OPTIONS = [
-  'MakeX Inspire',
+  'MakeX Inspire小低组',
+  'MakeX Inspire小高组',
   EXPLORER_PRIMARY_GROUP,
   EXPLORER_JUNIOR_GROUP,
   'MakeX Challenge',
@@ -260,7 +275,7 @@ const LOGISTICS_SYNC_TABLE = import.meta.env.VITE_SUPABASE_LOGISTICS_SYNC_TABLE?
 const LOGISTICS_SYNC_ID = 'global';
 const LOGISTICS_TOMBSTONE_PREFIX = '__makexrank_deleted_logistics__:';
 const VIEW_MODES: ViewMode[] = [
-  'work-hub', 'interview-center', 'product-center', 'curriculum-system',
+  'work-hub', 'staff-admin', 'academic-center', 'class-member-management', 'weekly-roll-call', 'attendance-dashboard', 'interview-center', 'product-center', 'course-documents', 'curriculum-system', ...syllabusRoutes,
   ...curriculumRoutes,
   'home', 'login', 'my-tasks', 'event-types', 'logistics', 'logistics-roster',
   'logistics-event', 'logistics-event-roster', 'logistics-event-rooms',
@@ -488,6 +503,7 @@ interface LogisticsRoomForm {
 type LogisticsAttendanceMap = Record<string, Record<string, LogisticsAttendanceStatus>>;
 
 interface LogisticsEventRecord {
+  enabledGroups?: string[];
   id: string;
   name: string;
   date: string;
@@ -558,6 +574,7 @@ const DEFAULT_LOGISTICS_ROOM_FORM: LogisticsRoomForm = {
 };
 
 interface TrainingEventRecord {
+  roster?: TrainingRoster;
   id: string;
   sourceLogisticsEventId: string;
   name: string;
@@ -565,6 +582,7 @@ interface TrainingEventRecord {
   calendarDates: string[];
   calendarDateModes: Record<string, TrainingDateMode>;
   calendarDateTimes: Record<string, string>;
+  calendarDateVenues?: Record<string, string>;
   venue: string;
   group: string;
   coach: string;
@@ -918,7 +936,8 @@ function resolveLogisticsEventItem(value: string): string {
     explorerGroup === 'primary' ? EXPLORER_PRIMARY_GROUP : '',
     explorerGroup === 'junior' ? EXPLORER_JUNIOR_GROUP : '',
     normalized.includes('makexinspire') || tokens.includes('inspire') || tokens.includes('ins')
-      ? 'MakeX Inspire'
+      ? (normalized.includes('小低') ? 'MakeX Inspire小低组'
+        : normalized.includes('小高') ? 'MakeX Inspire小高组' : 'MakeX Inspire')
       : '',
     normalized.includes('makexchallenge') || tokens.includes('challenge') || tokens.includes('cha')
       ? 'MakeX Challenge'
@@ -935,29 +954,30 @@ function resolveLogisticsEventItem(value: string): string {
 
 function matchesLogisticsEventItem(value: string, selectedItem: string): boolean {
   const resolvedValue = resolveLogisticsEventItem(value);
+  if (selectedItem === LOGISTICS_UNASSIGNED_EVENT_ITEM) {
+    return !resolvedValue || resolvedValue === 'MakeX Inspire';
+  }
   const resolvedSelected = resolveLogisticsEventItem(selectedItem);
   return Boolean(resolvedValue && resolvedSelected && resolvedValue === resolvedSelected);
 }
 
 function matchesLogisticsTimelineEventItem(value: string, selectedItem: string): boolean {
   if (selectedItem === LOGISTICS_UNASSIGNED_EVENT_ITEM) {
-    return !value.trim();
+    return matchesLogisticsEventItem(value, selectedItem);
   }
   return matchesLogisticsEventItem(value, selectedItem);
 }
 
 function getLogisticsEventItems(event: LogisticsEventRecord): string[] {
-  return TRAINING_GROUP_OPTIONS.filter((eventItem) =>
-    matchesLogisticsEventItem(event.group, eventItem)
-    || event.participants.some((participant) =>
-      participant.role === '队员' && matchesLogisticsEventItem(participant.eventItem, eventItem)),
-  );
+  // Legacy events retain all entries until the organiser chooses actual groups.
+  return event.enabledGroups ?? TRAINING_GROUP_OPTIONS;
 }
 
 function getTrainingEventRosterSummary(
   event: TrainingEventRecord,
   logisticsEvents: LogisticsEventRecord[],
 ): { participantCount: number; teamCount: number } {
+  if(event.roster){return {participantCount:event.roster.members.length,teamCount:new Set(event.roster.members.map(m=>m.teamNo.trim()||m.teamName.trim()).filter(Boolean)).size};}
   const source = logisticsEvents.find((item) => item.id === event.sourceLogisticsEventId);
   if (!source || !event.group) {
     return { participantCount: 0, teamCount: 0 };
@@ -1237,6 +1257,7 @@ function normalizeLogisticsEvents(input: unknown): LogisticsEventRecord[] {
 
       return {
         id: typeof item.id === 'string' ? item.id : `logistics-${Date.now()}`,
+        enabledGroups:Array.isArray(item.enabledGroups)?item.enabledGroups.filter(g=>LOGISTICS_EVENT_ITEM_OPTIONS.includes(g)):undefined,
         name: typeof item.name === 'string' ? item.name : '',
         date: typeof item.date === 'string' ? item.date : '',
         venue: typeof item.venue === 'string' ? item.venue : '',
@@ -1674,11 +1695,13 @@ function loadTrainingEvents(): TrainingEventRecord[] {
         return {
           id: typeof item.id === 'string' ? item.id : `training-${Date.now()}`,
           sourceLogisticsEventId: typeof item.sourceLogisticsEventId === 'string' ? item.sourceLogisticsEventId : '',
+          roster: normalizeTrainingRoster(item.roster),
           name: typeof item.name === 'string' ? item.name : '',
           date: typeof item.date === 'string' ? item.date : '',
           calendarDates,
           calendarDateModes: normalizeTrainingDateModes(calendarDates, item.calendarDateModes),
           calendarDateTimes: normalizeTrainingDateTimes(calendarDates, item.calendarDateTimes),
+          calendarDateVenues: normalizeDateVenues(calendarDates, item.calendarDateVenues),
           venue: typeof item.venue === 'string' ? item.venue : '',
           group: typeof item.group === 'string' ? item.group : '',
           coach: typeof item.coach === 'string' ? item.coach : '',
@@ -1916,11 +1939,13 @@ function normalizeTrainingEvents(input: unknown): TrainingEventRecord[] {
       return {
         id: typeof item.id === 'string' ? item.id : `training-${Date.now()}`,
         sourceLogisticsEventId: typeof item.sourceLogisticsEventId === 'string' ? item.sourceLogisticsEventId : '',
+        roster: normalizeTrainingRoster(item.roster),
         name: typeof item.name === 'string' ? item.name : '',
         date: typeof item.date === 'string' ? item.date : '',
         calendarDates,
         calendarDateModes: normalizeTrainingDateModes(calendarDates, item.calendarDateModes),
         calendarDateTimes: normalizeTrainingDateTimes(calendarDates, item.calendarDateTimes),
+        calendarDateVenues: normalizeDateVenues(calendarDates, item.calendarDateVenues),
         venue: typeof item.venue === 'string' ? item.venue : '',
         group: typeof item.group === 'string' ? item.group : '',
         coach: typeof item.coach === 'string' ? item.coach : '',
@@ -2509,6 +2534,7 @@ export default function App() {
     group: '',
     notes: '',
   });
+  const [newLogisticsGroups, setNewLogisticsGroups] = useState<string[]>([]);
   const [editingLogisticsEventId, setEditingLogisticsEventId] = useState<string | null>(null);
   const [editingLogisticsEventName, setEditingLogisticsEventName] = useState('');
   const [editingLogisticsEventDateId, setEditingLogisticsEventDateId] = useState<string | null>(null);
@@ -2541,7 +2567,7 @@ export default function App() {
   const [logisticsAlertNow, setLogisticsAlertNow] = useState(() => new Date());
   const [trainingEvents, setTrainingEvents] = useState<TrainingEventRecord[]>(() => loadTrainingEvents());
   const [selectedTrainingLogisticsEventId, setSelectedTrainingLogisticsEventId] = useState('');
-  const [trainingEventForm, setTrainingEventForm] = useState<TrainingEventForm>({
+  const [, setTrainingEventForm] = useState<TrainingEventForm>({
     name: '',
     date: '',
     venue: '',
@@ -2560,10 +2586,7 @@ export default function App() {
     createdAt: '',
   });
   const [activeTrainingEventId, setActiveTrainingEventId] = useState<string | null>(initialNavigation.activeTrainingEventId);
-  const [trainingOverviewMonth, setTrainingOverviewMonth] = useState(() => {
-    const firstDatedEvent = loadTrainingEvents().find((event) => event.date);
-    return getMonthKey(firstDatedEvent?.date || getTodayKey());
-  });
+  const [trainingOverviewMonth, setTrainingOverviewMonth] = useState(() => getMonthKey(getTodayKey()));
   const [selectedTrainingDates, setSelectedTrainingDates] = useState<string[]>(() => [getTodayKey()]);
   const [activeTrainingDateMode, setActiveTrainingDateMode] =
     useState<TrainingDateMode>(DEFAULT_TRAINING_DATE_MODE);
@@ -2573,6 +2596,7 @@ export default function App() {
   const [visibleTrainingMonth, setVisibleTrainingMonth] = useState(() => getMonthKey(getTodayKey()));
   const [trainingSchedules, setTrainingSchedules] = useState<TrainingScheduleMap>(() => loadTrainingSchedules());
   const [trainingCloudReady, setTrainingCloudReady] = useState(false);
+  const [trainingSyncMessage,setTrainingSyncMessage]=useState('仅保存在本机，尚未确认云端同步');
   const [logisticsCloudReady, setLogisticsCloudReady] = useState(false);
 
   const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -2757,7 +2781,7 @@ export default function App() {
   const accessibleEventTypes = EVENT_TYPES.filter((eventType) => hasEventAccess(authUser, eventType));
   const canEdit = authEnabled ? authUser?.role === 'admin' || authUser?.role === 'editor' : true;
   const canDeleteCompetition = authEnabled ? authUser?.role === 'admin' : true;
-  const canManageUsers = authEnabled ? authUser?.role === 'admin' : false;
+  const canManageUsers = authEnabled && canManageStaff(authUser);
   const personalLogisticsTasks = getPersonalLogisticsTasks(authUser, logisticsEvents, logisticsAlertNow);
   const personalTaskTotal = personalLogisticsTasks.reduce((total, task) => total + task.totalCount, 0);
   const personalTaskDone = personalLogisticsTasks.reduce((total, task) => total + task.arrivedCount, 0);
@@ -3090,7 +3114,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [authUser, canManageUsers, showNotification]);
+  }, [authUser, canManageUsers, showNotification, viewMode, authPanelOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3128,6 +3152,7 @@ export default function App() {
 
         if (!cancelled) {
           setTrainingCloudReady(true);
+          setTrainingSyncMessage('已读取云端集训记录');
         }
       } catch (error) {
         if (cancelled) {
@@ -3136,6 +3161,7 @@ export default function App() {
 
         setTrainingCloudReady(false);
         console.warn('集训安排云同步失败，已暂时回退到本地数据。', error);
+        setTrainingSyncMessage('未同步：云端连接失败，当前修改仅保存在本机');
       }
     })();
 
@@ -3159,7 +3185,9 @@ export default function App() {
     }
 
     trainingCloudSaveTimerRef.current = setTimeout(() => {
-      void saveRemoteTrainingState(trainingEvents, trainingSchedules, accessToken).catch((error) => {
+      setTrainingSyncMessage('正在同步集训记录…');
+      void saveRemoteTrainingState(trainingEvents, trainingSchedules, accessToken).then(()=>setTrainingSyncMessage('已同步到服务器')).catch((error) => {
+        setTrainingSyncMessage('未同步：保存失败，本机记录仍保留');
         const message = error instanceof Error ? error.message : '未知错误';
         showNotification(`集训安排保存到 Supabase 失败：${message}`, 'error');
       });
@@ -4025,10 +4053,7 @@ export default function App() {
   }, []);
 
   const handleOpenTrainingPlan = useCallback(() => {
-    const firstDatedEvent = trainingEvents.find((event) => event.date);
-    if (firstDatedEvent) {
-      setTrainingOverviewMonth(getMonthKey(firstDatedEvent.date));
-    }
+    setTrainingOverviewMonth(getMonthKey(getTodayKey()));
     setViewMode('training-plan');
     setActiveCompetitionId(null);
     setActiveLogisticsEventId(null);
@@ -4037,7 +4062,7 @@ export default function App() {
     setSearchKeyword('');
     setAwaitingPaste(false);
     setPracticeExplorerAwaitingPaste(false);
-  }, [trainingEvents]);
+  }, []);
 
   const handleOpenSimulationSystem = useCallback(() => {
     setViewMode('simulation-system');
@@ -4083,13 +4108,19 @@ export default function App() {
       return;
     }
 
+    if (newLogisticsGroups.length === 0) {
+      showNotification('请至少选择一个本次参赛组别。', 'error');
+      return;
+    }
+    const enabledGroups = [...new Set(newLogisticsGroups)];
     const now = new Date().toISOString();
     const nextEvent: LogisticsEventRecord = {
       id: `logistics-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: trimmedName,
       date: logisticsEventForm.date.trim(),
       venue: logisticsEventForm.venue.trim(),
-      group: logisticsEventForm.group.trim(),
+      group: enabledGroups.length === 1 ? enabledGroups[0] : '',
+      enabledGroups,
       notes: logisticsEventForm.notes.trim(),
       createdAt: now,
       participants: [],
@@ -4110,11 +4141,16 @@ export default function App() {
       group: '',
       notes: '',
     });
+    setNewLogisticsGroups([]);
     showNotification(`已生成后勤赛事卡片：${trimmedName}`, 'success');
-  }, [canEdit, logisticsEventForm, showNotification]);
+  }, [canEdit, logisticsEventForm, newLogisticsGroups, showNotification]);
 
   const handleDeleteLogisticsEvent = useCallback(
     (id: string) => {
+      if(trainingEvents.some(event=>event.sourceLogisticsEventId===id)){
+        showNotification('该赛事有关联集训，不能直接删除。请先处理关联计划。','error');
+        return;
+      }
       if (!canEdit) {
         showNotification('当前账号没有编辑权限。', 'error');
         return;
@@ -4133,7 +4169,7 @@ export default function App() {
       setActiveLogisticsEventId((currentId) => (currentId === id ? null : currentId));
       showNotification('已删除后勤赛事卡片。', 'info');
     },
-    [canEdit, showNotification],
+    [canEdit, showNotification, trainingEvents],
   );
 
   const handleStartEditLogisticsEventName = useCallback(
@@ -5367,15 +5403,6 @@ export default function App() {
     [importLogisticsMasterRosterRows, showNotification],
   );
 
-  const handleTrainingFormChange = useCallback(
-    (field: keyof TrainingEventForm, value: string) => {
-      setTrainingEventForm((previous) => ({
-        ...previous,
-        [field]: value,
-      }));
-    },
-    [],
-  );
 
   const handleRemoveParticipantFromRollCall = useCallback(
     (timelineId: string, participantId: string, participantName: string, timelineTitle: string) => {
@@ -5462,7 +5489,10 @@ export default function App() {
   const handleSelectTrainingLogisticsEvent = useCallback((eventId: string) => {
     setSelectedTrainingLogisticsEventId(eventId);
     const source = logisticsEvents.find((event) => event.id === eventId);
-    if (!source) return;
+    if (!source) {
+      setTrainingEventForm((previous) => ({ ...previous, name: '', date: '', group: '' }));
+      return;
+    }
     const availableItems = getLogisticsEventItems(source);
     const defaultItem = availableItems.length === 1 ? availableItems[0] : '';
     setTrainingEventForm((previous) => ({
@@ -5474,53 +5504,35 @@ export default function App() {
     }));
   }, [logisticsEvents]);
 
-  const handleSelectTrainingGroup = useCallback((group: string) => {
-    setTrainingEventForm((previous) => {
-      const source = logisticsEvents.find((event) => event.id === selectedTrainingLogisticsEventId);
-      const shouldUpdateName = source && (
-        !previous.name.trim()
-        || previous.name.trim() === source.name.trim()
-        || previous.name.startsWith(`${source.name} · `)
-      );
-      return {
-        ...previous,
-        group,
-        name: shouldUpdateName && group ? `${source.name} · ${group} 集训` : previous.name,
-      };
-    });
-  }, [logisticsEvents, selectedTrainingLogisticsEventId]);
-
-  const handleCreateTrainingEvent = useCallback(() => {
+  const handleCreateTrainingEvent = useCallback((group: string, sourceId: string) => {
     if (!canEdit) {
       showNotification('当前账号没有编辑权限。', 'error');
       return;
     }
 
-    const trimmedName = trainingEventForm.name.trim();
-    if (!trimmedName) {
-      showNotification('请先输入比赛名称。', 'error');
+    const sourceEvent = logisticsEvents.find((event) => event.id === sourceId);
+    if (!sourceEvent || !getLogisticsEventItems(sourceEvent).includes(group)) {
+      showNotification('请先选择比赛及该比赛已启用的组别。', 'error');
       return;
     }
-    if (!trainingEventForm.group.trim()) {
-      showNotification('请先选择本次集训对应的赛项。', 'error');
-      return;
-    }
+
+    const trimmedName = `${sourceEvent.name} · ${group} 集训`;
+    const existing=trainingEvents.find(e=>e.sourceLogisticsEventId===sourceId&&e.group===group);
+    if(existing){showNotification('本赛事本组已有集训计划，请在已有卡片继续安排日期。','info');return;}
 
     const now = new Date().toISOString();
     const nextEvent: TrainingEventRecord = {
       id: `training-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      sourceLogisticsEventId: selectedTrainingLogisticsEventId,
+      sourceLogisticsEventId: sourceId,
       name: trimmedName,
-      date: trainingEventForm.date.trim(),
-      calendarDates: trainingEventForm.date.trim() ? [trainingEventForm.date.trim()] : [],
-      calendarDateModes: trainingEventForm.date.trim()
-        ? { [trainingEventForm.date.trim()]: DEFAULT_TRAINING_DATE_MODE }
-        : {},
+      date: '',
+      calendarDates: [],
+      calendarDateModes: {},
       calendarDateTimes: {},
-      venue: trainingEventForm.venue.trim(),
-      group: trainingEventForm.group.trim(),
-      coach: trainingEventForm.coach.trim(),
-      notes: trainingEventForm.notes.trim(),
+      venue: '',
+      group,
+      coach: '',
+      notes: '',
       createdAt: now,
     };
 
@@ -5541,8 +5553,16 @@ export default function App() {
       notes: '',
     });
     setSelectedTrainingLogisticsEventId('');
-    showNotification(`已生成集训比赛卡片：${trimmedName}`, 'success');
-  }, [canEdit, selectedTrainingLogisticsEventId, showNotification, trainingEventForm]);
+    setActiveTrainingEventId(nextEvent.id);
+    setSelectedTrainingDates([]);
+    setActiveTrainingDateKey(null);
+    setActiveTrainingDateMode(DEFAULT_TRAINING_DATE_MODE);
+    setActiveTrainingStartTime('');
+    setActiveTrainingEndTime('');
+    setVisibleTrainingMonth(getMonthKey(getTodayKey()));
+    setViewMode('training-event');
+    showNotification('已进入本组独立日历，请点选集训日期并设置当天时段。', 'success');
+  }, [canEdit, showNotification, logisticsEvents, trainingEvents]);
 
   const handleDeleteTrainingEvent = useCallback(
     (id: string) => {
@@ -5628,6 +5648,20 @@ export default function App() {
 
       const nextDate = editingTrainingEventForm.date.trim();
       const nextCreatedDate = editingTrainingEventForm.createdAt.trim();
+      const original=trainingEvents.find(event=>event.id===id);
+      if(original?.sourceLogisticsEventId&&original.group!==editingTrainingEventForm.group.trim()){
+        showNotification('关联集训不能直接更换组别，请从目标组别创建计划。','error');return;
+      }
+      if(original?.date&&original.date!==nextDate){
+        const oldKey=getTrainingScheduleKey(id,original.date);
+        const targetKey=getTrainingScheduleKey(id,nextDate);
+        if(trainingSchedules[oldKey]?.length){
+          if(!nextDate){showNotification('原日期已有日程，不能直接清空日期。','error');return;}
+          if(trainingSchedules[targetKey]?.length){showNotification('目标日期已有日程，请先整理，避免覆盖。','error');return;}
+          if(!window.confirm('日期变更将连同原日期的训练日程一起移动，确认吗？'))return;
+          setTrainingSchedules(previous=>{const next={...previous,[targetKey]:previous[oldKey]};delete next[oldKey];return next;});
+        }
+      }
       setTrainingEvents((previous) => {
         const next = previous.map((event) => {
           if (event.id !== id) {
@@ -5680,7 +5714,7 @@ export default function App() {
       handleCancelEditTrainingEvent();
       showNotification('集训比赛卡片信息已更新。', 'success');
     },
-    [canEdit, editingTrainingEventForm, handleCancelEditTrainingEvent, showNotification],
+    [canEdit, editingTrainingEventForm, handleCancelEditTrainingEvent, showNotification,trainingEvents,trainingSchedules],
   );
 
   const handleOpenTrainingEvent = useCallback((id: string) => {
@@ -5741,11 +5775,14 @@ export default function App() {
     setTrainingOverviewMonth((previous) => addMonths(previous, offset));
   }, []);
 
-  const handleOpenTrainingOverviewDay = useCallback((dateKey: string) => {
-    const firstEvent = getTrainingEventsByDate(trainingEvents)[dateKey]?.[0];
-    if (firstEvent) {
-      handleOpenTrainingEvent(firstEvent.id);
-    }
+  const handleOpenTrainingOverviewDay = useCallback((dateKey: string, event: TrainingEventRecord) => {
+    handleOpenTrainingEvent(event.id);
+    setActiveTrainingDateKey(dateKey);
+    setVisibleTrainingMonth(getMonthKey(dateKey));
+    setActiveTrainingDateMode(getTrainingEventDateMode(event, dateKey));
+    const time = splitTrainingTimeRange(getTrainingEventDateTime(event, dateKey));
+    setActiveTrainingStartTime(time.start);
+    setActiveTrainingEndTime(time.end);
   }, [handleOpenTrainingEvent, trainingEvents]);
 
   const handleSelectTrainingDate = useCallback((dateKey: string) => {
@@ -6675,62 +6712,64 @@ export default function App() {
           >
             {authUser ? '账号管理' : '登录'}
           </button>
+          {canManageUsers && <button className={styles.backButton} onClick={()=>setViewMode('staff-admin')}>员工后台</button>}
         </>
       ) : null}
     </div>
   );
 
   return (
-    <div className={styles.app}>
+    <div data-blueprint={viewMode} className={`${styles.app} ${viewMode === 'product-center' || viewMode === 'curriculum-system' ? styles.tiangongPreview : ''}`}>
       <div className={styles.container}>
         {viewMode === 'work-hub' ? (
-          <>
-            <WorkspaceHero
-              action={<div className={styles.workHubAccount}>{accountAction}</div>}
-            />
-            <section className={styles.workHubSection} aria-label="工作中心入口">
-              <div className={styles.workHubIntro}>
-                <span>工作中心</span>
-                <span>WORK CENTERS / 03</span>
-              </div>
-              <div className={styles.workHubGrid}>
-                <button type="button" className={styles.workHubCard} onClick={() => setViewMode('home')}>
-                  <span className={styles.workHubCardTop}><span className={styles.workHubIcon} aria-hidden="true">01</span><span className={styles.workHubStatus}>已开放</span></span>
-                  <span className={styles.workHubEnglish}>COMPETITION CENTER</span>
-                  <h2>赛事管理中心</h2>
-                  <p>赛事后勤、数据分析、练习赛与集训安排，一站式开展赛事协作。</p>
-                  <span className={styles.workHubTags}><span>赛事协同</span><span>数据分析</span><span>集训安排</span></span>
-                  <span className={styles.workHubLink}>进入赛事管理中心 <span aria-hidden="true">↗</span></span>
-                </button>
-                <button type="button" className={`${styles.workHubCard} ${styles.workHubInterview}`} onClick={() => setViewMode('interview-center')}>
-                  <span className={styles.workHubCardTop}><span className={styles.workHubIcon} aria-hidden="true">02</span><span className={styles.workHubStatus}>开发预览</span></span>
-                  <span className={styles.workHubEnglish}>INTERVIEW CENTER</span>
-                  <h2>面试流程中心</h2>
-                  <p>发起面试、协调教练时间，在进度看板中跟进每一条面试与结案资料。</p>
-                  <span className={styles.workHubTags}><span>面试安排</span><span>流程跟进</span><span>反馈记录</span></span>
-                  <span className={styles.workHubLink}>查看面试流程中心 <span aria-hidden="true">↗</span></span>
-                </button>
-                <button type="button" className={`${styles.workHubCard} ${styles.workHubProduct}`} onClick={() => setViewMode('product-center')}>
-                  <span className={styles.workHubCardTop}><span className={styles.workHubIcon} aria-hidden="true">03</span><span className={styles.workHubStatus}>规划中</span></span>
-                  <span className={styles.workHubEnglish}>PRODUCT CENTER</span>
-                  <h2>产品中心</h2>
-                  <p>统一建设 KCLUB 课程产品，沉淀课程体系、教学资料与版本文档。</p>
-                  <span className={styles.workHubTags}><span>课程体系</span><span>课程文档</span><span>版本沉淀</span></span>
-                  <span className={styles.workHubLink}>进入产品中心 <span aria-hidden="true">↗</span></span>
-                </button>
-              </div>
-              <p className={styles.workHubNote}>KCLUB · 团队协作，从这里开始</p>
+          <MechaWorkHub action={accountAction} onNavigate={setViewMode} onRollCall={authUser?.isActive ? () => setViewMode('weekly-roll-call') : undefined} />
+        ) : viewMode === 'staff-admin' ? (
+          <section className={styles.productCenterSection}><h1>员工管理后台</h1><p>仅 Gary（supergary）可维护员工姓名、重置密码、启停账号及分配角色与比赛范围。登录用户名保持不变。</p>{!canManageUsers && <p role="alert">你没有员工后台访问权限，请使用 supergary 账号登录。</p>}<button onClick={()=>setViewMode('work-hub')}>返回工作系统</button></section>
+        ) : viewMode === 'academic-center' ? (
+          <div className={aviation.shell}>
+            <Header theme="tiangong" eyebrow="Academic Affairs Center" title="教务管理中心" subtitle="日常教学管理的统一入口。"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>{accountAction}</div>} />
+            <AcademicFlightDeck onNavigate={setViewMode} />
+          </div>
+        ) : viewMode === 'attendance-dashboard' ? (
+          <div className={aviation.shell}>
+            <Header theme="tiangong" eyebrow="Attendance Insights" title="出勤统计与预警" subtitle="教务管理中心 / 出勤统计与预警"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('academic-center')}>← 返回教务管理中心</button>{accountAction}</div>} />
+            <section className={styles.productCenterSection} aria-label="出勤统计与预警">
+              <AttendanceDashboard key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} onRollCall={() => setViewMode('weekly-roll-call')} />
             </section>
-          </>
+          </div>
+        ) : viewMode === 'weekly-roll-call' ? (
+          <div className={aviation.shell}>
+            <Header theme="tiangong" eyebrow="Daily Roll Call" title="今日点名" subtitle="教务管理中心 / 今日点名"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('academic-center')}>← 返回教务管理中心</button>{accountAction}</div>} />
+            <section className={styles.productCenterSection} aria-label="今日点名">
+              <WeeklyRollCall key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} onManageClasses={() => setViewMode('class-member-management')} onAttendanceSummary={() => setViewMode('attendance-dashboard')} />
+            </section>
+          </div>
+        ) : viewMode === 'class-member-management' ? (
+          <div className={aviation.shell}>
+            <Header theme="tiangong" eyebrow="Class & Member Management" title="班级队员管理" subtitle="教务管理中心 / 班级队员管理"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('academic-center')}>← 返回教务管理中心</button>{accountAction}</div>} />
+            <section className={styles.productCenterSection} aria-label="班级队员管理">
+              <ClassMemberManagement key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} />
+            </section>
+          </div>
         ) : viewMode === 'interview-center' ? (
           <>
             <Header eyebrow="Interview Center" title="面试流程中心" subtitle="面试协作的统一入口。"
               action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>{accountAction}</div>} />
             <InterviewCenter key={authUser?.authUserId || 'guest'} accountId={authUser?.authUserId} onLogin={() => setAuthPanelOpen(true)} />
           </>
+        ) : syllabusRoutes.some(route => route === viewMode) ? (
+          <>
+            <Header showLogo={false} eyebrow="Level Syllabus" title={`${viewMode.replace('curriculum-', '').toUpperCase()} 课程大纲`} subtitle="产品中心 / 课程体系 / 级别课程大纲"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('curriculum-system')}>← 返回课程体系</button>{accountAction}</div>} />
+            <section className={styles.productCenterSection}><LevelSyllabus index={syllabusRoutes.findIndex(route => route === viewMode)} user={authUser} onLogin={()=>setAuthPanelOpen(true)} /></section>
+          </>
         ) : viewMode === 'curriculum-system' || curriculumRoutes.some(route => route === viewMode) ? (
           <>
-            <Header eyebrow="Curriculum System" title={viewMode === 'curriculum-system' ? '课程体系' : curriculumModules[curriculumRoutes.findIndex(route => route === viewMode)]} subtitle="产品中心 / 课程体系"
+            <Header theme={viewMode === 'curriculum-system' ? 'tiangong' : 'default'} eyebrow="Curriculum System" title={viewMode === 'curriculum-system' ? '课程体系' : curriculumModules[curriculumRoutes.findIndex(route => route === viewMode)]} subtitle="产品中心 / 课程体系"
               action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode(viewMode === 'curriculum-system' ? 'product-center' : 'curriculum-system')}>{viewMode === 'curriculum-system' ? '← 返回产品中心' : '← 返回课程体系'}</button>{accountAction}</div>} />
             <section className={styles.productCenterSection} aria-label="课程体系内容">
               <CurriculumSystem key={viewMode} module={curriculumRoutes.findIndex(route => route === viewMode)} onOpen={setViewMode} />
@@ -6744,8 +6783,15 @@ export default function App() {
               <div className={styles.productCenterIntro}><p className={styles.portalCardLabel}>EXPLORE THE PROGRAM</p><h2>从兴趣出发，向工程进阶。</h2><p>先了解培养路径，再查阅教学资料。把每一个级别的学习目标，落实到一次次动手实践。</p></div>
               <div className={styles.productModuleGrid}>
                 <article className={styles.productModuleCard}><span>01</span><p className={styles.workHubEnglish}>CURRICULUM SYSTEM</p><h3>课程体系</h3><p>查看七级培养路径、赛事定位与能力进阶。</p><button type="button" onClick={() => setViewMode('curriculum-system')}>查看课程体系</button></article>
-                <article className={styles.productModuleCard}><span>02</span><p className={styles.workHubEnglish}>COURSE DOCUMENTS</p><h3>课程文档</h3><p>归档教案、课程说明、课堂材料、教师指引和历史版本。</p><a className={styles.productModuleLink} href="#course-document-library">查看文档库</a></article>
+                <article className={styles.productModuleCard}><span>02</span><p className={styles.workHubEnglish}>COURSE DOCUMENTS</p><h3>课程文档</h3><p>归档教案、课程说明、课堂材料、教师指引和历史版本。</p><button type="button" onClick={() => setViewMode('course-documents')}>查看文档库</button></article>
               </div>
+            </section>
+          </>
+        ) : viewMode === 'course-documents' ? (
+          <>
+            <Header eyebrow="Course Documents" title="课程文档" subtitle="产品中心 / 课程文档"
+              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('product-center')}>← 返回产品中心</button>{accountAction}</div>} />
+            <section className={styles.productCenterSection} aria-label="课程文档内容">
               <section className={styles.courseDocumentLibrary} id="course-document-library" aria-labelledby="course-document-title">
                 <div className={styles.courseDocumentHeading}>
                   <div>
@@ -7125,19 +7171,27 @@ export default function App() {
                 </div>
 
                 <div className={styles.logisticsFormGrid}>
-                  <label className={styles.logisticsField}>
-                    <span>所属赛项 / 级别</span>
-                    <select
-                      value={logisticsTimelineForm.eventItem}
-                      onChange={(event) => handleLogisticsTimelineFormChange('eventItem', event.target.value)}
-                      disabled={!canEdit || activeLogisticsEventItem !== LOGISTICS_UNASSIGNED_EVENT_ITEM}
-                    >
-                      <option value="">全赛事 / 待归类</option>
-                      {LOGISTICS_EVENT_ITEM_OPTIONS.map((item) => (
-                        <option key={item} value={item}>{item}</option>
+                  <fieldset disabled={!canEdit} style={{ gridColumn: '1 / -1', minWidth: 0, margin: 0, padding: '16px', border: '1px solid #9baab4', borderRadius: '12px' }}>
+                    <legend>本次参赛组别（可多选）</legend>
+                    <p style={{ margin: '0 0 12px' }}>选择本次比赛包含的组别，后勤工作台和集训安排将沿用此选择。</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                      {LOGISTICS_EVENT_ITEM_OPTIONS.map((group) => (
+                        <label key={group} style={{ display: 'flex', alignItems: 'center', gap: '10px', minHeight: '44px', cursor: canEdit ? 'pointer' : 'default' }}>
+                          <input type="checkbox" style={{ width: '20px', height: '20px', flexShrink: 0 }}
+                            checked={newLogisticsGroups.includes(group)}
+                            onChange={(event) => {
+                              const checked = event.target.checked;
+                              setNewLogisticsGroups((previous) => checked
+                                ? [...new Set([...previous, group])]
+                                : previous.filter((item) => item !== group));
+                            }}
+                          />
+                          {group}
+                        </label>
                       ))}
-                    </select>
-                  </label>
+                    </div>
+                    <p style={{ margin: '12px 0 0' }}>已选择 {newLogisticsGroups.length} 个组别 · 创建后仍可在比赛内调整</p>
+                  </fieldset>
                   <label className={styles.logisticsField}>
                     <span>赛事名称</span>
                     <input
@@ -7162,15 +7216,6 @@ export default function App() {
                       value={logisticsEventForm.venue}
                       onChange={(event) => handleLogisticsFormChange('venue', event.target.value)}
                       placeholder="例如：主赛场 A 区"
-                      disabled={!canEdit}
-                    />
-                  </label>
-                  <label className={styles.logisticsField}>
-                    <span>组别 / 赛项</span>
-                    <input
-                      value={logisticsEventForm.group}
-                      onChange={(event) => handleLogisticsFormChange('group', event.target.value)}
-                      placeholder="例如：Explorer 初中组"
                       disabled={!canEdit}
                     />
                   </label>
@@ -7270,7 +7315,6 @@ export default function App() {
                         </div>
                         <div className={styles.logisticsMeta}>
                           <span>地点：{event.venue || '未填写'}</span>
-                          <span>组别：{event.group || '未填写'}</span>
                           <span>创建：{new Date(event.createdAt).toLocaleDateString('zh-CN')}</span>
                         </div>
                         {event.notes && <p className={styles.portalCardText}>{event.notes}</p>}
@@ -7754,7 +7798,6 @@ export default function App() {
                                   </div>
                                   <div className={styles.logisticsMeta}>
                                     <span>地点：{event.venue || '未填写'}</span>
-                                    <span>组别：{event.group || '未填写'}</span>
                                     <span>人员：{event.participants.length}</span>
                                     <span>队员：{eventStudents.length}</span>
                                     <span>教练/领队：{eventMentors.length}</span>
@@ -8968,7 +9011,12 @@ export default function App() {
 
               {viewMode === 'logistics-event' && (!activeLogisticsEventItem ? (
                 <div className={styles.logisticsItemGrid}>
-                  {[...LOGISTICS_EVENT_ITEM_OPTIONS, LOGISTICS_UNASSIGNED_EVENT_ITEM].map((item) => {
+                  <div className={styles.logisticsFormPanel} style={{gridColumn:'1 / -1'}}><h3>本赛事参赛组别</h3><p>先启用组别，再添加报名队员或安排集训；无需等名单录入完成。</p>{LOGISTICS_EVENT_ITEM_OPTIONS.map(group=><label key={group} style={{display:'inline-flex',gap:8,margin:12}}><input type="checkbox" disabled={!canEdit} checked={getLogisticsEventItems(activeLogisticsEvent).includes(group)} onChange={e=>{
+                    if(!e.target.checked&&(activeLogisticsEvent.participants.some(p=>matchesLogisticsEventItem(p.eventItem,group))||activeLogisticsEvent.timeline.some(n=>matchesLogisticsEventItem(n.eventItem,group))||trainingEvents.some(t=>t.sourceLogisticsEventId===activeLogisticsEvent.id&&t.group===group))){showNotification('本组已有报名、日程或集训，不能直接停用。','error');return;}
+                    const selected=e.target.checked?[...getLogisticsEventItems(activeLogisticsEvent),group]:getLogisticsEventItems(activeLogisticsEvent).filter(g=>g!==group);
+                    updateActiveLogisticsEvent(event=>({...event,enabledGroups:[...new Set(selected)]}));
+                  }}/>{group}</label>)}</div>
+                  {getLogisticsEventItems(activeLogisticsEvent).map((item) => {
                     const itemStudents = activeLogisticsEvent.participants.filter((participant) =>
                       participant.role === '队员' && matchesLogisticsEventItem(participant.eventItem, item));
                     const itemNodes = activeLogisticsEvent.timeline.filter((node) =>
@@ -9007,6 +9055,11 @@ export default function App() {
                       返回赛项选择
                     </button>
                     <span className={styles.portalBadge}>当前赛项：{activeLogisticsEventItem}</span>
+                    {activeLogisticsEventItem!==LOGISTICS_UNASSIGNED_EVENT_ITEM&&<button className={styles.portalButton} onClick={()=>{
+                      const existing=trainingEvents.find(e=>e.sourceLogisticsEventId===activeLogisticsEvent.id&&e.group===activeLogisticsEventItem);
+                      if(existing){handleOpenTrainingEvent(existing.id);return;}
+                      handleCreateTrainingEvent(activeLogisticsEventItem, activeLogisticsEvent.id);
+                    }}>安排本组集训</button>}
                   </div>
 
               <div className={styles.logisticsSummaryGrid}>
@@ -9768,7 +9821,7 @@ export default function App() {
           </>
         ) : viewMode === 'score-calculator' ? (
           <ScoreCalculator onBack={handleBackToPracticeAnalysis} />
-        ) : viewMode === 'training-plan' ? (
+        ) : viewMode === 'training-plan' || (viewMode === 'training-event' && !activeTrainingEvent) ? (
           <>
             <Header
               eyebrow="Training Schedule"
@@ -9788,6 +9841,8 @@ export default function App() {
               <div className={styles.portalIntro}>
                 <p className={styles.portalEyebrow}>Training Camp</p>
                 <h2>集训安排工作台</h2>
+                {viewMode === 'training-event' && !activeTrainingEvent && <p role="alert">此链接对应的集训记录当前未找到，可能尚未同步或已移除。请从下方已有集训卡片进入；若列表为空，请先确认登录账号和同步状态，不要重复创建。</p>}
+                <p role="status">{trainingSyncMessage}。当前多人同时修改仍可能冲突，请暂由一位负责人维护。</p>
                 <p className={styles.portalHint}>
                   这个入口已经独立出来，可以作为后续集训排期和训练执行的总控页面。下一步可以加入每日训练计划、队伍分组、任务目标、签到状态和复盘记录。
                 </p>
@@ -9797,7 +9852,7 @@ export default function App() {
                 <div className={styles.portalCardTop}>
                   <div>
                     <p className={styles.portalCardLabel}>卡片 1</p>
-                    <h3>比赛信息输入</h3>
+                    <h3>按比赛组别安排集训</h3>
                   </div>
                   <span className={styles.portalBadge}>Training Event</span>
                 </div>
@@ -9808,9 +9863,8 @@ export default function App() {
                     <select
                       value={selectedTrainingLogisticsEventId}
                       onChange={(event) => handleSelectTrainingLogisticsEvent(event.target.value)}
-                      disabled={!canEdit}
                     >
-                      <option value="">不调用后勤比赛，手动输入</option>
+                      <option value="">请选择后勤中已建立的比赛</option>
                       {logisticsEvents.map((event) => (
                         <option key={event.id} value={event.id}>
                           {event.name} · {event.date || '比赛日期待定'} · {getLogisticsEventItems(event).join(' / ') || '赛项待定'}
@@ -9821,65 +9875,26 @@ export default function App() {
                   {selectedTrainingLogisticsEvent && (
                     <div className={`${styles.logisticsEmpty} ${styles.logisticsWideField}`}>
                       已关联比赛：{selectedTrainingLogisticsEvent.name}。比赛日期为
-                      {' '}{selectedTrainingLogisticsEvent.date || '待定'}；下方日期和地点只填写本赛项自己的集训安排。
+                      {' '}{selectedTrainingLogisticsEvent.date || '待定'}。选择下方组别，进入独立日历安排多天集训；每一天可设置不同时间，比赛日期不会作为集训日期。
                     </div>
                   )}
-                  <label className={styles.logisticsField}>
-                    <span>集训卡片名称</span>
-                    <input
-                      value={trainingEventForm.name}
-                      onChange={(event) => handleTrainingFormChange('name', event.target.value)}
-                      placeholder="例如：暑期集训第 1 场模拟赛"
-                      disabled={!canEdit}
-                    />
-                  </label>
-                  <label className={styles.logisticsField}>
-                    <span>集训日期</span>
-                    <input
-                      type="date"
-                      value={trainingEventForm.date}
-                      onChange={(event) => handleTrainingFormChange('date', event.target.value)}
-                      disabled={!canEdit}
-                    />
-                  </label>
-                  <label className={styles.logisticsField}>
-                    <span>集训地点 / 场馆</span>
-                    <input
-                      value={trainingEventForm.venue}
-                      onChange={(event) => handleTrainingFormChange('venue', event.target.value)}
-                      placeholder="例如：KClub 训练场 A 区"
-                      disabled={!canEdit}
-                    />
-                  </label>
-                  <label className={styles.logisticsField}>
-                    <span>第二步：选择本次集训赛项</span>
-                    <select
-                      value={trainingEventForm.group}
-                      onChange={(event) => handleSelectTrainingGroup(event.target.value)}
-                      disabled={!canEdit}
-                    >
-                      <option value="">请选择赛项</option>
-                      {selectedTrainingEventItems.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className={`${styles.logisticsField} ${styles.logisticsWideField}`}>
-                    <span>备注</span>
-                    <textarea
-                      value={trainingEventForm.notes}
-                      onChange={(event) => handleTrainingFormChange('notes', event.target.value)}
-                      placeholder="可以记录训练目标、参训队伍、教练安排或注意事项"
-                      disabled={!canEdit}
-                    />
-                  </label>
+                  {selectedTrainingLogisticsEvent && (
+                    <fieldset className={styles.logisticsWideField} style={{ minWidth: 0, margin: 0, padding: '16px', border: '1px solid #9baab4', borderRadius: '12px' }}>
+                      <legend>第二步：选择组别日历</legend>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                        {selectedTrainingEventItems.map((group) => {
+                          const existing = trainingEvents.find((item) => item.sourceLogisticsEventId === selectedTrainingLogisticsEvent.id && item.group === group);
+                          return <button key={group} type="button" className={styles.portalButton}
+                            disabled={!existing && !canEdit}
+                            onClick={() => existing ? handleOpenTrainingEvent(existing.id) : handleCreateTrainingEvent(group, selectedTrainingLogisticsEvent.id)}>
+                            {group} · {existing ? `进入日历（${getTrainingEventCalendarDates(existing).length} 天）` : '未排期 · 开始安排'}
+                          </button>;
+                        })}
+                      </div>
+                    </fieldset>
+                  )}
                 </div>
 
-                <button className={styles.portalButton} onClick={handleCreateTrainingEvent} disabled={!canEdit}>
-                  生成独立集训卡片
-                </button>
               </article>
 
               <article className={`${styles.trainingCalendarPanel} ${styles.trainingOverviewPanel}`}>
@@ -9888,7 +9903,7 @@ export default function App() {
                     <p className={styles.portalCardLabel}>总览日历</p>
                     <h3>总集训日历</h3>
                     <p className={styles.portalCardText}>
-                      自动读取下方集训卡片日期，显示每天的集训级别。点击有集训的日期可进入当天集训工作台。
+                      同一天的各组安排分别显示；点击具体条目，进入该组当天的集训安排。
                     </p>
                   </div>
                   <div className={styles.calendarActions}>
@@ -9910,34 +9925,23 @@ export default function App() {
                   ))}
                   {trainingOverviewCalendarDays.map((day) => {
                     const dayEvents = trainingEventsByDate[day.dateKey] ?? [];
-                    const eventTypeLabel = getTrainingOverviewBadge(dayEvents, day.dateKey);
-                    const hasSelfPractice = dayEvents.some(
-                      (event) => getTrainingEventDateMode(event, day.dateKey) === 'self',
-                    );
-                    const eventNames = dayEvents.map((event) => event.name || event.group || '未命名集训');
-
                     return (
-                      <button
+                      <div
                         key={day.dateKey}
-                        type="button"
-                        className={[
-                          styles.calendarDay,
-                          styles.trainingOverviewDay,
-                          day.isCurrentMonth ? '' : styles.calendarMutedDay,
-                          dayEvents.length > 0 ? styles.trainingOverviewEventDay : '',
-                          hasSelfPractice ? styles.trainingOverviewSelfPracticeDay : '',
-                        ].filter(Boolean).join(' ')}
-                        onClick={() => handleOpenTrainingOverviewDay(day.dateKey)}
-                        disabled={dayEvents.length === 0}
+                        data-training-overview-day
+                        data-outside-month={!day.isCurrentMonth || undefined}
                       >
-                        <span>{day.day}</span>
-                        {eventTypeLabel && <strong className={styles.trainingOverviewLevel}>{eventTypeLabel}</strong>}
-                        {dayEvents.length > 0 && (
-                          <small className={styles.trainingOverviewNames}>
-                            {eventNames.slice(0, 3).join(' / ')}
-                          </small>
-                        )}
-                      </button>
+                        <strong>{day.day}</strong>
+                        {dayEvents.map(event => <button key={event.id} type="button"
+                          data-training-group={event.group}
+                          data-training-overview-entry
+                          onClick={() => handleOpenTrainingOverviewDay(day.dateKey, event)}>
+                          <strong>{event.group || '未分组'} · {getTrainingOverviewBadge([event], day.dateKey)}</strong>
+                          <span>{getTrainingEventDateTime(event, day.dateKey) || '时间待定'}</span>
+                          <small>{(event.calendarDateVenues?.[day.dateKey] ?? event.venue) || '场地待定'}</small>
+                          <small>{event.name}</small>
+                        </button>)}
+                      </div>
                     );
                   })}
                 </div>
@@ -10014,22 +10018,15 @@ export default function App() {
                                 disabled={!canEdit}
                               />
                             </label>
-                            <label className={styles.logisticsField}>
-                              <span>地点 / 场馆</span>
-                              <input
-                                value={editingTrainingEventForm.venue}
-                                onChange={(changeEvent) =>
-                                  handleEditTrainingEventFormChange('venue', changeEvent.target.value)}
-                                disabled={!canEdit}
-                              />
-                            </label>
+                            <TrainingVenuePicker value={editingTrainingEventForm.venue} disabled={!canEdit}
+                              onChange={value => handleEditTrainingEventFormChange('venue', value)} />
                             <label className={styles.logisticsField}>
                               <span>组别 / 赛项</span>
                               <select
                                 value={editingTrainingEventForm.group}
                                 onChange={(changeEvent) =>
                                   handleEditTrainingEventFormChange('group', changeEvent.target.value)}
-                                disabled={!canEdit}
+                                disabled={!canEdit || !!event.sourceLogisticsEventId}
                               >
                                 <option value="">请选择赛项</option>
                                 {TRAINING_GROUP_OPTIONS.map((option) => (
@@ -10126,6 +10123,7 @@ export default function App() {
               <div className={styles.portalIntro}>
                 <p className={styles.portalEyebrow}>Training Event Workspace</p>
                 <h2>{activeTrainingEvent.name}</h2>
+                <p role="status">{trainingSyncMessage}</p>
                 <p className={styles.portalHint}>
                   这个页面已经和上一级集训比赛卡片绑定。后续可以继续添加这场比赛自己的赛队名单、训练任务、练习成绩、问题记录和复盘结论。
                 </p>
@@ -10140,7 +10138,7 @@ export default function App() {
                   <span className={styles.portalBadge}>{activeTrainingEvent.date || '未定日期'}</span>
                 </div>
                 <div className={styles.logisticsMeta}>
-                  <span>来源比赛：{activeTrainingSourceEvent?.name || '手动创建'}</span>
+                  <span>来源比赛：{activeTrainingSourceEvent?.name || (activeTrainingEvent.sourceLogisticsEventId?'关联失效，请核对':'独立集训（未关联报名名单）')}</span>
                   <span>地点：{activeTrainingEvent.venue || '未填写'}</span>
                   <span>赛项：{activeTrainingEvent.group || '未填写'}</span>
                   <span>对应人员：{activeTrainingRosterSummary.participantCount} 名队员 · {activeTrainingRosterSummary.teamCount} 支赛队</span>
@@ -10149,6 +10147,8 @@ export default function App() {
                 {activeTrainingEvent.notes && <p className={styles.portalCardText}>{activeTrainingEvent.notes}</p>}
               </article>
 
+              <TrainingRosterPanel key={activeTrainingEvent.id} source={(activeTrainingSourceEvent?.participants??[]).filter(p=>p.role==='队员'&&matchesLogisticsEventItem(p.eventItem,activeTrainingEvent.group)).map(p=>({id:p.id,name:p.name,teamNo:p.teamNo,teamName:p.teamName}))} roster={activeTrainingEvent.roster} canEdit={canEdit&&!!activeTrainingSourceEvent} onSave={roster=>setTrainingEvents(previous=>previous.map(event=>event.id===activeTrainingEvent.id?{...event,roster}:event))}/>
+              {activeTrainingEvent.sourceLogisticsEventId&&!activeTrainingSourceEvent&&<p role="alert">来源赛事已失效：保留原集训记录，请先核对关联。</p>}
               <article className={styles.trainingCalendarPanel}>
                 <div className={styles.portalCardTop}>
                   <div>
@@ -10159,20 +10159,34 @@ export default function App() {
                     </h3>
                     <p className={styles.portalCardText}>点选日期，编辑当天独立安排。</p>
                   </div>
-                  <div className={styles.calendarActions}>
-                    <button type="button" onClick={() => handleMoveTrainingMonth(-1)}>
-                      上月
-                    </button>
-                    <strong>{formatMonthLabel(visibleTrainingMonth)}</strong>
-                    <button type="button" onClick={() => handleMoveTrainingMonth(1)}>
-                      下月
-                    </button>
-                    <button type="button" onClick={handleExportTrainingCalendarImage}>
-                      导出/分享图片
-                    </button>
-                  </div>
                 </div>
 
+                {canEdit && <TrainingBatchPlanner key={activeTrainingEvent.id} onApply={(dates, start, end) => {
+                  const existingDates = getTrainingEventCalendarDates(activeTrainingEvent);
+                  const added = dates.filter(day => !existingDates.includes(day) && !(trainingSchedules[getTrainingScheduleKey(activeTrainingEvent.id, day)]?.length));
+                  if (!added.length) { showNotification('这些日期已有安排，未覆盖。', 'info'); return; }
+                  const nextDates = [...new Set([...existingDates, ...added])].sort();
+                  const time = formatTrainingTimeRange(start, end);
+                  setTrainingEvents(previous => {
+                    const next = previous.map(item => item.id !== activeTrainingEvent.id ? item : {
+                      ...item, calendarDates: nextDates,
+                      calendarDateModes: { ...item.calendarDateModes, ...Object.fromEntries(added.map(day => [day, 'training' as const])) },
+                      calendarDateTimes: { ...item.calendarDateTimes, ...Object.fromEntries(added.map(day => [day, time])) },
+                    });
+                    saveTrainingEvents(next); return next;
+                  });
+                  setTrainingSchedules(previous => {
+                    const next = { ...previous };
+                    added.forEach(day => { next[getTrainingScheduleKey(activeTrainingEvent.id, day)] = [{ id: `schedule-${crypto.randomUUID()}`, time, topic: '', teams: '', coach: activeTrainingEvent.coach, target: '', notes: '' }]; });
+                    saveTrainingSchedules(next); return next;
+                  });
+                  setSelectedTrainingDates(nextDates);
+                  setVisibleTrainingMonth(getMonthKey(added[0]));
+                  setActiveTrainingDateKey(added[0]);
+                  setActiveTrainingDateMode('training');
+                  setActiveTrainingStartTime(start); setActiveTrainingEndTime(end);
+                  showNotification(`已添加 ${added.length} 天，跳过 ${dates.length - added.length} 个已有安排日期。`, 'success');
+                }} />}
                 <div className={styles.trainingModeSwitch} aria-label="选择日期状态">
                   <button
                     type="button"
@@ -10229,8 +10243,30 @@ export default function App() {
                     </button>
                   </div>
                   <small>先点击日期，再选择开始和结束时间；时间会显示在对应日期中。</small>
+                  <p>{activeTrainingDateKey ? `${activeTrainingDateKey} 当天场地（仅修改这一天）` : '请先选择日期，再设置当天场地'}</p>
+                  <TrainingVenuePicker
+                    value={activeTrainingDateKey ? (activeTrainingEvent.calendarDateVenues?.[activeTrainingDateKey] ?? activeTrainingEvent.venue) : ''}
+                    disabled={!canEdit || !activeTrainingDateKey}
+                    onChange={venue => {
+                      if (!canEdit || !activeTrainingDateKey) return;
+                      setTrainingEvents(previous => {
+                        const next = previous.map(item => item.id === activeTrainingEvent.id ? {
+                          ...item, calendarDateVenues: { ...item.calendarDateVenues, [activeTrainingDateKey]: venue },
+                        } : item);
+                        saveTrainingEvents(next); return next;
+                      });
+                    }} />
                 </div>
 
+                <div className={styles.calendarActions} aria-label="集训日历月份导航" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '20px 0 12px' }}>
+                  <button type="button" onClick={() => handleMoveTrainingMonth(-1)}>上月</button>
+                  <strong style={{ fontSize: '1.25rem' }}>{formatMonthLabel(visibleTrainingMonth)}</strong>
+                  <button type="button" onClick={() => handleMoveTrainingMonth(1)}>下月</button>
+                  <input type="month" aria-label="跳转到月份" value={visibleTrainingMonth}
+                    onChange={event => { if (/^\d{4}-\d{2}$/.test(event.target.value)) setVisibleTrainingMonth(event.target.value); }} />
+                  <button type="button" onClick={() => setVisibleTrainingMonth(getMonthKey(getTodayKey()))}>本月</button>
+                  <button type="button" onClick={handleExportTrainingCalendarImage}>导出/分享图片</button>
+                </div>
                 <div className={styles.calendarGrid}>
                   {['一', '二', '三', '四', '五', '六', '日'].map((weekday) => (
                     <div key={weekday} className={styles.calendarWeekday}>
@@ -10255,6 +10291,10 @@ export default function App() {
                           dateMode === 'self' ? styles.calendarSelfPracticeDay : '',
                           isToday ? styles.calendarToday : '',
                         ].filter(Boolean).join(' ')}
+                        data-training-day={dateMode || undefined}
+                        data-training-editing={activeTrainingDateKey === day.dateKey ? 'true' : undefined}
+                        aria-pressed={isSelected}
+                        aria-label={`${day.dateKey}${dateMode ? `，已安排${getTrainingDateModeLabel(dateMode)}` : '，未排期'}${dateTime ? `，${dateTime}` : ''}${activeTrainingDateKey === day.dateKey ? '，当前编辑' : ''}`}
                         onClick={() => handleSelectTrainingDate(day.dateKey)}
                       >
                         <span>{day.day}</span>
@@ -10264,6 +10304,7 @@ export default function App() {
                           </strong>
                         )}
                         {dateTime && <small className={styles.trainingDateTime}>{dateTime}</small>}
+                        {isSelected && <small className={styles.trainingDateTime}>{(activeTrainingEvent.calendarDateVenues?.[day.dateKey] ?? activeTrainingEvent.venue) || '场地待定'}</small>}
                       </button>
                     );
                   })}
@@ -10279,14 +10320,8 @@ export default function App() {
                 </div>
 
                 <div className={styles.trainingCoachBar}>
-                  <label htmlFor="training-coach">教练</label>
-                  <input
-                    id="training-coach"
-                    value={activeTrainingEvent.coach}
-                    onChange={(event) => handleUpdateActiveTrainingCoach(event.target.value)}
-                    placeholder="填写本场集训教练"
-                    disabled={!canEdit}
-                  />
+                  <TrainingCoachPicker value={activeTrainingEvent.coach} disabled={!canEdit}
+                    label="集训默认教练（可单选、多选）" onChange={handleUpdateActiveTrainingCoach} />
                 </div>
 
                 <div className={styles.trainingScheduleTableWrap}>
@@ -10296,12 +10331,15 @@ export default function App() {
                         <th>日期</th>
                         <th>时间</th>
                         <th>训练内容</th>
+                        <th>参训赛队</th>
+                        <th>负责教练</th>
+                        <th>课后记录 / 下次任务</th>
                       </tr>
                     </thead>
                     <tbody>
                       {activeTrainingScheduleEntries.length === 0 ? (
                         <tr>
-                          <td colSpan={3} className={styles.trainingScheduleEmpty}>
+                          <td colSpan={6} className={styles.trainingScheduleEmpty}>
                             先在上方日历选择“集训”日期，系统会自动生成当天安排；自主练习不会进入此表格。
                           </td>
                         </tr>
@@ -10322,6 +10360,9 @@ export default function App() {
                                 disabled={!canEdit}
                               />
                             </td>
+                            <td><input aria-label={`${dateKey}参训赛队`} value={row.teams} placeholder="选择名单后填写参训赛队" disabled={!canEdit} onChange={e=>handleUpdateTrainingScheduleRow(dateKey,row.id,'teams',e.target.value)}/></td>
+                            <td><TrainingCoachPicker label={`${dateKey}负责教练`} value={row.coach} disabled={!canEdit} onChange={value=>handleUpdateTrainingScheduleRow(dateKey,row.id,'coach',value)}/></td>
+                            <td><textarea aria-label={`${dateKey}课后记录`} value={row.notes} placeholder="完成情况、问题、下次任务" disabled={!canEdit} onChange={e=>handleUpdateTrainingScheduleRow(dateKey,row.id,'notes',e.target.value)}/></td>
                           </tr>
                         ))
                       )}
@@ -10766,15 +10807,16 @@ export default function App() {
         ) : null}
       </div>
 
-      {(authPanelOpen || viewMode === 'login') && (
+      {(authPanelOpen || viewMode === 'login' || (viewMode==='staff-admin' && canManageUsers)) && (
         <AuthPanel
+          embedded={viewMode==='staff-admin'}
           authAvailable={authEnabled}
           currentUser={viewMode === 'login' ? null : authUser}
           managedUsers={managedUsers}
           busy={authBusy}
           onClose={() => {
             setAuthPanelOpen(false);
-            if (viewMode === 'login') {
+            if (viewMode === 'login' || viewMode==='staff-admin') {
               setViewMode('work-hub');
             }
           }}

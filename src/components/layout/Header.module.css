@@ -302,6 +302,12 @@
 }
 
 /* Light glass technology theme */
+.header.tiangong:not(.darkGold) { background:#f5f0e5; color:#34352e; border-bottom:1px solid #b9ad97; }
+.header.tiangong::before, .header.tiangong::after, .tiangong .decorStickers { display:none; }
+.header.tiangong h1 { color:#34352e; font-family:'KaiTi','STKaiti','SimSun',serif; }
+.header.tiangong:not(.darkGold) .eyebrow { color:#88392d; }
+.header.tiangong .subtitle { color:#585145; }
+.header.tiangong:not(.darkGold) .logoBadge { background:#eee7d9; border-color:#b9ad97; }
 .header {
   background:
     radial-gradient(circle at 78% 10%, rgba(228,240,234,0.2), transparent 30%),

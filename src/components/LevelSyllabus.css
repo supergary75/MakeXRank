@@ -1,0 +1,82 @@
+#root .syllabus{color:#142638;padding:24px 0;font-family:'Microsoft YaHei',sans-serif}
+#root .syllabus-months{margin:32px 0}
+#root .syllabus-month-group{padding:12px 16px;border-left:4px solid #ffd700;background:#eef3f5;margin:24px 0 16px}
+#root .syllabus-month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+#root .syllabus-month{padding:20px;background:#fafcfb;border:1px solid #ccd6dd;border-radius:12px;min-width:0}
+#root .syllabus-month-number{display:inline-block;padding:5px 12px;margin-bottom:15px;background:#ffd700;color:#142638;font-weight:800;border-radius:6px}
+#root .syllabus-month h4{font-size:17px;line-height:1.5}
+#root .syllabus-month summary{cursor:pointer;color:#234c68;font-size:14px;padding:10px 0;border-top:1px solid #d7dfe4}
+#root .syllabus-month summary:focus-visible{outline:2px solid #234c68;outline-offset:4px}
+@media(max-width:900px){#root .syllabus-month-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){#root .syllabus-month-grid{grid-template-columns:1fr}}
+#root .syllabus-chart-scroll{overflow-x:auto;margin:18px 0 30px;border-radius:12px;border:1px solid #ccd6dd}
+#root .syllabus-chart{position:relative;min-width:900px}
+#root .syllabus-chart>img{display:block;width:100%;height:auto}
+#root .syllabus-chart .syllabus-chart-link{position:absolute;top:22%;width:12%;height:47%;padding:0;background:transparent!important;border:2px solid transparent!important;border-radius:10px;box-shadow:none;color:#142638!important;cursor:pointer}
+#root .syllabus-chart .syllabus-chart-link:hover,#root .syllabus-chart .syllabus-chart-link:focus-visible{border-color:#ffd700!important;background:#ffd70014!important;outline:2px solid #142638;outline-offset:2px}
+#root .syllabus-chart-link span{position:absolute;bottom:0;left:0;right:0;padding:5px 2px;background:#fffbe8;color:#142638!important;font:600 12px/1.5 'Microsoft YaHei',sans-serif;opacity:0}
+#root .syllabus-chart-link:hover span,#root .syllabus-chart-link:focus-visible span{opacity:1}
+#root .syllabus p,#root .syllabus li{color:#334b5e;line-height:1.9;font-size:15px}
+#root .syllabus h2,#root .syllabus h3,#root .syllabus h4{color:#142638}
+#root .syllabus-levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:24px 0 36px}
+#root .syllabus-levels button{display:flex;flex-direction:column;gap:10px;text-align:left;padding:22px 16px;background:#fafcfb;border:1px solid #cbd5dc;border-top:4px solid #ffd700;border-radius:12px;color:#142638;cursor:pointer}
+#root .syllabus-levels button:hover{box-shadow:0 8px 24px #14263820;transform:translateY(-2px)}
+#root .syllabus-levels strong{font-size:28px;color:#142638}#root .syllabus-levels span{font-size:13px}#root .syllabus-levels b{font-size:14px}#root .syllabus-levels button>span:last-child{margin-top:auto}
+#root .syllabus-stages,#root .syllabus-dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:24px 0}
+#root .syllabus-stages section,#root .syllabus-dimensions section,#root .syllabus-cycle{padding:22px;background:#fafcfb;border:1px solid #ccd6dd;border-radius:12px}
+#root .syllabus-stages section{border-top:4px solid #ffd700}#root .syllabus-cycle{margin:20px 0}#root .syllabus h4{margin:0 0 12px}#root .syllabus-label{font-size:13px;color:#536877}
+@media(max-width:700px){#root .syllabus-stages,#root .syllabus-dimensions{grid-template-columns:1fr}#root .syllabus-levels{grid-template-columns:repeat(2,minmax(0,1fr))}#root .syllabus-levels button{padding:16px 12px}}
+
+/* Match the silver, navy and gold growth-chart palette in syllabus detail cards. */
+#root [data-blueprint] .syllabus .syllabus-stages>section,
+#root [data-blueprint] .syllabus .syllabus-dimensions>section,
+#root [data-blueprint] .syllabus .syllabus-cycle,
+#root [data-blueprint] .syllabus .syllabus-month {
+  background:linear-gradient(135deg,#fff 0%,#f2f5fa 100%)!important;
+  border:1px solid #c6d3e4!important;
+  border-radius:12px!important;
+  box-shadow:0 5px 16px #142b5010;
+  color:#152b50!important;
+}
+#root [data-blueprint] .syllabus :is(p,li,b,h2,h3,h4,summary){color:#152b50!important}
+#root [data-blueprint] .syllabus .syllabus-stages>section:first-child{background:linear-gradient(135deg,#f8faff,#e4ecf7)!important}
+#root [data-blueprint] .syllabus .syllabus-stages>section:nth-child(2){background:linear-gradient(135deg,#fffdf4,#fff0b7)!important;border-color:#e6ce76!important}
+#root [data-blueprint] .syllabus .syllabus-stages>section:nth-child(3){background:linear-gradient(135deg,#fff,#f2f6fc)!important;border-color:#dfc359!important}
+#root [data-blueprint] .syllabus .syllabus-stages>section>h3,
+#root [data-blueprint] .syllabus .syllabus-dimensions>section>h4,
+#root [data-blueprint] .syllabus .syllabus-cycle>h3{
+  background:linear-gradient(115deg,#132546,#29466e)!important;
+  color:#fff!important;
+  margin:-22px -22px 18px!important;
+  padding:15px 22px!important;
+  border-radius:11px 11px 0 0;
+  border-bottom:3px solid #ffd700!important;
+  font-weight:700;
+}
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-first .syllabus-month-group{
+  background:linear-gradient(110deg,#fff7dc,#ffedac)!important;
+  border:1px solid #e3cf89!important;border-left:5px solid #ffd700!important;
+  border-radius:9px;color:#152b50!important;
+}
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-second .syllabus-month-group{
+  background:linear-gradient(110deg,#eaf3ff,#cfdef6)!important;
+  border:1px solid #b5cbe9!important;border-left:5px solid #244872!important;
+  border-radius:9px;color:#152b50!important;
+}
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-first .syllabus-month{background:linear-gradient(150deg,#fff,#fff9e9)!important;border-top:3px solid #ffd700!important}
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-second .syllabus-month{background:linear-gradient(150deg,#fff,#eaf2ff)!important;border-top:3px solid #294a78!important}
+#root [data-blueprint] .syllabus .syllabus-month-number{background:#ffd700!important;color:#132546!important;border:1px solid #e6c200!important}
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-second .syllabus-month-number{background:#203c65!important;color:#fff!important;border-color:#203c65!important}
+#root [data-blueprint] .syllabus .syllabus-month details[open]{padding:0 12px 8px;background:#ffffffc9!important;border-radius:8px}
+#root [data-blueprint] .syllabus .syllabus-month summary{border-color:#ccd7e5!important;font-weight:600}
+
+#root [data-blueprint] .syllabus .curriculum-month-editor{padding:24px;background:#f5f8fc!important;border:1px solid #9aafc9;border-top:4px solid #ffd700;border-radius:12px;scroll-margin-top:90px}
+#root .syllabus .curriculum-month-editor label{display:block;color:#152b50;font-weight:600;margin:16px 0}
+#root [data-blueprint] .syllabus .curriculum-month-editor :is(input,textarea){display:block;box-sizing:border-box;width:100%;margin-top:8px;padding:12px;border:1px solid #879bb5;border-radius:6px;background:#fff!important;color:#152b50!important;font:16px/1.6 'Microsoft YaHei',sans-serif;resize:vertical}
+#root .syllabus :is(.curriculum-editor-actions,.curriculum-editor-status){display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0}
+#root .syllabus .syllabus-months button{background:#183454!important;color:#fff!important;border:1px solid #183454;padding:10px 16px;border-radius:6px;min-height:44px;font:600 14px/1.5 'Microsoft YaHei',sans-serif;cursor:pointer}
+#root .syllabus .syllabus-months button:disabled{background:#e1e7ed!important;color:#526174!important;border-color:#b8c5d2;cursor:not-allowed}
+#root .syllabus .syllabus-months :is(button,input,textarea):focus-visible{outline:3px solid #c39900;outline-offset:3px}
+#root [data-blueprint] .syllabus .curriculum-editor-error{background:#fff0ee!important;color:#8a2520!important;padding:12px;border-left:4px solid #b44238}
+#root .syllabus .curriculum-month-editor p{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:600px){#root [data-blueprint] .syllabus .curriculum-month-editor{padding:16px}#root .syllabus .curriculum-editor-actions button{flex:1 1 45%}}
