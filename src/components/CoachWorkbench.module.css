@@ -26,6 +26,11 @@
 .install { padding:18px; background:#fff; border:1px solid #b5c4c9; border-radius:10px; line-height:1.8; }
 .install h2 { font-size:19px; margin-top:0; }
 .footer { font-size:13px; color:#4b626f; padding:18px 0 0; line-height:1.8; }
+.login { max-width:520px; margin:40px auto; }
+.loginForm { display:grid; gap:18px; padding:16px 0; }
+.loginForm label { display:grid; gap:8px; font-weight:650; }
+.loginForm input { width:100%; box-sizing:border-box; min-height:48px; padding:10px 12px; border:1px solid #9baeb5; border-radius:8px; background:#fff; color:#203341; font:inherit; }
+.loginForm .footer { padding:0; margin:0; font-weight:400; }
 @media(max-width:650px) {
  .workbench { padding:12px; border-radius:0; }
  .header { align-items:start; padding-top:12px; }

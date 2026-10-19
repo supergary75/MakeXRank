@@ -70,9 +70,9 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
   async function issue(db,userId,sessionId) {
     const refresh=crypto.randomBytes(48).toString('base64url');
     const inserted=await db.query(`insert into refresh_tokens(token_hash,auth_user_id,expires_at,session_id)
-      select $1,auth_user_id,expires_at,id from auth_sessions where id=$2 and auth_user_id=$3 and revoked_at is null and expires_at>now() returning token_hash`,[digest(refresh),sessionId,userId]);
+      select $1,auth_user_id,expires_at,id from auth_sessions where id=$2 and auth_user_id=$3 and revoked_at is null and expires_at>now() returning token_hash,expires_at`,[digest(refresh),sessionId,userId]);
     if(!inserted.rows.length)fail(401,'Authentication required');
-    return {access_token:sign(userId,sessionId),refresh_token:refresh,expires_in:3600,user:{id:userId}};
+    return {access_token:sign(userId,sessionId),refresh_token:refresh,expires_in:3600,session_expires_at:new Date(inserted.rows[0].expires_at).toISOString(),user:{id:userId}};
   }
   async function budget(kind,value,limit) {
     const key=`${kind}:${crypto.createHmac('sha256',secret).update(value).digest('hex')}`;

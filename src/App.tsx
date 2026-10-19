@@ -46,6 +46,8 @@ import {
   deleteManagedUser,
   fetchManagedUsers,
   getStoredAccessToken,
+  AUTH_SESSION_CLEARED_EVENT,
+  AUTH_SESSION_STORAGE_KEY,
   isAuthAvailable,
   resetManagedUserPassword,
   restoreAuthUser,
@@ -3063,8 +3065,17 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-
-    void (async () => {
+    let generation = 0;
+    const clearUser = () => {
+      generation++;
+      setAuthUser(null);
+      setManagedUsers([]);
+      setAuthPanelOpen(false);
+      setAuthReady(true);
+    };
+    const restore = async () => {
+      const attempt = ++generation;
+      setAuthReady(false);
       if (!authEnabled) {
         if (!cancelled) {
           setAuthReady(true);
@@ -3073,16 +3084,26 @@ export default function App() {
       }
 
       const restoredUser = await restoreAuthUser();
-      if (cancelled) {
+      if (cancelled || attempt !== generation) {
         return;
       }
 
       setAuthUser(restoredUser);
       setAuthReady(true);
-    })();
+    };
+    const otherTabChanged = (event: StorageEvent) => {
+      if (event.key !== AUTH_SESSION_STORAGE_KEY) return;
+      if (event.newValue === null) clearUser();
+      else { setAuthUser(null); void restore(); }
+    };
+    window.addEventListener(AUTH_SESSION_CLEARED_EVENT, clearUser);
+    window.addEventListener('storage', otherTabChanged);
+    void restore();
 
     return () => {
       cancelled = true;
+      window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, clearUser);
+      window.removeEventListener('storage', otherTabChanged);
     };
   }, [authEnabled]);
 
@@ -6733,8 +6754,8 @@ export default function App() {
   return (
     <div data-blueprint={viewMode} className={`${styles.app} ${viewMode === 'product-center' || viewMode === 'curriculum-system' ? styles.tiangongPreview : ''}`}>
       <div className={styles.container}>
-        {viewMode === 'coach-workbench'||viewMode === 'weekly-roll-call' ? (
-          <CoachWorkbench key={authUser?.authUserId||'guest'} user={authUser} attendance={viewMode==='weekly-roll-call'} onLogin={()=>setAuthPanelOpen(true)} onManage={()=>setViewMode('class-member-management')} onSummary={()=>setViewMode('attendance-dashboard')} onBack={()=>setViewMode('work-hub')} onRollCall={()=>setViewMode('weekly-roll-call')} onHome={()=>setViewMode('coach-workbench')}/>
+        {viewMode === 'coach-workbench'||viewMode === 'weekly-roll-call'||viewMode === 'login' ? (
+          <CoachWorkbench key={authUser?.authUserId||'guest'} user={authUser} ready={authReady} busy={authBusy} attendance={viewMode==='weekly-roll-call'} onSignIn={handleLogin} onLogin={()=>setAuthPanelOpen(true)} onManage={()=>setViewMode('class-member-management')} onSummary={()=>setViewMode('attendance-dashboard')} onBack={()=>setViewMode('work-hub')} onRollCall={()=>setViewMode('weekly-roll-call')} onHome={()=>setViewMode('coach-workbench')}/>
         ) : viewMode === 'work-hub' ? (
           <MechaWorkHub action={accountAction} onNavigate={setViewMode} onRollCall={authUser?.isActive ? () => setViewMode('weekly-roll-call') : undefined} />
         ) : viewMode === 'staff-admin' ? (
@@ -6821,7 +6842,7 @@ export default function App() {
               </section>
             </section>
           </>
-        ) : viewMode === 'home' || viewMode === 'login' ? (
+        ) : viewMode === 'home' ? (
           <>
             <Header
               eyebrow="Operations Hub"
@@ -10814,7 +10835,7 @@ export default function App() {
         ) : null}
       </div>
 
-      {(authPanelOpen || viewMode === 'login' || (viewMode==='staff-admin' && canManageUsers)) && (
+      {(authPanelOpen || (viewMode==='staff-admin' && canManageUsers)) && (
         <AuthPanel
           embedded={viewMode==='staff-admin'}
           authAvailable={authEnabled}

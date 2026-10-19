@@ -128,6 +128,34 @@ test('expired access can sign out; refresh is one use; malformed signatures fail
   const next=(await login()).data;assert.equal((await refresh(next.refresh_token)).status,200);assert.equal((await refresh(next.refresh_token)).status,401);
   assert.equal((await request('/fixture-private',{token:'bad.token.signature'})).status,401);
 });
+test('sessions last seven fixed days; silent refresh cannot extend them; expiry rejects both credentials',async()=>{
+  const signed=(await login()).data;
+  const original=(await db.query('select created_at,expires_at from auth_sessions')).rows[0];
+  assert.equal(new Date(original.expires_at).getTime()-new Date(original.created_at).getTime(),7*24*3600*1000);
+  assert.equal(new Date(signed.session_expires_at).getTime(),new Date(original.expires_at).getTime());
+  await db.query("update auth_sessions set created_at=now()-interval '6 days 23 hours',expires_at=now()+interval '1 hour'");
+  const deadline=(await db.query('select expires_at from auth_sessions')).rows[0].expires_at;
+  const rotated=await refresh(signed.refresh_token);assert.equal(rotated.status,200);
+  assert.equal(new Date(rotated.data.session_expires_at).getTime(),new Date(deadline).getTime());
+  assert.equal((await request('/fixture-private',{token:rotated.data.access_token})).status,200);
+  await db.query("update auth_sessions set expires_at=now()-interval '1 second'");
+  assert.equal((await request('/fixture-private',{token:rotated.data.access_token})).status,401);
+  assert.equal((await refresh(rotated.data.refresh_token)).status,401);
+  assert.equal((await login()).status,200,'expiry allows a fresh password sign-in');
+});
+
+test('seven-day migration caps existing longer sessions and refresh tokens without changing account permissions',async()=>{
+  await login();
+  const profileBefore=(await db.query('select * from user_profiles order by auth_user_id')).rows;
+  await db.query("update auth_sessions set created_at=now()-interval '3 days',expires_at=now()+interval '27 days'");
+  await db.query("update refresh_tokens set expires_at=now()+interval '27 days'");
+  await createCoreApi(pool,secret,{now:()=>now});
+  const row=(await db.query('select s.created_at,s.expires_at,r.expires_at refresh_expires_at from auth_sessions s join refresh_tokens r on r.session_id=s.id')).rows[0];
+  assert.equal(new Date(row.expires_at).getTime()-new Date(row.created_at).getTime(),7*24*3600*1000);
+  assert.equal(new Date(row.refresh_expires_at).getTime(),new Date(row.expires_at).getTime());
+  assert.deepEqual((await db.query('select * from user_profiles order by auth_user_id')).rows,profileBefore);
+});
+
 test('password reset revokes all access/refresh, including concurrent refresh and prevalidated login',async()=>{
   const admin=(await login('admin')).data.access_token,session=(await login()).data;
   let release,reached;const gate=new Promise(resolve=>{release=resolve;});const hit=new Promise(resolve=>{reached=resolve;});

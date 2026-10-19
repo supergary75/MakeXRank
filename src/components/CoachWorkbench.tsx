@@ -5,15 +5,17 @@ import { academicAccess } from '../../shared/classDirectory.mjs';
 import { AcademicCloudPanel, AcademicDataGate } from './AcademicCloudPanel';
 import WeeklyRollCall from './WeeklyRollCall';
 import css from './CoachWorkbench.module.css';
+import CoachLogin from './CoachLogin';
 
-export default function CoachWorkbench({user,onLogin,onManage,onSummary,onBack,onRollCall,onHome,attendance=false}:{user:AuthUserProfile|null;onLogin:()=>void;onManage:()=>void;onSummary:()=>void;onBack:()=>void;onRollCall:()=>void;onHome:()=>void;attendance?:boolean}) {
+export default function CoachWorkbench({user,onLogin,onSignIn,onManage,onSummary,onBack,onRollCall,onHome,attendance=false,ready=true,busy=false}:{user:AuthUserProfile|null;onLogin:()=>void;onSignIn:(username:string,password:string)=>Promise<void>|void;onManage:()=>void;onSummary:()=>void;onBack:()=>void;onRollCall:()=>void;onHome:()=>void;attendance?:boolean;ready?:boolean;busy?:boolean}) {
   const [instructions,setInstructions]=useState<string[]>([]);
   const [installMessage,setInstallMessage]=useState('');
   const access=academicAccess(user);
+  if(!ready)return <main className={css.workbench}><p role="status" className={css.loading}>正在验证登录状态…</p></main>;
+  if(!user?.isActive)return <CoachLogin busy={busy} onSignIn={onSignIn}/>;
   return <main className={css.workbench}>
     <header className={css.header}><div><span className={css.eyebrow}>ROBOTICS YOUTH TRAINING CLUB</span><h1>{attendance?'快速点名':'俱乐部工作台'}</h1><p>{attendance?'查看本人当日课程，点班级直接展开名单。':user?`${user.displayName}，请选择要使用的功能。`:'点名和完整网站，一个工作台就够了。'}</p></div>{attendance&&<button onClick={onHome}>← 返回工作台</button>}</header>
     <div className={css.actions}>
-      {!user&&<button className={css.primary} onClick={onLogin}>{attendance?'登录并查看我的班级':'登录工作台'}</button>}
       <button onClick={async()=>{try{const result=await requestPwaInstall();if(result==='standalone')setInstallMessage('当前已经是桌面应用模式。');else if(result==='manual')setInstructions(getPwaInstallInstructions());}catch{setInstructions(getPwaInstallInstructions());}}}>{isStandalonePwa()?'已添加到桌面':'添加到手机桌面'}</button>
       {user&&<button onClick={onLogin}>当前账号 / 退出</button>}
       {user&&access.all&&attendance&&<button onClick={onSummary}>全班出勤汇总</button>}

@@ -1,6 +1,8 @@
 import type { AuthUserProfile, EventType, UserRole } from '../types';
 
 const AUTH_STORAGE_KEY = 'competitive-ranking-board::auth-session';
+export const AUTH_SESSION_CLEARED_EVENT = 'makexrank-auth-session-cleared';
+export const AUTH_SESSION_STORAGE_KEY = AUTH_STORAGE_KEY;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
 const PROFILE_TABLE = import.meta.env.VITE_SUPABASE_PROFILE_TABLE?.trim() || 'user_profiles';
@@ -11,6 +13,7 @@ interface AuthSessionPayload {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  sessionExpiresAt?: number;
 }
 
 let sessionRefreshPromise: Promise<AuthSessionPayload> | null = null;
@@ -19,6 +22,7 @@ interface AuthTokenResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
+  session_expires_at?: string;
   user: {
     id: string;
   };
@@ -140,6 +144,7 @@ function readSession(): AuthSessionPayload | null {
       typeof parsed.accessToken !== 'string'
       || typeof parsed.refreshToken !== 'string'
       || typeof parsed.expiresAt !== 'number'
+      || (parsed.sessionExpiresAt !== undefined && (typeof parsed.sessionExpiresAt !== 'number' || !Number.isFinite(parsed.sessionExpiresAt)))
     ) {
       return null;
     }
@@ -156,6 +161,7 @@ function clearSession(): void {
   }
 
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  window.dispatchEvent(new Event(AUTH_SESSION_CLEARED_EVENT));
 }
 
 function buildFunctionUrl(functionName = AUTH_FUNCTION_NAME): string {
@@ -228,7 +234,7 @@ async function parseError(response: Response): Promise<string> {
 async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
   const response = await fetch(input, init);
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw Object.assign(new Error(await parseError(response)), { status: response.status });
   }
 
   if (response.status === 204) {
@@ -276,7 +282,10 @@ async function refreshAuthSession(refreshToken: string): Promise<AuthSessionPayl
     accessToken: response.access_token,
     refreshToken: response.refresh_token,
     expiresAt: Date.now() + response.expires_in * 1000,
+    ...(response.session_expires_at ? { sessionExpiresAt: Date.parse(response.session_expires_at) } : {}),
   };
+  // A late refresh response must not restore a signed-out or switched account.
+  if (readSession()?.refreshToken !== refreshToken) throw new Error('登录状态已变化。');
   saveSession(session);
   return session;
 }
@@ -284,18 +293,44 @@ async function refreshAuthSession(refreshToken: string): Promise<AuthSessionPayl
 export async function getValidAccessToken(forceRefresh = false): Promise<string | null> {
   const cachedSession = readSession();
   if (!cachedSession) return null;
+  if (cachedSession.sessionExpiresAt !== undefined && cachedSession.sessionExpiresAt <= Date.now()) {
+    clearSession(); return null;
+  }
   // Refresh shortly before expiry so a token cannot expire during a score upload.
   if (!forceRefresh && cachedSession.expiresAt > Date.now() + 60_000) {
     return cachedSession.accessToken;
   }
   if (!sessionRefreshPromise) {
-    sessionRefreshPromise = refreshAuthSession(cachedSession.refreshToken)
-      .finally(() => { sessionRefreshPromise = null; });
+    const refreshLatest = async () => {
+      // Another tab may already have rotated the single-use refresh token.
+      const latest = readSession();
+      if (!latest) throw new Error('登录已退出。');
+      if (latest.sessionExpiresAt !== undefined && latest.sessionExpiresAt <= Date.now()) {
+        clearSession(); throw new Error('登录已到期。');
+      }
+      if (latest.refreshToken !== cachedSession.refreshToken && latest.expiresAt > Date.now() + 60_000) return latest;
+      try { return await refreshAuthSession(latest.refreshToken); }
+      catch (error) {
+        const current = readSession();
+        if (current && current.refreshToken !== latest.refreshToken && current.expiresAt > Date.now() + 60_000) return current;
+        // A network interruption is not a logout. Keep the seven-day credential
+        // for a later retry; only an authoritative rejection clears it.
+        const status = (error as {status?: number}).status;
+        if (current?.refreshToken === latest.refreshToken && (status === 400 || status === 401 || status === 403)) clearSession();
+        throw error;
+      }
+    };
+    const performRefresh = async (): Promise<AuthSessionPayload> => {
+      if (typeof navigator !== 'undefined' && navigator.locks) return await navigator.locks.request('makexrank-session-refresh', refreshLatest);
+      return await refreshLatest();
+    };
+    sessionRefreshPromise = performRefresh().finally(() => { sessionRefreshPromise = null; });
   }
+  const pendingRefresh = sessionRefreshPromise;
+  if (!pendingRefresh) return null;
   try {
-    return (await sessionRefreshPromise).accessToken;
+    return (await pendingRefresh).accessToken;
   } catch {
-    clearSession();
     return null;
   }
 }
@@ -363,11 +398,8 @@ export async function restoreAuthUser(): Promise<AuthUserProfile | null> {
   }
 
   try {
-    const accessToken =
-      cachedSession.expiresAt > Date.now()
-        ? cachedSession.accessToken
-        : (await refreshAuthSession(cachedSession.refreshToken)).accessToken;
-
+    const accessToken = await getValidAccessToken();
+    if (!accessToken) return null;
     const authUser = await fetchCurrentAuthUser(accessToken);
     const profile = await fetchProfileByUserId(authUser.id, accessToken);
     if (!profile || !profile.isActive) {
@@ -376,8 +408,9 @@ export async function restoreAuthUser(): Promise<AuthUserProfile | null> {
     }
 
     return profile;
-  } catch {
-    clearSession();
+  } catch (error) {
+    const status = (error as {status?: number}).status;
+    if (status === 400 || status === 401 || status === 403) clearSession();
     return null;
   }
 }
@@ -411,6 +444,7 @@ export async function signInWithUsername(
     accessToken: tokenResponse.access_token,
     refreshToken: tokenResponse.refresh_token,
     expiresAt: Date.now() + tokenResponse.expires_in * 1000,
+    ...(tokenResponse.session_expires_at ? { sessionExpiresAt: Date.parse(tokenResponse.session_expires_at) } : {}),
   };
   saveSession(session);
 
