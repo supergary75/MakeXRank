@@ -1,5 +1,11 @@
 # 🏆 竞技排行榜 - 实时战队排名与淘汰赛预测系统
 
+## 当前正式内部部署
+
+正式入口：[俱乐部工作台](https://81.70.62.5/MakeXRank/#view=coach-workbench)。当前使用腾讯云自建 API/PostgreSQL；下文较早的纯前端、Pages/Supabase说明属于历史方案，不是正式部署步骤。
+
+构建、权限、备份、上线和回滚见 [腾讯云运维说明](docs/TENCENT_OPERATIONS.md)。GitHub Actions 只校验和生成腾讯云发布包，不再发布另一套旧后端页面。
+
 > 专业的竞技比赛排名应用，支持自动数据读取、实时更新、多维度智能排序和淘汰赛预测
 
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)](https://developer.mozilla.org/docs/Web/HTML)
@@ -363,9 +369,3 @@ competitive-ranking-board/
 <p align="center">
   <b>⭐ 如果这个项目对你有帮助，请给一个 Star ⭐</b>
 </p>
-# 当前正式内部部署
-
-正式入口：[俱乐部工作台](https://81.70.62.5/MakeXRank/#view=coach-workbench)。当前使用腾讯云自建 API/PostgreSQL；下文较早的纯前端、Pages/Supabase说明属于历史方案，不是正式部署步骤。
-
-构建、权限、备份、上线和回滚见 [腾讯云运维说明](docs/TENCENT_OPERATIONS.md)。GitHub Actions 只校验和生成腾讯云发布包，不再发布另一套旧后端页面。
-
