@@ -74,7 +74,12 @@ test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0
 node /usr/local/lib/makexrank/backup.mjs verify-current "$backup"
 cp -a "$release/dist/." "$web/"
 cp "$release/release.json" "$web/release.json"
+# Archives extracted under a private umask may have 700/600 directories/files.
+# Only the already-public static web tree gets nginx read/traverse access;
+# private database backups, environment files and API sources stay untouched.
+chmod -R a+rX "$web"
 systemctl reload nginx
+test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://81.70.62.5/MakeXRank/)" = 200
 install -o root -g root -m 0644 "$release/server/ops/makexrank-backup.service" /etc/systemd/system/makexrank-backup.service
 install -o root -g root -m 0644 "$release/server/ops/makexrank-backup.timer" /etc/systemd/system/makexrank-backup.timer
 systemctl daemon-reload
