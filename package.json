@@ -16,7 +16,7 @@
     "lint": "eslint .",
     "test": "npm run test:client && npm run test:server",
     "test:client": "vitest run src --exclude src/components/lessonSimulation.test.tsx",
-    "test:server": "node --test server/staff-access.test.mjs server/curriculum.check.mjs",
+    "test:server": "node --test server/staff-access.test.mjs server/curriculum.check.mjs server/academic.test.mjs server/core.test.mjs",
     "check": "npm run lint && npm run test && npm run build && npm audit --omit=dev --audit-level=high",
     "preview": "vite preview"
   },
@@ -28,6 +28,7 @@
     "read-excel-file": "^9.3.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",

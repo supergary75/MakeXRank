@@ -1,8 +1,9 @@
 {
-  "name": "KCLUB MakeXRank",
-  "short_name": "MakeXRank",
-  "description": "KCLUB internal competition, training and ranking workspace.",
-  "start_url": "/MakeXRank/",
+  "id": "/MakeXRank/",
+  "name": "机器人青训俱乐部 · 俱乐部工作台",
+  "short_name": "俱乐部工作台",
+  "description": "手机上的俱乐部统一入口：快速点名与完整网站。",
+  "start_url": "/MakeXRank/#view=coach-workbench",
   "scope": "/MakeXRank/",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -10,8 +11,10 @@
   "theme_color": "#0b1220",
   "categories": ["education", "productivity", "sports"],
   "icons": [
+    { "src": "/MakeXRank/pwa-coach-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/MakeXRank/pwa-coach-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
     {
-      "src": "/MakeXRank/pwa-icon.svg",
+      "src": "/MakeXRank/pwa-coach.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -19,17 +22,24 @@
   ],
   "shortcuts": [
     {
-      "name": "集训安排",
-      "short_name": "集训",
-      "description": "Open the training schedule workspace.",
-      "url": "/MakeXRank/?view=training",
+      "name": "今日点名",
+      "short_name": "点名",
+      "description": "直接查看今日我的班级，展开名单点名。",
+      "url": "/MakeXRank/#view=weekly-roll-call",
       "icons": [
         {
-          "src": "/MakeXRank/pwa-icon.svg",
+          "src": "/MakeXRank/pwa-coach.svg",
           "sizes": "any",
           "type": "image/svg+xml"
         }
       ]
+    },
+    {
+      "name": "完整网站",
+      "short_name": "网站",
+      "description": "进入俱乐部全部工作模块。",
+      "url": "/MakeXRank/#view=work-hub",
+      "icons": [{ "src": "/MakeXRank/pwa-coach-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

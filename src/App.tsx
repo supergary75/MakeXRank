@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import ClassMemberManagement from './components/ClassMemberManagement';
-import WeeklyRollCall from './components/WeeklyRollCall';
+import CoachWorkbench from './components/CoachWorkbench';
+import { AcademicCloudPanel, AcademicDataGate } from './components/AcademicCloudPanel';
+import { academicCloudEnabled, refreshAcademic, startAcademicCloud } from './services/academicCloud';
 import AttendanceDashboard from './components/AttendanceDashboard';
 import TrainingRosterPanel from './components/TrainingRosterPanel';
 import TrainingBatchPlanner from './components/TrainingBatchPlanner';
@@ -275,7 +277,7 @@ const LOGISTICS_SYNC_TABLE = import.meta.env.VITE_SUPABASE_LOGISTICS_SYNC_TABLE?
 const LOGISTICS_SYNC_ID = 'global';
 const LOGISTICS_TOMBSTONE_PREFIX = '__makexrank_deleted_logistics__:';
 const VIEW_MODES: ViewMode[] = [
-  'work-hub', 'staff-admin', 'academic-center', 'class-member-management', 'weekly-roll-call', 'attendance-dashboard', 'interview-center', 'product-center', 'course-documents', 'curriculum-system', ...syllabusRoutes,
+  'work-hub', 'staff-admin', 'academic-center', 'class-member-management', 'weekly-roll-call', 'coach-workbench', 'attendance-dashboard', 'interview-center', 'product-center', 'course-documents', 'curriculum-system', ...syllabusRoutes,
   ...curriculumRoutes,
   'home', 'login', 'my-tasks', 'event-types', 'logistics', 'logistics-roster',
   'logistics-event', 'logistics-event-roster', 'logistics-event-rooms',
@@ -301,7 +303,7 @@ function readNavigationSnapshot(): NavigationSnapshot {
   const requestedTab = params.get('tab') as TabName | null;
 
   return {
-    viewMode: requestedView && VIEW_MODES.includes(requestedView) ? requestedView : 'work-hub',
+    viewMode: requestedView && VIEW_MODES.includes(requestedView) ? requestedView : isStandalonePwa() ? 'coach-workbench' : 'work-hub',
     activeCompetitionId: params.get('competition'),
     activeLogisticsEventId: params.get('logisticsEvent'),
     activeLogisticsEventItem: params.get('logisticsItem'),
@@ -3084,6 +3086,15 @@ export default function App() {
     };
   }, [authEnabled]);
 
+  useEffect(()=>{
+    startAcademicCloud(authUser);
+    if(!academicCloudEnabled || !authUser?.isActive)return;
+    const refresh=()=>{if(document.visibilityState==='visible')void refreshAcademic();};
+    const timer=window.setInterval(refresh,60000);
+    window.addEventListener('online',refresh);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);
+    return ()=>{window.clearInterval(timer);window.removeEventListener('online',refresh);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);startAcademicCloud(null);};
+  },[authUser]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -3624,7 +3635,7 @@ export default function App() {
       await runAuthTask(async () => {
         const profile = await signInWithUsername(username, password);
         setAuthUser(profile);
-        setViewMode(current => current === 'login' ? 'work-hub' : current);
+        setViewMode(current => current === 'login' ? 'coach-workbench' : current);
         setAuthPanelOpen(false);
         showNotification(`欢迎回来，${profile.displayName}。`, 'success');
       });
@@ -6686,6 +6697,7 @@ export default function App() {
 
   const accountAction = (
     <div className={styles.accountActions}>
+      {viewMode!=='coach-workbench'&&viewMode!=='weekly-roll-call'&&<button className={styles.backButton} onClick={()=>setViewMode('coach-workbench')}>俱乐部工作台</button>}
       {authEnabled ? (
         <>
           {authReady && authUser ? (
@@ -6721,7 +6733,9 @@ export default function App() {
   return (
     <div data-blueprint={viewMode} className={`${styles.app} ${viewMode === 'product-center' || viewMode === 'curriculum-system' ? styles.tiangongPreview : ''}`}>
       <div className={styles.container}>
-        {viewMode === 'work-hub' ? (
+        {viewMode === 'coach-workbench'||viewMode === 'weekly-roll-call' ? (
+          <CoachWorkbench key={authUser?.authUserId||'guest'} user={authUser} attendance={viewMode==='weekly-roll-call'} onLogin={()=>setAuthPanelOpen(true)} onManage={()=>setViewMode('class-member-management')} onSummary={()=>setViewMode('attendance-dashboard')} onBack={()=>setViewMode('work-hub')} onRollCall={()=>setViewMode('weekly-roll-call')} onHome={()=>setViewMode('coach-workbench')}/>
+        ) : viewMode === 'work-hub' ? (
           <MechaWorkHub action={accountAction} onNavigate={setViewMode} onRollCall={authUser?.isActive ? () => setViewMode('weekly-roll-call') : undefined} />
         ) : viewMode === 'staff-admin' ? (
           <section className={styles.productCenterSection}><h1>员工管理后台</h1><p>仅 Gary（supergary）可维护员工姓名、重置密码、启停账号及分配角色与比赛范围。登录用户名保持不变。</p>{!canManageUsers && <p role="alert">你没有员工后台访问权限，请使用 supergary 账号登录。</p>}<button onClick={()=>setViewMode('work-hub')}>返回工作系统</button></section>
@@ -6730,21 +6744,14 @@ export default function App() {
             <Header theme="tiangong" eyebrow="Academic Affairs Center" title="教务管理中心" subtitle="日常教学管理的统一入口。"
               action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('work-hub')}>← 返回工作系统</button>{accountAction}</div>} />
             <AcademicFlightDeck onNavigate={setViewMode} />
+            <AcademicCloudPanel user={authUser}/>
           </div>
         ) : viewMode === 'attendance-dashboard' ? (
           <div className={aviation.shell}>
             <Header theme="tiangong" eyebrow="Attendance Insights" title="出勤统计与预警" subtitle="教务管理中心 / 出勤统计与预警"
               action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('academic-center')}>← 返回教务管理中心</button>{accountAction}</div>} />
             <section className={styles.productCenterSection} aria-label="出勤统计与预警">
-              <AttendanceDashboard key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} onRollCall={() => setViewMode('weekly-roll-call')} />
-            </section>
-          </div>
-        ) : viewMode === 'weekly-roll-call' ? (
-          <div className={aviation.shell}>
-            <Header theme="tiangong" eyebrow="Daily Roll Call" title="今日点名" subtitle="教务管理中心 / 今日点名"
-              action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('academic-center')}>← 返回教务管理中心</button>{accountAction}</div>} />
-            <section className={styles.productCenterSection} aria-label="今日点名">
-              <WeeklyRollCall key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} onManageClasses={() => setViewMode('class-member-management')} onAttendanceSummary={() => setViewMode('attendance-dashboard')} />
+              <AcademicCloudPanel key={authUser?.authUserId||'guest'} user={authUser}/><AcademicDataGate accountId={authUser?.isActive?authUser.authUserId:undefined}><AttendanceDashboard key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} onRollCall={() => setViewMode('weekly-roll-call')} /></AcademicDataGate>
             </section>
           </div>
         ) : viewMode === 'class-member-management' ? (
@@ -6752,7 +6759,7 @@ export default function App() {
             <Header theme="tiangong" eyebrow="Class & Member Management" title="班级队员管理" subtitle="教务管理中心 / 班级队员管理"
               action={<div className={styles.headerActions}><button type="button" className={styles.backButton} onClick={() => setViewMode('academic-center')}>← 返回教务管理中心</button>{accountAction}</div>} />
             <section className={styles.productCenterSection} aria-label="班级队员管理">
-              <ClassMemberManagement key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} />
+              <AcademicCloudPanel key={authUser?.authUserId||'guest'} user={authUser}/><AcademicDataGate accountId={authUser?.isActive?authUser.authUserId:undefined}><ClassMemberManagement key={`${authUser?.authUserId || 'guest'}:${authUser?.username || ''}:${authUser?.isActive}`} user={authUser} /></AcademicDataGate>
             </section>
           </div>
         ) : viewMode === 'interview-center' ? (

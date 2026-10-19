@@ -3,6 +3,7 @@ import { listAttendance, statusLabel } from './attendance';
 import type { Member } from './classRoster';
 import styles from './ClassMemberManagement.module.css';
 import StudentAttendanceCalendar from './StudentAttendanceCalendar';
+import { academicCloudEnabled } from '../services/academicCloud';
 
 export default function StudentAttendance({ member, allowedIds, onBack, canManage = false, actor = '' }: { member: Member; allowedIds: string[]; onBack: () => void; canManage?: boolean; actor?: string }) {
   const dateString = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
@@ -74,6 +75,6 @@ export default function StudentAttendance({ member, allowedIds, onBack, canManag
       {entry.record.phase === 'draft' && entry.record.submittedRows && <p>当前展示最新更正草稿；上方正式统计仍保留上次提交结果。</p>}
       <p>保存时间：{new Date(entry.record.savedAt).toLocaleString('zh-CN')}</p>
     </article>)}
-    <p className={styles.footnote}>仅显示当前账号可访问班级的本地记录；历史名单不会因当前班级删除队员而删除。跨班转移需要保留同一队员 ID，新建同名条目不会自动合并。</p>
+    <p className={styles.footnote}>仅显示当前账号可访问班级的{academicCloudEnabled?'云端记录':'本地记录'}；历史名单不会因当前班级删除队员而删除。跨班转移需要保留同一队员 ID，新建同名条目不会自动合并。</p>
   </div>;
 }

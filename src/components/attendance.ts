@@ -1,5 +1,6 @@
 import type { Member } from './classRoster';
 import { isClubHoliday } from './clubHolidays';
+import { academicCloudEnabled, cloudSnapshot, saveCloudAttendance } from '../services/academicCloud';
 export type AttendanceRow = Member & { status: '' | 'present' | 'late' | 'unverified' | 'absent'; reason: '' | '病假' | '事假' | '自定义'; detail: string; temporary?: boolean; lateMinutes?: number };
 export type Audit = { at: string; actor: string; action: string; changes: string[] };
 export type AttendanceRecord = { rows: AttendanceRow[]; savedAt: string; phase?: 'draft' | 'submitted'; audit?: Audit[]; submittedRows?: AttendanceRow[]; submittedAt?: string; hasDraft?: boolean };
@@ -14,6 +15,7 @@ export function attendanceError(rows: AttendanceRow[]): string {
   return '';
 }
 export function readAttendance(date: string, classId: string, session = 'regular'): AttendanceRecord | null {
+  if(academicCloudEnabled)return cloudSnapshot().attendance.find(e=>e.class_id===classId&&e.date===date&&e.session===session)?.record ?? null;
   const raw = localStorage.getItem(attendanceKey(date, classId, session));
   if (!raw) return null;
   const data = JSON.parse(raw) as AttendanceRecord;
@@ -23,6 +25,7 @@ export function readAttendance(date: string, classId: string, session = 'regular
 }
 
 export function saveAttendance(date: string, classId: string, session: string, rows: AttendanceRow[], phase: 'draft' | 'submitted', actor: string, expected: string): AttendanceRecord {
+  if(academicCloudEnabled)throw new Error('请通过云端保存入口提交点名。');
   if (isClubHoliday(date)) throw new Error('当天已登记俱乐部放假，不记录应到或缺勤；如恢复上课，请管理员先取消放假。');
   const previous = readAttendance(date, classId, session);
   if ((previous?.savedAt ?? '') !== expected) throw new Error('另一页面已更新此记录，请重新进入班级加载最新内容。');
@@ -47,6 +50,7 @@ export function saveAttendance(date: string, classId: string, session: string, r
 
 export function listAttendance(latest = false) {
   const records: { date: string; classId: string; session: string; record: AttendanceRecord }[] = [];
+  if(academicCloudEnabled)return {records:cloudSnapshot().attendance.map(e=>({date:e.date,classId:e.class_id,session:e.session,record:!latest&&e.record.phase==='draft'&&e.record.submittedRows?{...e.record,rows:e.record.submittedRows,savedAt:e.record.submittedAt||e.record.savedAt,phase:'submitted' as const,hasDraft:true}:e.record})),errors:0};
   let errors = 0;
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i) || '';
@@ -58,4 +62,8 @@ export function listAttendance(latest = false) {
     } catch { errors++; }
   }
   return { records, errors };
+}
+
+export async function persistAttendance(date:string,classId:string,session:string,rows:AttendanceRow[],phase:'draft'|'submitted',actor:string,expected:string):Promise<AttendanceRecord> {
+  return academicCloudEnabled?saveCloudAttendance(date,classId,session,rows,phase,expected):saveAttendance(date,classId,session,rows,phase,actor,expected);
 }

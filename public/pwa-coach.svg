@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="机器人青训俱乐部 俱乐部工作台">
+  <rect width="512" height="512" fill="#19354b"/>
+  <g fill="none" stroke="#ffd700" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 110v38M110 224H94v58h16M402 224h16v58h-16"/>
+    <rect x="126" y="154" width="260" height="190" rx="35"/>
+    <path d="M199 292h114M206 345v33h61"/>
+  </g>
+  <circle cx="256" cy="103" r="13" fill="#ffd700"/>
+  <rect x="181" y="212" width="43" height="39" rx="8" fill="#f7faf9"/>
+  <rect x="288" y="212" width="43" height="39" rx="8" fill="#f7faf9"/>
+  <circle cx="358" cy="363" r="55" fill="#ffd700" stroke="#19354b" stroke-width="13"/>
+  <path d="m334 363 17 18 33-38" fill="none" stroke="#19354b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

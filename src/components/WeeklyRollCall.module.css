@@ -1,4 +1,5 @@
 .workspace { min-width:0; }
+.controls { border:0; padding:0; margin:0; min-width:0; }
 .lessonCard { min-width:0; }
 .expandedCard { grid-column:1 / -1; outline:2px solid #ffd700; outline-offset:2px; }
 .classSelect { position:relative; }

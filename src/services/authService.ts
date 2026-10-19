@@ -165,6 +165,9 @@ function buildFunctionUrl(functionName = AUTH_FUNCTION_NAME): string {
 function humanizeAuthError(message: string): string {
   const normalized = message.trim();
   const lowerMessage = normalized.toLowerCase();
+  if (lowerMessage.includes('too many login attempts') || lowerMessage.includes('login service busy')) {
+    return '登录尝试过于频繁或服务繁忙，请稍后重试；连续错误尝试需等待15分钟。';
+  }
 
   if (lowerMessage.includes('invalid login credentials')) {
     return '用户名或密码不正确，或者这个账号还没有被成功创建。';

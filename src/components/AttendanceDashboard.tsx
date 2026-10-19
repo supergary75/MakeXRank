@@ -9,6 +9,7 @@ import dashboard from './AttendanceDashboard.module.css';
 import { attendanceRange, buildClassAttendanceRows } from './attendanceSummary';
 import { shanghaiDate as dayString, validDate } from './rollCallSchedule';
 import { readHolidays } from './clubHolidays';
+import { academicCloudEnabled, refreshAcademic } from '../services/academicCloud';
 type Followup = { status: string; actor: string; at: string };
 const followKey='makexrank-attendance-followups-v1';
 const rulesKey='makexrank-attendance-rules-v1';
@@ -59,14 +60,14 @@ export default function AttendanceDashboard({user, onRollCall}: {user: AuthUserP
     <h2>出勤统计与预警 <span className={styles.warning}>{pending} 项待跟进</span></h2>
     <div className={styles.filters}>{(['today','week','month'] as const).map((period,i)=>{const r=attendanceRange(period);return <button key={period} data-roll-call-mode aria-pressed={from===r[0] && to===r[1]} onClick={()=>{setFrom(r[0]);setTo(r[1]);}}>{['今日','本周','本月'][i]}</button>;})}<label>从 <input type="date" value={from} onChange={e=>setFrom(e.target.value)} /></label><label>至 <input type="date" value={to} onChange={e=>setTo(e.target.value)} /></label>
       {access.all && <label>教练 <select value={coach} onChange={e=>setCoach(e.target.value)}><option value="">全部</option>{Object.entries(coachNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>}
-      <label>班级 <select value={cid} onChange={e=>setCid(e.target.value)}><option value="">全部</option>{allowed.map(c=><option key={c.id}>{c.id}</option>)}</select></label><button onClick={()=>{setTick(Date.now());setRevision(n=>n+1);}}>刷新统计</button>{onRollCall && <button onClick={onRollCall}>返回今日点名</button>}
+      <label>班级 <select value={cid} onChange={e=>setCid(e.target.value)}><option value="">全部</option>{allowed.map(c=><option key={c.id}>{c.id}</option>)}</select></label><button onClick={()=>{void refreshAcademic();setTick(Date.now());setRevision(n=>n+1);}}>刷新统计</button>{onRollCall && <button onClick={onRollCall}>返回今日点名</button>}
     </div>
     {!rangeValid && <p role="alert">日期范围不正确，请重新选择。</p>}
     {!!loaded.errors && <p role="alert">有 {loaded.errors} 条记录读取异常，统计可能不完整。</p>}
     {calendarError && <p role="alert">{calendarError}</p>}
     <section className={dashboard.summary} aria-labelledby="class-attendance-summary-heading" data-attendance-summary>
       <div className={dashboard.summaryHeading}><h3 id="class-attendance-summary-heading">{access.all ? '全班级' : '我的班级'}出勤汇总表</h3><span>显示 {classRows.length} 个班级</span></div>
-      <p className={dashboard.note}>{from} 至 {to} · 仅当前浏览器记录，尚未跨设备同步。无已提交记录显示“—”，不代表出勤为零。同一队员参加多节课按人次累计；当天单个课次即为人数。</p>
+      <p className={dashboard.note}>{from} 至 {to} · {academicCloudEnabled?'统计来自当前账号可访问的云端点名；同步状态见上方。':'本地预览，尚未跨设备同步。'} 无已提交记录显示“—”，不代表出勤为零。同一队员参加多节课按人次累计；当天单个课次即为人数。</p>
       <div className={dashboard.tableScroll} role="region" aria-label="班级出勤汇总表，可横向滚动" tabIndex={0}>
         <table className={dashboard.table}>
           <caption className={dashboard.caption}>班级出勤汇总表</caption>
@@ -96,6 +97,6 @@ export default function AttendanceDashboard({user, onRollCall}: {user: AuthUserP
       try{const current=JSON.parse(localStorage.getItem(followKey)||'{}');const next={...current,[a.id]:{status:e.target.value,actor:user.username,at:new Date().toISOString()}};localStorage.setItem(followKey,JSON.stringify(next));setFollow(next);setMessage('跟进状态已保存。');}catch{setMessage('跟进状态保存失败，未更新。');}
     }}><option>待跟进</option><option>已联系</option><option>已处理</option></select></label>{follow[a.id] && <p>{follow[a.id].actor} · {new Date(follow[a.id].at).toLocaleString('zh-CN')}</p>}</article>)}
     <h3>班级明细（点击展开）</h3>{visible.map(c=>{const records=entries.filter(e=>e.classId===c.id), summary=summarize(records);return <details key={c.id}><summary>{c.id} · {coachNames[c.coach]} · {summary.lessons ? `到课 ${summary.arrived}/${summary.expected} 人次` : '暂无已提交记录'}</summary>{!records.length && <p>暂无记录</p>}{records.map(e=><article key={e.date+e.session} className={styles.card}><h3>{e.date} · {e.session==='regular'?'常规课':'加课'} · {e.record.phase==='submitted'?'已提交':'草稿'}</h3><ul>{e.record.rows.map(r=><li key={r.id}>{r.name}：{statusLabel(r)}</li>)}</ul></article>)}</details>;})}
-    <p role="status">{message}</p><p className={styles.footnote}>本地页面提醒，每分钟刷新；关闭页面不报警，不发送微信。未建立点名记录的课程暂不能判断漏交，加课因无结束时间暂不判断超时。当前无服务器端权限隔离，数据不跨设备同步。</p>
+    <p role="status">{message}</p><p className={styles.footnote}>打开页面时每分钟更新；关闭页面不报警，不发送微信。预警规则和跟进状态目前仍仅保存在本机。未建立点名记录的课程暂不能判断漏交，加课因无结束时间暂不判断超时。</p>
   </div>;
 }

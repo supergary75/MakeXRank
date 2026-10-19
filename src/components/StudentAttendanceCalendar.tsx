@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { statusLabel, type AttendanceRecord, type AttendanceRow } from './attendance';
-import { readHolidays, saveHoliday } from './clubHolidays';
+import { readHolidays, persistHoliday } from './clubHolidays';
+import { academicCloudEnabled } from '../services/academicCloud';
 import styles from './StudentAttendanceCalendar.module.css';
 type Entry = {date: string; classId: string; session: string; record: AttendanceRecord; row: AttendanceRow};
 export function monthCells(month: string) {
@@ -13,6 +14,7 @@ export default function StudentAttendanceCalendar({entries,canManage,actor}:{ent
   const [selected,setSelected]=useState('');
   const [note,setNote]=useState('');
   const [message,setMessage]=useState('');
+  const [saving,setSaving]=useState(false);
   const [revision,setRevision]=useState(0);void revision;
   let holidays:ReturnType<typeof readHolidays>=[], error='';
   try{holidays=readHolidays();}catch(e){error=String(e);}
@@ -35,9 +37,9 @@ export default function StudentAttendanceCalendar({entries,canManage,actor}:{ent
       {holiday && <p>俱乐部放假：{holiday.note || '当日停课'}。不产生应到课次，不计入出勤率。</p>}
       {!selectedRecords.length && !holiday && <p>暂无出勤记录，不能据此判断缺勤。</p>}
       {selectedRecords.map(e=><p key={e.classId+e.session}>{e.classId} · {e.session==='regular'?'常规课':e.session==='extra1'?'加课1':'加课2'} · {statusLabel(e.row)} · {e.record.phase==='submitted'?'已提交':'草稿'}{e.row.detail?' · '+e.row.detail:''}</p>)}
-      {canManage && <><label>全俱乐部放假说明 <input value={note} maxLength={100} onChange={e=>setNote(e.target.value)} placeholder="例如：俱乐部统一休息" /></label><button disabled={!!error} onClick={()=>{
+      {canManage && <><label>全俱乐部放假说明 <input value={note} maxLength={100} onChange={e=>setNote(e.target.value)} placeholder="例如：俱乐部统一休息" /></label><button disabled={!!error||saving} onClick={async()=>{
         if(!window.confirm(`${holiday?'取消':'登记'} ${selected} 全俱乐部放假？此设置对所有班级生效。`))return;
-        try{saveHoliday(selected,note,!holiday,actor);setRevision(r=>r+1);setMessage('放假设置已保存到当前浏览器。');}catch(e){setMessage(String(e));}
+        setSaving(true);try{await persistHoliday(selected,note,!holiday,actor);setRevision(r=>r+1);setMessage(academicCloudEnabled?'放假设置已保存到腾讯云。':'放假设置已保存到当前浏览器。');}catch(e){setMessage(String(e));}finally{setSaving(false);}
       }}>{holiday?'取消当日放假':'登记全俱乐部放假'}</button><p>仅 Gary / Lisa 可登记。当天已有点名时拒绝登记，避免抹掉真实出勤。</p></>}
     </div>}
     <p role="status">{message}</p>

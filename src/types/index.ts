@@ -144,6 +144,7 @@ export type ViewMode =
   | 'staff-admin'
   | 'class-member-management'
   | 'weekly-roll-call'
+  | 'coach-workbench'
   | 'attendance-dashboard'
   | 'interview-center'
   | 'product-center'

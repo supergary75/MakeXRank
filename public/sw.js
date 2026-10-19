@@ -1,10 +1,10 @@
-const CACHE_NAME = 'makexrank-pwa-v4';
+const CACHE_NAME = 'makexrank-pwa-v8';
 const APP_SCOPE = self.registration.scope;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll([APP_SCOPE, `${APP_SCOPE}manifest.webmanifest`, `${APP_SCOPE}pwa-icon.svg`]))
+      .then((cache) => cache.addAll([APP_SCOPE, `${APP_SCOPE}manifest.webmanifest`, `${APP_SCOPE}pwa-coach.svg`, `${APP_SCOPE}pwa-coach-192.png`]))
       .then(() => self.skipWaiting()),
   );
 });

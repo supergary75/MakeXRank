@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './ClassMemberManagement.module.css';
 import StudentAttendance from './StudentAttendance';
 import pilot from './PilotMemberCard.module.css';
@@ -8,7 +8,9 @@ import { listAttendance } from './attendance';
 import { classAccess } from './classAccess';
 import type { AuthUserProfile } from '../types';
 
-import { classes, coachNames, rosterSnapshot, saveRosters, type Member, type Rosters } from './classRoster';
+import { classes, coachNames, rosterSnapshot, persistRosters, type Member, type Rosters } from './classRoster';
+import { academicCloudEnabled } from '../services/academicCloud';
+import { academicAccess } from '../../shared/classDirectory.mjs';
 
 export default function ClassMemberManagement({ user }: { user: AuthUserProfile | null }) {
   const access = classAccess(user);
@@ -25,11 +27,24 @@ export default function ClassMemberManagement({ user }: { user: AuthUserProfile 
   const [importText, setImportText] = useState('');
   const [importMode,setImportMode] = useState('recover');
   const [preview, setPreview] = useState<ReturnType<typeof planRosterImport> | null>(null);
-  const membersOf = (item: typeof classes[number]) => rosters[item.id] ?? Array.from({ length: item.count }, (_, i) => ({ id: `${item.id}-${i}`, name: '' }));
-  const save = (id: string, members: Member[]) => {
+  const [previewExpected,setPreviewExpected]=useState<Rosters|null>(null);
+  const [editExpected,setEditExpected]=useState<Rosters|null>(null);
+  const [saving,setSaving]=useState(false);
+  const savingRef=useRef(false);
+  const writable=academicAccess(user).write;
+  useEffect(()=>{
+    const refresh=()=>{const next=rosterSnapshot();if(!next.error)setRosters(next.rosters);};
+    window.addEventListener('class-rosters-updated',refresh);window.addEventListener('storage',refresh);
+    return ()=>{window.removeEventListener('class-rosters-updated',refresh);window.removeEventListener('storage',refresh);};
+  },[]);
+  const membersOf = (item: typeof classes[number]) => rosters[item.id] ?? (academicCloudEnabled?[]:Array.from({ length: item.count }, (_, i) => ({ id: `${item.id}-${i}`, name: '' })));
+  const save = async (id: string, members: Member[]) => {
+    if(savingRef.current||!writable)return false;
+    savingRef.current=true;setSaving(true);
     try {
-      setRosters(saveRosters({ [id]: members }, rosters)); setMessage('已保存到当前浏览器。'); return true;
+      setRosters(await persistRosters({ [id]: members }, editing?editExpected??rosters:rosters)); setEditExpected(null);setMessage(academicCloudEnabled?'名单已保存到腾讯云。':'已保存到当前浏览器（本地预览）。'); return true;
     } catch (error) { setMessage(`保存失败，本次修改未保存：${String(error)}`); return false; }
+    finally{savingRef.current=false;setSaving(false);}
   };
   const active = allowed.find(item => item.id === selected);
   const visible = allowed.filter(item => (day === '全部' || item.day === day) && (coach === '全部' || item.coach === coach)).map(item => ({ ...item, count: membersOf(item).length, seats: Math.max(0, item.count + item.seats - membersOf(item).length) }));
@@ -37,7 +52,7 @@ export default function ClassMemberManagement({ user }: { user: AuthUserProfile 
     .map(key => ({ key, name: coachNames[key] || key, items: visible.filter(item => item.coach === key) }))
     .filter(group => group.items.length > 0);
   if (initial.error) return <div className={styles.root}><p role="alert">{initial.error}</p><button onClick={()=>window.location.reload()}>重新加载</button></div>;
-  if (profile && active) return <StudentAttendance member={profile} allowedIds={allowed.map(item=>item.id)} onBack={()=>setProfile(null)} canManage={access.all} actor={user?.username || ''} />;
+  if (profile && active) return <StudentAttendance member={profile} allowedIds={allowed.map(item=>item.id)} onBack={()=>setProfile(null)} canManage={access.all&&writable} actor={user?.username || ''} />;
   if (active) {
     const members = membersOf(active);
     return <div className={styles.root} data-class-directory>
@@ -45,16 +60,16 @@ export default function ClassMemberManagement({ user }: { user: AuthUserProfile 
       <h2>{active.id} · 队员管理</h2>
       <p>{active.day} {active.time} · 教练 {coachNames[active.coach]} · {members.length} 人 · 空位 {Math.max(0, active.count + active.seats - members.length)}</p>
       {members.some(m=>!m.name) && <p role="alert">当前尚未读取完整真实名单。空白条目只是按班级人数显示的占位，不代表姓名已经保存；请先恢复已提供的名册，不必逐人重录。</p>}
-      <form className={styles.filters} onSubmit={event => {
+      <form className={styles.filters} onSubmit={async event => {
         event.preventDefault();
         const trimmed = name.trim();
         if (!trimmed) { setMessage('请输入队员姓名。'); return; }
         if (members.some(member => member.id !== editing && member.name.toLowerCase() === trimmed.toLowerCase())) { setMessage('本班已存在同名队员，请核对后添加区分信息。'); return; }
         const next = editing ? members.map(member => member.id === editing ? { ...member, name: trimmed } : member) : [...members, { id: crypto.randomUUID(), name: trimmed }];
-        if (save(active.id, next)) { setName(''); setEditing(null); }
+        if (await save(active.id, next)) { setName(''); setEditing(null); }
       }}>
         <label>队员姓名 <input aria-label="队员姓名" value={name} maxLength={80} onChange={event => setName(event.target.value)} placeholder="中文名 / 英文名" required /></label>
-        <button type="submit">{editing ? '保存修改' : '新增队员'}</button>
+        <button type="submit" disabled={saving||!writable}>{saving?'保存中…':editing ? '保存修改' : '新增队员'}</button>
         {editing && <button type="button" onClick={() => { setEditing(null); setName(''); }}>取消编辑</button>}
       </form>
       {members.length > active.count + active.seats && <p>当前人数超过原表容量，请核对班级安排。</p>}
@@ -68,22 +83,22 @@ export default function ClassMemberManagement({ user }: { user: AuthUserProfile 
         </button>
         <div className={pilot.footer}><span>点击姓名 · 查看出勤档案</span>
         <details className={pilot.actions}><summary aria-label={`${member.name || '待补录队员'} 管理操作`}>•••</summary><div>
-          <button type="button" onClick={event => { setEditing(member.id); setName(member.name); setMessage(''); event.currentTarget.closest('details')?.removeAttribute('open'); document.querySelector<HTMLInputElement>('input[aria-label="队员姓名"]')?.focus(); }}>编辑姓名</button>
-          <button type="button" onClick={() => {
+          <button type="button" disabled={saving||!writable} onClick={event => { setEditing(member.id); setEditExpected(rosters);setName(member.name); setMessage(''); event.currentTarget.closest('details')?.removeAttribute('open'); document.querySelector<HTMLInputElement>('input[aria-label="队员姓名"]')?.focus(); }}>编辑姓名</button>
+          <button type="button" disabled={saving||!writable} onClick={async () => {
             if (window.confirm(`确认从 ${active.id} 移除${member.name || `待补录队员 ${i + 1}`}？`)) {
-              if (save(active.id, members.filter(entry => entry.id !== member.id)) && editing === member.id) { setEditing(null); setName(''); }
+              if (await save(active.id, members.filter(entry => entry.id !== member.id)) && editing === member.id) { setEditing(null); setName(''); }
             }
           }}>移出班级</button>
         </div></details></div>
         <div className={pilot.stub} aria-label={`本班队员序号 ${i+1}`}><span>MEMBER</span><strong>{String(i+1).padStart(2,'0')}</strong><span className={pilot.stubRule} aria-hidden="true" /><small>队员序号</small></div>
       </article>)}</div>
       {!members.length && <p>本班暂无队员，请在上方新增。</p>}
-      <p className={styles.footnote}>仅保存在当前浏览器，清除网站数据会丢失记录；不与服务器或其他设备同步。请勿在公用设备录入个人信息。</p>
+      <p className={styles.footnote}>{academicCloudEnabled?'名单与历史点名由腾讯云保存，按账号班级权限访问。移出班级不会删除历史出勤。':'本地预览：仅保存在当前浏览器，尚未上传云端。'} 请勿在公用设备录入个人信息。</p>
     </div>;
   }
   return <div className={styles.root} data-class-directory>
     <div className={styles.intro}><div><p>CLASS DIRECTORY / 班级档案</p><h2>每一个班级，一目了然</h2></div><strong>{classes.length} 个班级</strong></div>
-    <p>班级按负责教练分组。点击班级查看和管理队员，人数与空位随本地队员记录更新。</p>
+    <p>班级按负责教练分组。点击班级查看和管理队员，人数与空位随真实名册更新。</p>
     {!user && <p>请先登录查看班级与队员信息。</p>}
     {access.all && <details><summary>本地批量导入名单</summary>
       <p>支持已保存的 JSON 名册、Markdown 表格、Excel 制表符数据或“班级|姓名”。默认恢复缺失名单，不移除现有队员或按旧表转班；优先沿用已有及历史人员 ID，不修改排课或出勤记录。</p>
@@ -101,7 +116,7 @@ export default function ClassMemberManagement({ user }: { user: AuthUserProfile 
           const history=listAttendance(true);
           if(history.errors)throw new Error('有历史考勤无法读取，请先核对，暂不自动恢复人员 ID。');
           const identities=history.records.filter(e=>allowed.some(c=>c.id===e.classId)).flatMap(e=>e.record.rows);
-          setPreview(importMode==='recover' ? planRosterRecovery(importText,rosters,identities) : planRosterImport(importText, rosters));setMessage('识别完成，请核对下面预览。');
+          setPreview(importMode==='recover' ? planRosterRecovery(importText,rosters,identities) : planRosterImport(importText, rosters));setPreviewExpected(rosters);setMessage('识别完成，请核对下面预览。');
         }
         catch(error) { setPreview(null); setMessage('识别失败：'+String(error)); }
       }}>
@@ -113,9 +128,11 @@ export default function ClassMemberManagement({ user }: { user: AuthUserProfile 
         {preview.parsed.map(item=><details key={item.id}><summary>{item.id}：{item.names.length} 人</summary><p>{item.note}</p><p>{item.names.join('、') || '空班'}</p></details>)}
         <ul>{preview.changes.map((change,i)=><li key={i}>{change}</li>)}</ul>
         <p>计划处理 {Object.keys(preview.next).length} 个班级，共 {Object.values(preview.next).reduce((n,rows)=>n+rows.filter(m=>m.name).length,0)} 名实名队员。{importMode==='recover' ? '只恢复或合并，不移除现有实名队员。' : '完整替换模式，请核对人员移出和转班。'} 历史考勤不删除，训练日期和时间不变。</p>
-        <button onClick={()=>{
-          try {const saved=saveRosters(preview.next,rosters);setRosters(saved);setPreview(null);setImportText('');setMessage('名单已导入，队员 ID 与历史考勤保留。');}
+        <button disabled={saving||!writable} onClick={async()=>{
+          if(savingRef.current)return;savingRef.current=true;setSaving(true);
+          try {const saved=await persistRosters(preview.next,previewExpected??rosters);setRosters(saved);setPreview(null);setImportText('');setMessage(academicCloudEnabled?'名单已导入腾讯云，队员 ID 与历史考勤保留。':'名单已导入本地，队员 ID 与历史考勤保留。');}
           catch(error){setMessage('未导入：'+String(error));}
+          finally{savingRef.current=false;setSaving(false);}
         }}>确认以上变化并导入</button>
       </section>}
     </details>}
@@ -152,6 +169,6 @@ export default function ClassMemberManagement({ user }: { user: AuthUserProfile 
       </article>)}</div>
     </section>)}
     {visible.length === 0 && <p>当前筛选条件下没有班级，请调整日期或教练。</p>}
-    <p className={styles.footnote}>队员数据仅保存在当前浏览器，未连接服务器保存；清除网站数据会丢失名单。</p>
+    <p className={styles.footnote}>{academicCloudEnabled?'云端名册 · 仅登录后可读取负责班级；已有本地数据请通过上方迁移入口核对添加。':'本地预览：队员数据仅在当前浏览器，请保留备份。'}</p>
   </div>;
 }

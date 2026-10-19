@@ -1,8 +1,10 @@
-export const coachNames: Record<string, string> = { B: 'Brook', V: 'Vincent', G: 'Gary' };
+import { academicCloudEnabled, cloudSnapshot, saveCloudRosters } from '../services/academicCloud';
+export { classes, coachNames } from '../../shared/classDirectory.mjs';
 const storageKey = 'makexrank-class-members-v1';
 export type Member = { id: string; name: string };
 export type Rosters = Record<string, Member[]>;
 export function loadRosters(): Rosters {
+  if(academicCloudEnabled)return Object.fromEntries(cloudSnapshot().rosters.map(r=>[r.class_id,r.members]));
   try {
     const data: unknown = JSON.parse(localStorage.getItem(storageKey) || '{}');
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error();
@@ -19,6 +21,7 @@ export function rosterSnapshot(): { rosters: Rosters; error: string } {
 }
 
 export function saveRosters(changes: Rosters, expected: Rosters): Rosters {
+  if(academicCloudEnabled)throw new Error('请通过云端保存入口修改名单。');
   const current = loadRosters();
   for (const id of Object.keys(changes)) {
     if (JSON.stringify(current[id]) !== JSON.stringify(expected[id])) throw new Error(`班级 ${id} 已被其他页面更新，请重新加载名单后再修改。`);
@@ -31,21 +34,6 @@ export function saveRosters(changes: Rosters, expected: Rosters): Rosters {
   return next;
 }
 
-// Class-level schedule only. Student identities must not be bundled in public assets.
-export const classes = [
-  { id: 'U12A-06', day: '周四', time: '18:00–20:00', coach: 'V', count: 8, seats: 0 },
-  { id: 'U12A-05', day: '周五', time: '17:00–19:00', coach: 'V', count: 7, seats: 1 },
-  { id: 'U12B-07', day: '周六', time: '10:00–12:00', coach: 'B', count: 7, seats: 1 },
-  { id: 'U15A-03', day: '周六', time: '10:00–12:00', coach: 'G', count: 2, seats: 6 },
-  { id: 'U12B-03', day: '周六', time: '13:30–15:30', coach: 'B', count: 8, seats: 0 },
-  { id: 'U15B-03', day: '周六', time: '13:30–15:30', coach: 'V', count: 5, seats: 3 },
-  { id: 'U9A-04', day: '周六', time: '16:00–18:00', coach: 'B', count: 7, seats: 1 },
-  { id: 'U15B-05', day: '周六', time: '16:00–18:00', coach: 'G', count: 8, seats: 0 },
-  { id: 'U12B-09', day: '周日', time: '10:00–12:00', coach: 'B', count: 6, seats: 2 },
-  { id: 'U12A-04', day: '周日', time: '10:00–12:00', coach: 'V', count: 5, seats: 3 },
-  { id: 'U18-01', day: '周日', time: '09:30–12:30', coach: 'G', count: 10, seats: 0 },
-  { id: 'U9B-05', day: '周日', time: '13:30–15:30', coach: 'B', count: 3, seats: 5 },
-  { id: 'U15B-06', day: '周日', time: '13:30–15:30', coach: 'V', count: 4, seats: 4 },
-  { id: 'U12B-08', day: '周日', time: '16:00–18:00', coach: 'B', count: 7, seats: 1 },
-  { id: 'U18-02', day: '周日', time: '16:00–19:00', coach: 'G', count: 5, seats: 3 },
-];
+export async function persistRosters(changes:Rosters,expected:Rosters):Promise<Rosters> {
+  return academicCloudEnabled ? saveCloudRosters(changes,expected) : saveRosters(changes,expected);
+}

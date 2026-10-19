@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Validate and package Tencent release
 
 on:
   push:
@@ -7,18 +7,13 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: "tencent-release"
   cancel-in-progress: false
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -45,18 +40,16 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
       - name: Build
-        run: npm run build
+        run: npm run sync:inspire && npm run build:tencent
         env:
           VITE_BUILD_ID: ${{ github.sha }}
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Package exact source and frontend
+        run: node scripts/package-release.mjs
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Retain deployable artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: 'dist'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          name: makexrank-tencent-${{ github.sha }}
+          path: release/*.tar.gz
+          retention-days: 30

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import css from './MechaWorkHub.module.css';
 import TeamPhotoBanner from './TeamPhotoBanner';
+import { academicCloudEnabled } from '../services/academicCloud';
 const modules = [
   {view:'home',name:'赛事管理中心',en:'COMPETITION',desc:'赛事后勤、数据分析、练习赛与集训安排。',tags:'赛事协作 / 数据分析',status:'已开放',image:'https://cdn.shopify.com/s/files/1/0440/0326/2624/files/WCP-0994_49432a63-755c-48f0-b0c9-214381011b56.png?v=1718213765'},
   {view:'interview-center',name:'面试流程中心',en:'INTERVIEW',desc:'安排面试、协调教练，在看板中跟进报告与归档。',tags:'面试安排 / 报告归档',status:'开发预览',image:'https://wcproducts.com/cdn/shop/files/WCP-0781-2_1200x1200.png?v=1693264539'},
@@ -16,8 +17,8 @@ export default function MechaWorkHub({action,onNavigate,onRollCall}:{action:Reac
     </header>
     <section className={css.centers} aria-label="工作中心入口"><div className={css.sectionHeading}><h2>工作中心</h2><span>SELECT MODULE / 选择工作模块</span></div><div className={css.grid}>{modules.map((m,i)=><button key={m.view} className={css.card} onClick={()=>onNavigate(m.view)}>
       <span className={`${css.cardArt} ${m.view==='home'?css.pulleyArt:''}`} aria-hidden="true"><img src={m.image} alt="" loading="lazy"/></span>
-      <div className={css.cardTop}><span className={css.number}>{String(i+1).padStart(2,'0')}<small> / MODULE</small></span><span className={css.status}>{m.status}</span></div>
+      <div className={css.cardTop}><span className={css.number}>{String(i+1).padStart(2,'0')}<small> / MODULE</small></span><span className={css.status}>{m.view==='academic-center'&&academicCloudEnabled?'云端教务':m.status}</span></div>
       <span className={css.english}>{m.en} CENTER</span><h3>{m.name}</h3><p>{m.desc}</p><span className={css.tags}>{m.tags}</span><div className={css.cardBottom}><span>进入中心</span><span aria-hidden="true">↗</span></div>
-    </button>)}</div><p className={css.note}>零件图片来源：<a href="https://wcproducts.com/products/htd-timing-pulleys" target="_blank" rel="noreferrer">WestCoast Products</a>。教务名单与考勤目前保存在当前浏览器，尚未跨设备同步。</p></section>
+    </button>)}</div><p className={css.note}>零件图片来源：<a href="https://wcproducts.com/products/htd-timing-pulleys" target="_blank" rel="noreferrer">WestCoast Products</a>。{academicCloudEnabled?'教务名单与考勤通过腾讯云按账号权限同步；登录后查看负责班级。':'教务名单与考勤目前保存在当前浏览器，尚未跨设备同步。'}</p></section>
   </main>;
 }

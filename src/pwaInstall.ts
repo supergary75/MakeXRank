@@ -40,7 +40,7 @@ export function getPwaInstallInstructions(): string[] {
     return [
       '请用 Safari 打开这个网页。',
       '点击底部分享按钮。',
-      '选择“添加到主屏幕”，确认后桌面会出现 MakeXRank 图标。',
+      '选择“添加到主屏幕”，确认后桌面会出现“俱乐部工作台”图标。',
     ];
   }
 

@@ -12,6 +12,11 @@ ENV/
 
 # Build output
 dist/
+release/
+private-backups/
+*.dump
+*.tgz
+*.tar.gz
 /public/inspire/
 
 # Credentials (NEVER commit these!)
@@ -30,6 +35,9 @@ kdocs-export.csv
 # Screenshots
 *.png
 !example.png
+!public/pwa-coach-180.png
+!public/pwa-coach-192.png
+!public/pwa-coach-512.png
 screenshots/
 step*.png
 login-error.png
