@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
+import pgUtils from 'pg/lib/utils.js';
 import {createCoreApi,apiError} from './api.mjs';
 
 let db,server,url,tail=Promise.resolve(),hook;
@@ -15,7 +16,10 @@ const hash=`${salt}:${crypto.scryptSync(password,salt,64).toString('hex')}`;
 let now=Date.now();
 const direct=async(sql,params)=>{
   let result;
-  if(!params&&sql.includes(';'))result=(await db.exec(sql)).at(-1);else result=await db.query(sql,params);
+  // Match node-postgres wire encoding: JS arrays become PostgreSQL arrays,
+  // not JSON. Without this, PGlite can hide production JSONB binding bugs.
+  const wireParams=params?.map(value=>pgUtils.prepareValue(value));
+  if(!params&&sql.includes(';'))result=(await db.exec(sql)).at(-1);else result=await db.query(sql,wireParams);
   return {...result,rowCount:result.rows?.length||result.affectedRows||0};
 };
 async function connect(){
@@ -67,6 +71,31 @@ test('all six operational tables reject viewer writes and retain legitimate edit
   assert.equal((await request('/rest/v1/competitions?id=eq.allowed',{method:'DELETE',token:editor})).status,403);
   assert.equal((await db.query('select * from competition_deletions')).rows.length,0);
 });
+test('JSONB snapshots round-trip nonempty arrays and objects with production pg bindings',async()=>{
+  const token=(await login()).data.access_token;
+  const rows={
+    competitions:{...competition('json-roundtrip'),teams_data:[{team:'Fixture',scores:[3,5]}]},
+    practice_sync:{id:'json-roundtrip',events:[{id:'practice',teams:['A','B']}],deleted_event_ids:['old-practice']},
+    training_sync:{id:'json-roundtrip',events:[{id:'training',calendarDates:['2026-10-24']}],schedules:{training:{coaches:['Gary'],venues:['206-2','206大厅']}}},
+    team_tag_sync:{id:'json-roundtrip',tags:{team:['ready']},options:['ready','review']},
+    logistics_sync:{id:'json-roundtrip',events:[{id:'logistics',groups:['EXP']}],deleted_event_ids:['old-logistics']},
+    inspire_sync:{id:'json-roundtrip',payload:{students:[{id:'synthetic'}],tasks:['practice']}},
+  };
+  for(const [table,row] of Object.entries(rows)){
+    const saved=await request(`/rest/v1/${table}`,{method:'POST',token,body:row});
+    assert.equal(saved.status,201,`${table} POST`);
+    const loaded=await request(`/rest/v1/${table}?id=eq.${row.id}`,{token});
+    assert.equal(loaded.status,200);
+    for(const [key,value] of Object.entries(row))assert.deepEqual(loaded.data[0][key],value,`${table}.${key}`);
+    const patch=Object.fromEntries(Object.entries(row).filter(([,v])=>Array.isArray(v)).map(([k])=>[k,[{id:'updated',values:[1,2]}]]));
+    if(Object.keys(patch).length){
+      assert.equal((await request(`/rest/v1/${table}?id=eq.${row.id}`,{method:'PATCH',token,body:patch})).status,204);
+      const updated=await request(`/rest/v1/${table}?id=eq.${row.id}`,{token});
+      for(const [key,value] of Object.entries(patch))assert.deepEqual(updated.data[0][key],value,`${table} PATCH ${key}`);
+    }
+  }
+});
+
 test('competition scopes validate stored and proposed types/IDs, PATCH and batches atomically',async()=>{
   const admin=(await login('admin')).data.access_token,scoped=(await login('scoped')).data.access_token;
   const save=(body,token=scoped)=>request('/rest/v1/competitions',{method:'POST',token,body});

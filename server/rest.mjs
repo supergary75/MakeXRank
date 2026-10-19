@@ -8,6 +8,14 @@ const tables={
   inspire_sync:['id','payload','updated_at'],
   user_profiles:['auth_user_id','username','display_name','role','is_active','allowed_event_types','allowed_competition_ids','created_at'],
 };
+// pg encodes JavaScript arrays as PostgreSQL arrays. JSONB columns must be
+// explicitly JSON-encoded, while permission scopes remain native text[].
+const jsonColumns={
+  competitions:['teams_data'],practice_sync:['events','deleted_event_ids'],
+  training_sync:['events','schedules'],team_tag_sync:['tags','options'],
+  logistics_sync:['events','deleted_event_ids'],inspire_sync:['payload'],
+};
+const sqlValue=(table,key,value)=>jsonColumns[table]?.includes(key)?JSON.stringify(value):value;
 const fail=(status,message)=>{throw Object.assign(new Error(message),{status});};
 const isObject=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const restricted=p=>(p.allowed_event_types?.length||p.allowed_competition_ids?.length)>0;
@@ -79,10 +87,10 @@ export function mountRest(app,pool,{auth,profile}) {
           const keys=Object.keys(item).filter(k=>cols.includes(k));
           if(cols.includes('updated_at')&&!keys.includes('updated_at')){item.updated_at=new Date();keys.push('updated_at');}
           const updates=keys.filter(k=>k!==idCol);if(!updates.length)fail(400,'No writable fields');
-          output.push((await db.query(`insert into ${table}(${keys.join(',')}) values(${keys.map((_,i)=>`$${i+1}`).join(',')}) on conflict(${idCol}) do update set ${updates.map(k=>`${k}=excluded.${k}`).join(',')} returning ${cols.join(',')}`,keys.map(k=>item[k]))).rows[0]);
+          output.push((await db.query(`insert into ${table}(${keys.join(',')}) values(${keys.map((_,i)=>`$${i+1}`).join(',')}) on conflict(${idCol}) do update set ${updates.map(k=>`${k}=excluded.${k}`).join(',')} returning ${cols.join(',')}`,keys.map(k=>sqlValue(table,k,item[k])))).rows[0]);
         }else if(req.method==='PATCH'){
           const keys=Object.keys(item).filter(k=>cols.includes(k)&&k!==idCol);if(!keys.length)fail(400,'No writable fields');
-          await db.query(`update ${table} set ${keys.map((k,i)=>`${k}=$${i+1}`).join(',')} where ${idCol}=$${keys.length+1}`,[...keys.map(k=>item[k]),id]);
+          await db.query(`update ${table} set ${keys.map((k,i)=>`${k}=$${i+1}`).join(',')} where ${idCol}=$${keys.length+1}`,[...keys.map(k=>sqlValue(table,k,item[k])),id]);
         }else{
           if(table==='competitions')await db.query('insert into competition_deletions(id) values($1) on conflict(id) do update set deleted_at=now()',[id]);
           await db.query(`delete from ${table} where ${idCol}=$1`,[id]);
