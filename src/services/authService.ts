@@ -191,7 +191,7 @@ function humanizeAuthError(message: string): string {
   if (lowerMessage.includes('authentication required')) {
     return '当前登录或首次改密验证已失效，请重新登录。';
   }
-  if(lowerMessage.includes('personal password must be'))return '个人密码需要 15–128 位，可以使用容易记住的长短语。';
+  if(lowerMessage.includes('personal password must be'))return '个人密码需要 8–128 位，可以使用容易记住的密码或长短语。';
   if(lowerMessage.includes('new password must differ'))return '新密码不能与初始密码相同。';
   if(lowerMessage.includes('password setup is not required'))return '此账号已完成首次改密，请重新登录。';
 
@@ -474,7 +474,7 @@ export async function signInWithUsername(
 }
 
 export async function completeInitialPassword(password:string):Promise<AuthUserProfile> {
-  if(password.length<15||password.length>128)throw new Error('个人密码需要 15–128 位，可以使用容易记住的长短语。');
+  if(password.length<8||password.length>128)throw new Error('个人密码需要 8–128 位，可以使用容易记住的密码或长短语。');
   const previous=readSession();const token=await getValidAccessToken(false,true);
   if(!previous?.mustChangePassword||!token)throw new Error('首次改密验证已失效，请用初始密码重新登录。');
   let response:AuthTokenResponse;

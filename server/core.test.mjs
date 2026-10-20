@@ -236,6 +236,20 @@ test('personal password setup preserves identity/scopes, revokes all setup crede
   assert.equal((await request('/auth/v1/password-setup',{method:'POST',token:signed.data.access_token,body:{password:'Another long password 2026!'}})).status,409);
 });
 
+test('personal password setup accepts exactly eight characters, rejects seven and 129, and supports subsequent login',async()=>{
+  await db.query('update user_profiles set must_change_password=true where auth_user_id=$1',[users.editor]);
+  const signed=(await login()).data;
+  const setup=password=>request('/auth/v1/password-setup',{method:'POST',token:signed.access_token,body:{password}});
+  for(const length of [7,129]){
+    const rejected=await setup('x'.repeat(length));assert.equal(rejected.status,400);
+    assert.match(rejected.data.message,/8-128/);
+  }
+  assert.equal((await db.query('select must_change_password from user_profiles where auth_user_id=$1',[users.editor])).rows[0].must_change_password,true);
+  const changed=await setup('Test2026');assert.equal(changed.status,200);assert.equal(changed.data.must_change_password,false);
+  const reopened=await login('editor','Test2026');assert.equal(reopened.status,200);assert.equal(reopened.data.must_change_password,false);
+  assert.equal((await request('/fixture-private',{token:changed.data.access_token})).status,200);
+});
+
 test('admin reset and logout defeat in-flight initial password changes',async()=>{
   const admin=(await login('admin')).data.access_token;
   await db.query('update user_profiles set must_change_password=true where auth_user_id=$1',[users.editor]);

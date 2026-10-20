@@ -128,7 +128,7 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
   app.post('/auth/v1/password-setup',wrap(async(req,res)=>{
     const caller=await auth(req,true);if(!caller)fail(401,'Authentication required');
     const password=req.body?.password;
-    if(typeof password!=='string'||password.length<15||password.length>128)fail(400,'Personal password must be 15-128 characters');
+    if(typeof password!=='string'||password.length<8||password.length>128)fail(400,'Personal password must be 8-128 characters');
     await budget('password-setup',caller.sub,10);
     const previous=(await pool.query('select * from user_profiles where auth_user_id=$1',[caller.sub])).rows[0];
     if(!previous?.must_change_password)fail(409,'Password setup is not required');
