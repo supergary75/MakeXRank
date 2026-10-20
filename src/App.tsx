@@ -109,6 +109,7 @@ import {isStandalonePwa} from './pwaInstall';
 import PwaInstallControl from './components/PwaInstallControl';
 import InitialPasswordSetup from './components/InitialPasswordSetup';
 import {WORKSPACE_NAME} from './workspaceBrand';
+import { listenForNavigation, navigationHash, parseNavigationHash, type NavigationSnapshot } from './utils/navigation';
 
 import styles from './App.module.css';
 import MechaWorkHub from './components/MechaWorkHub';
@@ -285,33 +286,8 @@ const VIEW_MODES: ViewMode[] = [
   'practice-analysis', 'practice-explorer', 'lobby', 'competition',
 ];
 
-interface NavigationSnapshot {
-  viewMode: ViewMode;
-  activeCompetitionId: string | null;
-  activeLogisticsEventId: string | null;
-  activeLogisticsEventItem: string | null;
-  activeTrainingEventId: string | null;
-  activeLogisticsRosterSourceId: string | null;
-  selectedEventType: EventType | null;
-  activeTab: TabName;
-}
-
 function readNavigationSnapshot(): NavigationSnapshot {
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const requestedView = params.get('view') as ViewMode | null;
-  const requestedEventType = params.get('event') as EventType | null;
-  const requestedTab = params.get('tab') as TabName | null;
-
-  return {
-    viewMode: requestedView && VIEW_MODES.includes(requestedView) ? requestedView : isStandalonePwa() ? 'coach-workbench' : 'work-hub',
-    activeCompetitionId: params.get('competition'),
-    activeLogisticsEventId: params.get('logisticsEvent'),
-    activeLogisticsEventItem: params.get('logisticsItem'),
-    activeTrainingEventId: params.get('trainingEvent'),
-    activeLogisticsRosterSourceId: params.get('rosterSource'),
-    selectedEventType: requestedEventType && EVENT_TYPES.includes(requestedEventType) ? requestedEventType : null,
-    activeTab: requestedTab === 'playoff' || requestedTab === 'focusSchedule' ? requestedTab : 'ranking',
-  };
+  return parseNavigationHash(window.location.hash, VIEW_MODES, EVENT_TYPES, isStandalonePwa() ? 'coach-workbench' : 'work-hub');
 }
 
 interface PracticeExplorerState {
@@ -2613,17 +2589,23 @@ export default function App() {
   const logisticsFileInputRef = useRef<HTMLInputElement>(null);
   const logisticsDocumentImageInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => listenForNavigation(window, () => {
+    const next = readNavigationSnapshot();
+    setViewMode(next.viewMode);
+    setActiveCompetitionId(next.activeCompetitionId);
+    setActiveLogisticsEventId(next.activeLogisticsEventId);
+    setActiveLogisticsEventItem(next.activeLogisticsEventItem);
+    setActiveTrainingEventId(next.activeTrainingEventId);
+    setActiveLogisticsRosterSourceId(next.activeLogisticsRosterSourceId);
+    setSelectedEventType(next.selectedEventType);
+    setActiveTab(next.activeTab);
+  }), []);
+
   useEffect(() => {
-    const params = new URLSearchParams();
-    params.set('view', viewMode);
-    if (activeCompetitionId) params.set('competition', activeCompetitionId);
-    if (activeLogisticsEventId) params.set('logisticsEvent', activeLogisticsEventId);
-    if (activeLogisticsEventItem) params.set('logisticsItem', activeLogisticsEventItem);
-    if (activeTrainingEventId) params.set('trainingEvent', activeTrainingEventId);
-    if (activeLogisticsRosterSourceId) params.set('rosterSource', activeLogisticsRosterSourceId);
-    if (selectedEventType) params.set('event', selectedEventType);
-    if (activeTab !== 'ranking') params.set('tab', activeTab);
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${params.toString()}`);
+    const hash = navigationHash({viewMode, activeCompetitionId, activeLogisticsEventId, activeLogisticsEventItem, activeTrainingEventId, activeLogisticsRosterSourceId, selectedEventType, activeTab});
+    if (window.location.hash !== hash) {
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}${hash}`);
+    }
   }, [
     activeCompetitionId,
     activeLogisticsEventId,
