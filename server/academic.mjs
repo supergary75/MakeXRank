@@ -1,6 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { academicAccess } from '../shared/classDirectory.mjs';
 import { allowedClasses, attendanceRecord, fail, importedRecord, members, requireClass, revision, validDate } from './academic-workflow.mjs';
+import { makeupPlanError } from '../shared/makeupPlans.mjs';
+
+const makeupColumns = `class_id,to_char(lesson_date,'YYYY-MM-DD') as date,session,member_id,revision,plan,updated_at as "updatedAt",updated_by as actor`;
 
 export async function mountAcademicRoutes(app, pool, requireAuth) {
   await pool.query(await readFile(new URL('./academic.sql',import.meta.url),'utf8'));
@@ -27,12 +30,13 @@ export async function mountAcademicRoutes(app, pool, requireAuth) {
   }
   app.get('/academic/snapshot',requireAuth,wrap(async(req,res)=>{
     const actor=await actorOf(req), ids=allowedClasses(actor);
-    const [rosters,attendance,holidays]=await Promise.all([
+    const [rosters,attendance,holidays,makeups]=await Promise.all([
       pool.query('select class_id,revision,members from academic_rosters where class_id=any($1::text[]) order by class_id',[ids]),
       pool.query("select class_id,to_char(lesson_date,'YYYY-MM-DD') as date,session,revision,record from academic_attendance where class_id=any($1::text[]) order by lesson_date,class_id,session",[ids]),
       pool.query("select to_char(lesson_date,'YYYY-MM-DD') as date,revision,active,note,actor,updated_at as \"updatedAt\" from academic_holidays order by lesson_date"),
+      pool.query(`select ${makeupColumns} from academic_makeups where class_id=any($1::text[]) order by lesson_date,class_id,session,member_id`,[ids]),
     ]);
-    res.json({permissions:academicAccess(actor),classIds:ids,rosters:rosters.rows,attendance:attendance.rows,holidays:holidays.rows});
+    res.json({permissions:academicAccess(actor),classIds:ids,rosters:rosters.rows,attendance:attendance.rows,holidays:holidays.rows,makeups:makeups.rows});
   }));
   app.post('/academic/rosters',requireAuth,wrap(async(req,res)=>{
     const changes=req.body.changes;
@@ -67,6 +71,24 @@ export async function mountAcademicRoutes(app, pool, requireAuth) {
       }
       const next=(await db.query('insert into academic_attendance(class_id,lesson_date,session,revision,record,updated_by) values($1,$2,$3,$4,$5,$6) on conflict(class_id,lesson_date,session) do update set revision=excluded.revision,record=excluded.record,updated_by=excluded.updated_by,updated_at=now() returning revision,record',[classId,date,session,(previous?.revision ?? 0)+1,JSON.stringify(record),actor.username])).rows[0];
       await audit(db,'attendance',`${classId}:${date}:${session}`,next.revision,record,actor);return next;
+    });res.json(result);
+  }));
+  app.post('/academic/makeups/:classId/:date/:session/:memberId',requireAuth,wrap(async(req,res)=>{
+    const {classId,date,session}=lesson(req), memberId=req.params.memberId;
+    if(!/^[a-zA-Z0-9_-]{1,120}$/.test(memberId))fail(400,'队员 ID 不正确。');
+    const error=makeupPlanError(req.body.plan);if(error)fail(400,error);
+    const {status,date:makeupDate,startTime,endTime}=req.body.plan;
+    const plan={status,date:makeupDate,startTime,endTime};
+    const result=await transaction(async db=>{
+      const actor=await actorOf(req,db);requireClass(actor,classId,true);
+      // Same transaction lock as attendance edits: never attach to a stale/non-leave row.
+      await lock(db,`day:${date}`);
+      const source=(await db.query('select record from academic_attendance where class_id=$1 and lesson_date=$2 and session=$3',[classId,date,session])).rows[0];
+      if(!source?.record.rows.some(row=>row.id===memberId && row.status==='absent'))fail(409,'这条请假记录已变化，请重新同步后核对。');
+      const previous=(await db.query('select revision from academic_makeups where class_id=$1 and lesson_date=$2 and session=$3 and member_id=$4',[classId,date,session,memberId])).rows[0];
+      revision(req.body.revision,previous?.revision ?? 0);
+      const next=(await db.query(`insert into academic_makeups(class_id,lesson_date,session,member_id,revision,plan,updated_by) values($1,$2,$3,$4,$5,$6,$7) on conflict(class_id,lesson_date,session,member_id) do update set revision=excluded.revision,plan=excluded.plan,updated_by=excluded.updated_by,updated_at=now() returning ${makeupColumns}`,[classId,date,session,memberId,(previous?.revision ?? 0)+1,JSON.stringify(plan),actor.username])).rows[0];
+      await audit(db,'makeup',`${classId}:${date}:${session}:${memberId}`,next.revision,plan,actor);return next;
     });res.json(result);
   }));
   app.post('/academic/holidays/:date',requireAuth,wrap(async(req,res)=>{

@@ -16,6 +16,20 @@ create table if not exists academic_attendance (
   primary key (class_id, lesson_date, session)
 );
 create index if not exists academic_attendance_date_idx on academic_attendance (lesson_date, class_id);
+-- One independently versioned makeup plan per student's leave occurrence.
+-- The original attendance and its formal submitted snapshot remain unchanged.
+create table if not exists academic_makeups (
+  class_id text not null,
+  lesson_date date not null,
+  session text not null,
+  member_id text not null,
+  revision integer not null check (revision > 0),
+  plan jsonb not null check (jsonb_typeof(plan) = 'object' and plan->>'status' in ('pending','scheduled','completed','waived')),
+  updated_at timestamptz not null default now(),
+  updated_by text not null,
+  primary key (class_id, lesson_date, session, member_id),
+  foreign key (class_id, lesson_date, session) references academic_attendance (class_id, lesson_date, session) on delete restrict
+);
 create table if not exists academic_holidays (
   lesson_date date primary key,
   revision integer not null check (revision > 0),

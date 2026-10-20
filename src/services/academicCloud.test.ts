@@ -71,3 +71,17 @@ it('a browser cache quota error cannot turn a confirmed server commit into a fai
   vi.stubGlobal('localStorage',{getItem:(k:string)=>memory.get(k)??null,setItem:()=>{throw new Error('quota');}});
   await expect(api.saveCloudRosters({'U15A-03':[]},{'U15A-03':[member]})).resolves.toEqual({'U15A-03':[]});expect(api.getAcademicState().message).toBe('');expect(api.cloudSnapshot().rosters[0].revision).toBe(2);
 });
+it('makeup saves round-trip per leave identity with revision protection and retain the attendance snapshot',async()=>{
+  await connect();
+  const source={classId:'U15A-03',date:'2026-10-24',session:'regular',memberId:member.id};
+  const plan={status:'scheduled' as const,date:'2026-10-28',startTime:'13:00',endTime:'15:00'};
+  const saved={class_id:source.classId,date:source.date,session:source.session,member_id:source.memberId,revision:1,plan,actor:'supergary',updatedAt:'2026-10-20T06:00:00Z'};
+  const fetch=vi.fn(async(url:string,init:RequestInit)=>{expect(url).toContain('/makeups/U15A-03/2026-10-24/regular/fixture-member');expect(JSON.parse(init.body as string)).toEqual({revision:0,plan});return json(saved);});vi.stubGlobal('fetch',fetch);
+  await expect(api.saveCloudMakeup(source,plan,0)).resolves.toEqual(saved);expect(api.cloudSnapshot().makeups).toEqual([saved]);expect(api.cloudSnapshot().attendance).toEqual([]);
+  await expect(api.saveCloudMakeup(source,plan,0)).rejects.toThrow('更新');expect(fetch).toHaveBeenCalledTimes(1);
+});
+it('failed makeup saves preserve the old plan and a recoverable draft without reporting success',async()=>{
+  await connect();vi.stubGlobal('fetch',vi.fn(async()=>json({message:'Conflict'},409)));
+  await expect(api.saveCloudMakeup({classId:'U15A-03',date:'2026-10-24',session:'regular',memberId:member.id},{status:'waived',date:'',startTime:'',endTime:''},0)).rejects.toThrow('Conflict');
+  expect(api.cloudSnapshot().makeups ?? []).toEqual([]);expect(Object.keys(api.unsavedAcademicChanges())[0]).toContain('/makeups/');
+});

@@ -10,6 +10,7 @@ import { attendanceRange, buildClassAttendanceRows } from './attendanceSummary';
 import { shanghaiDate as dayString, validDate } from './rollCallSchedule';
 import { readHolidays } from './clubHolidays';
 import { academicCloudEnabled, refreshAcademic } from '../services/academicCloud';
+import LeaveMakeupTable from './LeaveMakeupTable';
 type Followup = { status: string; actor: string; at: string };
 const followKey='makexrank-attendance-followups-v1';
 const rulesKey='makexrank-attendance-rules-v1';
@@ -32,7 +33,7 @@ export default function AttendanceDashboard({user, onRollCall}: {user: AuthUserP
       if(f && typeof f==='object' && !Array.isArray(f))setFollow(f);
       setRuleReady(true);
     } catch {setMessage('设置或跟进记录读取失败，请检查本地数据。');}
-    const refresh=()=>{setTick(Date.now());setRevision(n=>n+1);};window.addEventListener('storage',refresh);window.addEventListener('attendance-updated',refresh);const timer=window.setInterval(refresh,60000);
+    const refresh=()=>{setTick(Date.now());setRevision(n=>n+1);};window.addEventListener('storage',refresh);window.addEventListener('attendance-updated',refresh);const timer=window.setInterval(()=>{void refreshAcademic();refresh();},60000);
     return ()=>{window.removeEventListener('storage',refresh);window.removeEventListener('attendance-updated',refresh);window.clearInterval(timer);};
   },[]);
   let loaded: ReturnType<typeof listAttendance>={records:[],errors:0};
@@ -84,6 +85,7 @@ export default function AttendanceDashboard({user, onRollCall}: {user: AuthUserP
       {!classRows.length && <p>当前筛选范围没有可访问班级。</p>}
       <p className={dashboard.note}>更正草稿不替换上次正式统计，重新提交后才更新人数。常规课和加课分别统计；未建立记录的课次不推算应到人数。</p>
     </section>
+    <LeaveMakeupTable user={user} classIds={ids}/>
     <div className={styles.grid}>{[['已提交课次',totals.lessons],['应到人次',displayCount(totals.expected)],['实际到课（含迟到）',displayCount(totals.arrived)],['出勤率',totals.rate===null?'暂无':totals.rate+'%'],['迟到人次',displayCount(totals.late)],['待提交草稿',totals.drafts]].map(([label,n])=><article key={label} className={styles.card}><h3>{n}</h3><p>{label}</p></article>)}</div>
     <p>病假 {displayCount(totals.sick)} · 事假 {displayCount(totals.leave)} · 其他请假 {displayCount(totals.other)} · 未到待核实 {displayCount(totals.unverified)}</p>
     <p>统计截至所选结束日期（不晚于今天）。出勤率＝到课人次（含迟到）÷已提交且已确认的应到人次，请假计入分母。草稿、未来课程和未建立记录不计入。</p>
@@ -97,6 +99,6 @@ export default function AttendanceDashboard({user, onRollCall}: {user: AuthUserP
       try{const current=JSON.parse(localStorage.getItem(followKey)||'{}');const next={...current,[a.id]:{status:e.target.value,actor:user.username,at:new Date().toISOString()}};localStorage.setItem(followKey,JSON.stringify(next));setFollow(next);setMessage('跟进状态已保存。');}catch{setMessage('跟进状态保存失败，未更新。');}
     }}><option>待跟进</option><option>已联系</option><option>已处理</option></select></label>{follow[a.id] && <p>{follow[a.id].actor} · {new Date(follow[a.id].at).toLocaleString('zh-CN')}</p>}</article>)}
     <h3>班级明细（点击展开）</h3>{visible.map(c=>{const records=entries.filter(e=>e.classId===c.id), summary=summarize(records);return <details key={c.id}><summary>{c.id} · {coachNames[c.coach]} · {summary.lessons ? `到课 ${summary.arrived}/${summary.expected} 人次` : '暂无已提交记录'}</summary>{!records.length && <p>暂无记录</p>}{records.map(e=><article key={e.date+e.session} className={styles.card}><h3>{e.date} · {e.session==='regular'?'常规课':'加课'} · {e.record.phase==='submitted'?'已提交':'草稿'}</h3><ul>{e.record.rows.map(r=><li key={r.id}>{r.name}：{statusLabel(r)}</li>)}</ul></article>)}</details>;})}
-    <p role="status">{message}</p><p className={styles.footnote}>打开页面时每分钟更新；关闭页面不报警，不发送微信。预警规则和跟进状态目前仍仅保存在本机。未建立点名记录的课程暂不能判断漏交，加课因无结束时间暂不判断超时。</p>
+    <p role="status">{message}</p><p className={styles.footnote}>打开页面时每分钟同步；关闭页面不报警，不发送微信。预警规则和跟进状态目前仍仅保存在本机，补课安排由腾讯云独立保存（本地预览除外）。未建立点名记录的课程暂不能判断漏交，加课因无结束时间暂不判断超时。</p>
   </div>;
 }

@@ -3,13 +3,15 @@ import type { Rosters, Member } from '../components/classRoster';
 import type { AttendanceRecord, AttendanceRow } from '../components/attendance';
 import type { ClubHoliday } from '../components/clubHolidays';
 import { getValidAccessToken } from './authService';
+import { makeupPlanError, type MakeupPlan } from '../../shared/makeupPlans.mjs';
 
 export type CloudRoster = {class_id:string;revision:number;members:Member[]};
 export type CloudAttendance = {class_id:string;date:string;session:string;revision:number;record:AttendanceRecord};
 export type CloudHoliday = ClubHoliday & {revision:number};
+export type CloudMakeup = {class_id:string;date:string;session:string;member_id:string;revision:number;plan:MakeupPlan;updatedAt:string;actor:string};
 export interface AcademicSnapshot {
   permissions:{all:boolean;coach:string|null;write:boolean};classIds:string[];
-  rosters:CloudRoster[];attendance:CloudAttendance[];holidays:CloudHoliday[];
+  rosters:CloudRoster[];attendance:CloudAttendance[];holidays:CloudHoliday[];makeups?:CloudMakeup[];
 }
 type CloudState = {account:string;phase:'local'|'signed-out'|'loading'|'ready'|'error';snapshot:AcademicSnapshot|null;message:string;pending:number;updatedAt:string};
 export const academicCloudEnabled = import.meta.env.PROD || Boolean(import.meta.env.VITE_ACADEMIC_API_URL?.trim());
@@ -31,7 +33,8 @@ function isSnapshot(value:unknown):value is AcademicSnapshot {
     &&Array.isArray(s.classIds)&&s.classIds.every(id=>typeof id==='string')
     &&Array.isArray(s.rosters)&&s.rosters.every(r=>r&&typeof r.class_id==='string'&&Number.isInteger(r.revision)&&Array.isArray(r.members)&&r.members.every(m=>m&&typeof m.id==='string'&&typeof m.name==='string'))
     &&Array.isArray(s.attendance)&&s.attendance.every(e=>e&&typeof e.class_id==='string'&&typeof e.date==='string'&&typeof e.session==='string'&&Number.isInteger(e.revision)&&e.record&&Array.isArray(e.record.rows)&&typeof e.record.savedAt==='string')
-    &&Array.isArray(s.holidays)&&s.holidays.every(h=>h&&typeof h.date==='string'&&typeof h.active==='boolean'&&Number.isInteger(h.revision));
+    &&Array.isArray(s.holidays)&&s.holidays.every(h=>h&&typeof h.date==='string'&&typeof h.active==='boolean'&&Number.isInteger(h.revision))
+    &&(s.makeups===undefined || Array.isArray(s.makeups)&&s.makeups.every(m=>m&&typeof m.class_id==='string'&&typeof m.date==='string'&&typeof m.session==='string'&&typeof m.member_id==='string'&&Number.isInteger(m.revision)&&!makeupPlanError(m.plan)));
 }
 const unsavedKey=(account:string)=>`makexrank-academic-unsaved-v1:${base}:${account}`;
 export function unsavedAcademicChanges() {
@@ -126,6 +129,12 @@ export async function saveCloudHoliday(date:string,note:string,active:boolean):P
   const previous=cloudSnapshot().holidays.find(h=>h.date===date);
   await write<CloudHoliday>(`/holidays/${date}`,{revision:previous?.revision ?? 0,note,active},(s,r)=>({...s,holidays:[...s.holidays.filter(h=>h.date!==date),r]}));
   return cloudSnapshot().holidays;
+}
+export async function saveCloudMakeup(source:{classId:string;date:string;session:string;memberId:string},plan:MakeupPlan,expected:number):Promise<CloudMakeup> {
+  const {classId,date,session,memberId}=source;
+  const previous=cloudSnapshot().makeups?.find(m=>m.class_id===classId&&m.date===date&&m.session===session&&m.member_id===memberId);
+  if((previous?.revision ?? 0)!==expected)throw new Error('其他设备已更新补课安排，请载入最新安排后核对。');
+  return write<CloudMakeup>(`/makeups/${encodeURIComponent(classId)}/${date}/${session}/${encodeURIComponent(memberId)}`,{revision:expected,plan},(s,r)=>({...s,makeups:[...(s.makeups ?? []).filter(m=>!(m.class_id===classId&&m.date===date&&m.session===session&&m.member_id===memberId)),r]}));
 }
 export function localAcademicMigration() {
   const rosters=JSON.parse(localStorage.getItem('makexrank-class-members-v1') || '{}') as Rosters;

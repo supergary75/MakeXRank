@@ -29,7 +29,7 @@ before(async()=>{
   server=await new Promise(resolve=>{const listening=app.listen(0,'127.0.0.1',()=>resolve(listening));});
   url=`http://127.0.0.1:${server.address().port}`;
 },{timeout:30000});
-beforeEach(async()=>{await db.exec('truncate academic_rosters,academic_attendance,academic_holidays,academic_changes restart identity');});
+beforeEach(async()=>{await db.exec('truncate academic_makeups,academic_rosters,academic_attendance,academic_holidays,academic_changes restart identity');});
 after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));if(db)await db.close();});
 async function request(path,user='admin',data) {
   const response=await fetch(url+path,{method:data===undefined?'GET':'POST',headers:{...(user?{'x-fixture-user':user}:{}),...(data!==undefined?{'Content-Type':'application/json'}:{})},...(data!==undefined?{body:JSON.stringify(data)}:{}),signal:AbortSignal.timeout(15000)});
@@ -113,4 +113,54 @@ test('validation rejects duplicate identities and retains submitted snapshots du
   const record=attendanceRecord(null,{rows:[row],phase:'submitted'},{username:'fixture'},date);
   assert.equal(attendanceRecord(record,{rows:[{...row,status:''}],phase:'draft'},{username:'fixture'},date).submittedRows[0].status,'present');
   assert.throws(()=>importedRecord({rows:[row],savedAt:'invalid'},{username:'fixture'},date));
+});
+
+const makeupEndpoint=`/academic/makeups/${classId}/${date}/regular/${fixture.id}`;
+const makeupPlan={status:'scheduled',date:'2026-11-01',startTime:'13:00',endTime:'15:00'};
+async function leaveFixture(id=classId,user='admin',lessonDate=date,session='regular') {
+  await saveRoster(id);
+  return request(`/academic/attendance/${id}/${lessonDate}/${session}`,user,{revision:0,phase:'draft',rows:[{...row,status:'absent',reason:'事假'}]});
+}
+test('makeup plans attach to actual leave, round-trip across devices, and do not modify attendance',async()=>{
+  const source=await leaveFixture();
+  const created=await request(makeupEndpoint,'admin',{revision:0,plan:makeupPlan,actor:'forged'});
+  assert.equal(created.status,200);assert.equal(created.data.revision,1);assert.equal(created.data.actor,'supergary');assert.deepEqual(created.data.plan,makeupPlan);
+  const other=(await request('/academic/snapshot')).data;
+  assert.equal(other.makeups.length,1);assert.deepEqual(other.makeups[0],created.data);assert.deepEqual(other.attendance[0].record,source.data.record);
+  assert.equal((await db.query("select count(*)::int as count from academic_changes where kind='makeup'")).rows[0].count,1);
+  assert.equal((await request(makeupEndpoint,'admin',{revision:0,plan:{status:'waived',date:'',startTime:'',endTime:''}})).status,409);
+  const updated=await request(makeupEndpoint,'admin',{revision:1,plan:{status:'waived',date:'',startTime:'',endTime:''}});
+  assert.equal(updated.status,200);assert.equal(updated.data.revision,2);
+  assert.equal((await request('/academic/snapshot')).data.makeups.length,1);
+});
+test('makeup plans remain class-scoped and deny guests, disabled accounts, viewers and other coaches',async()=>{
+  await leaveFixture();await request(makeupEndpoint,'admin',{revision:0,plan:makeupPlan});
+  for(const [user,status] of [[null,401],['disabled',401],['viewer',403],['brook',403],['imposter',403]])assert.equal((await request(makeupEndpoint,user,{revision:1,plan:makeupPlan})).status,status);
+  assert.deepEqual((await request('/academic/snapshot','brook')).data.makeups,[]);
+  assert.deepEqual((await request('/academic/snapshot','imposter')).data.makeups,[]);
+  await leaveFixture('U12B-07');
+  const own=await request(`/academic/makeups/U12B-07/${date}/regular/${fixture.id}`,'brook',{revision:0,plan:makeupPlan});
+  assert.equal(own.status,200);assert.equal((await request('/academic/snapshot','brook')).data.makeups.length,1);
+});
+test('makeup validation rejects nonexistent/non-leave pupils and malformed or uncompleted future slots',async()=>{
+  assert.equal((await request(makeupEndpoint,'admin',{revision:0,plan:makeupPlan})).status,409);
+  await saveRoster();await request(endpoint,'admin',body);
+  assert.equal((await request(makeupEndpoint,'admin',{revision:0,plan:makeupPlan})).status,409);
+  await request(endpoint,'admin',{...body,revision:1,phase:'draft',rows:[{...row,status:'absent',reason:'病假'}]});
+  for(const plan of [null,{...makeupPlan,date:'2026-02-30'},{...makeupPlan,startTime:'25:00'},{...makeupPlan,endTime:'12:00'},{...makeupPlan,status:'unknown'},{...makeupPlan,status:'completed',date:'2999-01-01'},{...makeupPlan,status:'waived'}])assert.equal((await request(makeupEndpoint,'admin',{revision:0,plan})).status,400);
+  assert.equal((await request(makeupEndpoint.replace(fixture.id,'unknown'),'admin',{revision:0,plan:makeupPlan})).status,409);
+  const result=await request(makeupEndpoint,'admin',{revision:0,plan:{...makeupPlan,status:'completed',date:'2026-01-04'}});
+  assert.equal(result.status,200);
+});
+test('distinct leave dates and regular/extra lessons keep independent makeup plans after roster changes',async()=>{
+  await saveRoster();
+  for(const [d,s] of [[date,'regular'],[date,'extra1'],['2026-01-04','regular']]){
+    await request(`/academic/attendance/${classId}/${d}/${s}`,'admin',{revision:0,phase:'draft',rows:[{...row,status:'absent',reason:'事假'}]});
+    assert.equal((await request(`/academic/makeups/${classId}/${d}/${s}/${fixture.id}`,'admin',{revision:0,plan:makeupPlan})).status,200);
+  }
+  await saveRoster(classId,'admin',1,[]);
+  assert.equal((await request('/academic/snapshot')).data.makeups.length,3);
+  await request(endpoint,'admin',{...body,revision:1});
+  assert.equal((await request(makeupEndpoint,'admin',{revision:1,plan:makeupPlan})).status,409);
+  assert.equal((await request('/academic/snapshot')).data.makeups.length,3);
 });

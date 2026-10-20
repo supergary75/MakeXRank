@@ -14,4 +14,24 @@
 .status { display:inline-block; padding:5px 8px; border-radius:5px; font-size:12px; }
 .draftNote { display:block; margin-top:4px; font-size:12px; }
 .caption { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.weekControls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:14px 0; }
+.makeupTable { min-width:920px; }
+.makeupTable :is(th,td) { text-align:left; vertical-align:top; white-space:normal; }
+.makeupTable label { display:flex; flex-direction:column; gap:5px; font-size:13px; }
+.makeupTable :is(input,select) { width:100%; min-width:0; box-sizing:border-box; padding:9px; font:inherit; border:1px solid #a5b8bf; border-radius:6px; background:#fff; color:#293c48; }
+.makeupTable :is(input,select):disabled { opacity:.6; }
+.makeupTable tbody th { min-width:185px; }
+.makeupDates { display:grid; gap:8px; min-width:260px; }
+.makeupTimes { display:flex; align-items:end; gap:8px; }
+.makeupTimes label { flex:1; }
+.makeupTimes > span { padding-bottom:10px; }
+.makeupMessage { font-size:13px; max-width:220px; white-space:normal; }
+@media(max-width:650px) {
+  .makeupTable,.makeupTable tbody { display:block; min-width:0; }
+  .makeupTable thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .makeupTable tr { display:grid; grid-template-columns:1fr; padding:12px; border-bottom:2px solid #b5c3c7; }
+  .makeupTable :is(th,td) { display:block; position:static!important; padding:8px 4px; border:0; }
+  .makeupTable tbody th { min-width:0; }
+  .makeupDates { min-width:0; }
+}
 @media(max-width:650px) { .summaryHeading h3 { font-size:20px; } .table th,.table td { padding:10px 8px; } }
