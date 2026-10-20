@@ -6,7 +6,7 @@ const tables={
   team_tag_sync:['id','tags','options','updated_at'],
   logistics_sync:['id','events','deleted_event_ids','updated_at'],
   inspire_sync:['id','payload','updated_at'],
-  user_profiles:['auth_user_id','username','display_name','role','is_active','allowed_event_types','allowed_competition_ids','created_at'],
+  user_profiles:['auth_user_id','username','display_name','role','is_active','allowed_event_types','allowed_competition_ids','created_at','must_change_password'],
 };
 // pg encodes JavaScript arrays as PostgreSQL arrays. JSONB columns must be
 // explicitly JSON-encoded, while permission scopes remain native text[].

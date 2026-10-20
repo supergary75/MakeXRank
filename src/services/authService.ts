@@ -14,6 +14,7 @@ interface AuthSessionPayload {
   refreshToken: string;
   expiresAt: number;
   sessionExpiresAt?: number;
+  mustChangePassword?: boolean;
 }
 
 let sessionRefreshPromise: Promise<AuthSessionPayload> | null = null;
@@ -23,6 +24,8 @@ interface AuthTokenResponse {
   refresh_token: string;
   expires_in: number;
   session_expires_at?: string;
+  must_change_password?: boolean;
+  profile?: ProfileRow;
   user: {
     id: string;
   };
@@ -37,6 +40,7 @@ interface ProfileRow {
   created_at: string;
   allowed_event_types?: EventType[] | null;
   allowed_competition_ids?: string[] | null;
+  must_change_password?: boolean;
 }
 
 interface ManagedUserFunctionResponse {
@@ -117,6 +121,7 @@ function toProfile(row: ProfileRow): AuthUserProfile {
     createdAt: row.created_at,
     allowedEventTypes: normalizeEventTypes(row.allowed_event_types),
     allowedCompetitionIds: normalizeCompetitionIds(row.allowed_competition_ids),
+    mustChangePassword: Boolean(row.must_change_password),
   };
 }
 
@@ -184,8 +189,11 @@ function humanizeAuthError(message: string): string {
   }
 
   if (lowerMessage.includes('authentication required')) {
-    return '当前登录状态失效，请重新登录管理员账号。';
+    return '当前登录或首次改密验证已失效，请重新登录。';
   }
+  if(lowerMessage.includes('personal password must be'))return '个人密码需要 15–128 位，可以使用容易记住的长短语。';
+  if(lowerMessage.includes('new password must differ'))return '新密码不能与初始密码相同。';
+  if(lowerMessage.includes('password setup is not required'))return '此账号已完成首次改密，请重新登录。';
 
   if (lowerMessage.includes('only an active admin can create users')) {
     return '只有已启用的管理员账号可以继续分配用户。';
@@ -283,6 +291,7 @@ async function refreshAuthSession(refreshToken: string): Promise<AuthSessionPayl
     refreshToken: response.refresh_token,
     expiresAt: Date.now() + response.expires_in * 1000,
     ...(response.session_expires_at ? { sessionExpiresAt: Date.parse(response.session_expires_at) } : {}),
+    mustChangePassword: Boolean(response.must_change_password),
   };
   // A late refresh response must not restore a signed-out or switched account.
   if (readSession()?.refreshToken !== refreshToken) throw new Error('登录状态已变化。');
@@ -290,9 +299,10 @@ async function refreshAuthSession(refreshToken: string): Promise<AuthSessionPayl
   return session;
 }
 
-export async function getValidAccessToken(forceRefresh = false): Promise<string | null> {
+export async function getValidAccessToken(forceRefresh = false, allowPasswordSetup = false): Promise<string | null> {
   const cachedSession = readSession();
   if (!cachedSession) return null;
+  if(cachedSession.mustChangePassword && !allowPasswordSetup)return null;
   if (cachedSession.sessionExpiresAt !== undefined && cachedSession.sessionExpiresAt <= Date.now()) {
     clearSession(); return null;
   }
@@ -335,8 +345,8 @@ export async function getValidAccessToken(forceRefresh = false): Promise<string 
   }
 }
 
-async function fetchCurrentAuthUser(accessToken: string): Promise<{ id: string }> {
-  return requestJson<{ id: string }>(
+async function fetchCurrentAuthUser(accessToken: string): Promise<{ id: string; profile?: ProfileRow }> {
+  return requestJson<{ id: string; profile?: ProfileRow }>(
     `${SUPABASE_URL}/auth/v1/user`,
     {
       headers: buildHeaders({ accessToken }),
@@ -398,10 +408,10 @@ export async function restoreAuthUser(): Promise<AuthUserProfile | null> {
   }
 
   try {
-    const accessToken = await getValidAccessToken();
+    const accessToken = await getValidAccessToken(false,true);
     if (!accessToken) return null;
     const authUser = await fetchCurrentAuthUser(accessToken);
-    const profile = await fetchProfileByUserId(authUser.id, accessToken);
+    const profile = authUser.profile ? toProfile(authUser.profile) : await fetchProfileByUserId(authUser.id, accessToken);
     if (!profile || !profile.isActive) {
       clearSession();
       return null;
@@ -420,7 +430,7 @@ export async function signInWithUsername(
   password: string,
 ): Promise<AuthUserProfile> {
   if (!isConfigured()) {
-    throw new Error('Supabase 尚未配置，暂时无法启用登录。');
+    throw new Error('内部账号服务尚未配置，暂时无法启用登录。');
   }
 
   const normalizedUsername = normalizeUsername(username);
@@ -445,13 +455,14 @@ export async function signInWithUsername(
     refreshToken: tokenResponse.refresh_token,
     expiresAt: Date.now() + tokenResponse.expires_in * 1000,
     ...(tokenResponse.session_expires_at ? { sessionExpiresAt: Date.parse(tokenResponse.session_expires_at) } : {}),
+    mustChangePassword: Boolean(tokenResponse.must_change_password),
   };
   saveSession(session);
 
-  const profile = await fetchProfileByUserId(tokenResponse.user.id, session.accessToken);
+  const profile = tokenResponse.profile ? toProfile(tokenResponse.profile) : await fetchProfileByUserId(tokenResponse.user.id, session.accessToken);
   if (!profile) {
     clearSession();
-    throw new Error('这个账号已经存在于 Auth，但还没有对应的用户资料。请先在 SQL Editor 里补 user_profiles 档案。');
+    throw new Error('服务器没有返回对应的账号资料，请联系管理员核对。');
   }
 
   if (!profile.isActive) {
@@ -460,6 +471,23 @@ export async function signInWithUsername(
   }
 
   return profile;
+}
+
+export async function completeInitialPassword(password:string):Promise<AuthUserProfile> {
+  if(password.length<15||password.length>128)throw new Error('个人密码需要 15–128 位，可以使用容易记住的长短语。');
+  const previous=readSession();const token=await getValidAccessToken(false,true);
+  if(!previous?.mustChangePassword||!token)throw new Error('首次改密验证已失效，请用初始密码重新登录。');
+  let response:AuthTokenResponse;
+  try {response=await requestJson<AuthTokenResponse>(`${SUPABASE_URL}/auth/v1/password-setup`,{
+    method:'POST',headers:buildHeaders({includeJson:true,accessToken:token}),body:JSON.stringify({password}),
+  });} catch(error) {
+    if((error as {status?:number}).status===401&&readSession()?.accessToken===token)clearSession();
+    throw error;
+  }
+  if(readSession()?.accessToken!==token)throw new Error('登录状态已变化，请用新密码重新登录。');
+  if(!response.profile||response.must_change_password)throw new Error('服务器未确认密码设置成功，请重新登录核对。');
+  saveSession({accessToken:response.access_token,refreshToken:response.refresh_token,expiresAt:Date.now()+response.expires_in*1000,sessionExpiresAt:Date.parse(response.session_expires_at!),mustChangePassword:false});
+  return toProfile(response.profile);
 }
 
 export async function signOutCurrentUser(): Promise<void> {
@@ -601,5 +629,5 @@ export async function updateManagedUser(
 }
 
 export function getStoredAccessToken(): string | null {
-  return readSession()?.accessToken ?? null;
+  const session=readSession();return session?.mustChangePassword ? null : session?.accessToken ?? null;
 }

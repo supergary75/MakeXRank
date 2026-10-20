@@ -1,8 +1,9 @@
 import css from './AcademicFlightDeck.module.css';
 import { academicCloudEnabled } from '../services/academicCloud';
+import {WORKSPACE_NAME} from '../workspaceBrand';
 const destinations = [
   {view:'class-member-management',code:'01',title:'班级队员管理',english:'CLASSES & MEMBERS',description:'查看班级舱位、管理队员名册，进入个人出勤档案。',label:'班级与队员',icon:'seats'},
-  {view:'coach-workbench',code:'02',title:'俱乐部工作台',english:'CLUB WORKSPACE',description:'手机快捷工作台，选择快速点名或进入完整网站。',label:'点名 / 完整网站',icon:'check'},
+  {view:'coach-workbench',code:'02',title:WORKSPACE_NAME,english:'KCLUB INTERNAL WORKSPACE',description:'内部统一工作台，选择快速点名或进入完整网站。',label:'点名 / 完整网站',icon:'check'},
   {view:'attendance-dashboard',code:'03',title:'出勤统计与预警',english:'ATTENDANCE MONITOR',description:'查看周月出勤趋势，跟进缺席、迟到与待提交记录。',label:'统计与跟进',icon:'gauge'},
 ] as const;
 export default function AcademicFlightDeck({onNavigate}:{onNavigate:(view:typeof destinations[number]['view'])=>void}) {

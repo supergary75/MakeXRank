@@ -5,7 +5,7 @@ import {canManageStaff} from './staff-access.mjs';
 
 const scrypt=promisify(crypto.scrypt);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export const profileColumns='auth_user_id,username,display_name,role,is_active,allowed_event_types,allowed_competition_ids,created_at';
+export const profileColumns='auth_user_id,username,display_name,role,is_active,allowed_event_types,allowed_competition_ids,created_at,must_change_password';
 const fail=(status,message)=>{throw Object.assign(new Error(message),{status});};
 const digest=value=>crypto.createHash('sha256').update(value).digest('hex');
 const wrap=fn=>async(req,res,next)=>{try{res.set('Cache-Control','no-store');await fn(req,res);}catch(e){next(e);}};
@@ -28,9 +28,9 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
     const [salt,hash]=stored.split(':');
     return crypto.timingSafeEqual(Buffer.from(hash,'hex'),await kdf(password,salt));
   }
-  function sign(sub,sid) {
+  function sign(sub,sid,ttl=3600) {
     const head=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url');
-    const body=Buffer.from(JSON.stringify({sub,sid,exp:Math.floor(now()/1000)+3600})).toString('base64url');
+    const body=Buffer.from(JSON.stringify({sub,sid,exp:Math.floor(now()/1000)+ttl})).toString('base64url');
     const data=`${head}.${body}`;
     return `${data}.${crypto.createHmac('sha256',secret).update(data).digest('base64url')}`;
   }
@@ -50,10 +50,11 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
     }catch{return null;}
   }
   const profile=async id=>(await pool.query(`select ${profileColumns} from user_profiles where auth_user_id=$1`,[id])).rows[0];
-  async function auth(req) {
+  async function auth(req,allowPasswordSetup=false) {
     const user=decode(req);if(!user)return null;
     const {rows}=await pool.query(`select s.id from auth_sessions s join user_profiles p on p.auth_user_id=s.auth_user_id
-      where s.id=$1 and s.auth_user_id=$2 and s.revoked_at is null and s.expires_at>now() and p.is_active=true`,[user.sid,user.sub]);
+      where s.id=$1 and s.auth_user_id=$2 and s.revoked_at is null and s.expires_at>now() and p.is_active=true
+      and s.password_setup=p.must_change_password and ($3=true or s.password_setup=false)`,[user.sid,user.sub,allowPasswordSetup]);
     return rows[0]?user:null;
   }
   const guard=async(req,res,next)=>{try{const user=await auth(req);if(!user)fail(401,'Authentication required');req.user=user;next();}catch(e){next(e);}};
@@ -72,7 +73,9 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
     const inserted=await db.query(`insert into refresh_tokens(token_hash,auth_user_id,expires_at,session_id)
       select $1,auth_user_id,expires_at,id from auth_sessions where id=$2 and auth_user_id=$3 and revoked_at is null and expires_at>now() returning token_hash,expires_at`,[digest(refresh),sessionId,userId]);
     if(!inserted.rows.length)fail(401,'Authentication required');
-    return {access_token:sign(userId,sessionId),refresh_token:refresh,expires_in:3600,session_expires_at:new Date(inserted.rows[0].expires_at).toISOString(),user:{id:userId}};
+    const current=(await db.query(`select ${profileColumns} from user_profiles where auth_user_id=$1`,[userId])).rows[0];
+    const ttl=Math.max(1,Math.min(3600,Math.floor((new Date(inserted.rows[0].expires_at).getTime()-now())/1000)));
+    return {access_token:sign(userId,sessionId,ttl),refresh_token:refresh,expires_in:ttl,session_expires_at:new Date(inserted.rows[0].expires_at).toISOString(),must_change_password:current.must_change_password,profile:current,user:{id:userId}};
   }
   async function budget(kind,value,limit) {
     const key=`${kind}:${crypto.createHmac('sha256',secret).update(value).digest('hex')}`;
@@ -94,8 +97,8 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
       if(!entry?.session_id)fail(401,'Invalid refresh token');
       return res.json(await userTransaction(entry.auth_user_id,async(db,user)=>{
         if(!user?.is_active)fail(401,'Invalid refresh token');
-        const session=(await db.query('select id from auth_sessions where id=$1 and auth_user_id=$2 and revoked_at is null and expires_at>now()',[entry.session_id,user.auth_user_id])).rows[0];
-        if(!session)fail(401,'Invalid refresh token');
+        const session=(await db.query('select id,password_setup from auth_sessions where id=$1 and auth_user_id=$2 and revoked_at is null and expires_at>now()',[entry.session_id,user.auth_user_id])).rows[0];
+        if(!session||session.password_setup!==user.must_change_password)fail(401,'Invalid refresh token');
         const consumed=await db.query('delete from refresh_tokens where token_hash=$1 and session_id=$2 and expires_at>now() returning token_hash',[hash,entry.session_id]);
         if(!consumed.rows.length)fail(401,'Invalid refresh token');
         return issue(db,user.auth_user_id,entry.session_id);
@@ -112,11 +115,36 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
       // Password verification is outside the lock: re-check its exact generation under it.
       if(!current?.is_active||current.password_hash!==user.password_hash)fail(400,'Invalid login credentials');
       const sid=crypto.randomUUID();
-      await db.query('insert into auth_sessions(id,auth_user_id) values($1,$2)',[sid,user.auth_user_id]);
+      if(current.must_change_password) await db.query("insert into auth_sessions(id,auth_user_id,password_setup,expires_at) values($1,$2,true,now()+interval '10 minutes')",[sid,user.auth_user_id]);
+      else await db.query('insert into auth_sessions(id,auth_user_id) values($1,$2)',[sid,user.auth_user_id]);
       return issue(db,user.auth_user_id,sid);
     }));
   }));
-  app.get('/auth/v1/user',guard,(req,res)=>res.json({id:req.user.sub}));
+  app.get('/auth/v1/user',wrap(async(req,res)=>{
+    const user=await auth(req,true);if(!user)fail(401,'Authentication required');
+    const current=await profile(user.sub);
+    res.json({id:user.sub,must_change_password:current.must_change_password,profile:current});
+  }));
+  app.post('/auth/v1/password-setup',wrap(async(req,res)=>{
+    const caller=await auth(req,true);if(!caller)fail(401,'Authentication required');
+    const password=req.body?.password;
+    if(typeof password!=='string'||password.length<15||password.length>128)fail(400,'Personal password must be 15-128 characters');
+    await budget('password-setup',caller.sub,10);
+    const previous=(await pool.query('select * from user_profiles where auth_user_id=$1',[caller.sub])).rows[0];
+    if(!previous?.must_change_password)fail(409,'Password setup is not required');
+    if(await checkPassword(password,previous.password_hash))fail(400,'New password must differ from the initial password');
+    const passwordHash=await hashPassword(password);
+    res.json(await userTransaction(caller.sub,async(db,current)=>{
+      if(!current?.is_active||!current.must_change_password||current.password_hash!==previous.password_hash)fail(401,'Authentication required');
+      const session=(await db.query('select id from auth_sessions where id=$1 and auth_user_id=$2 and password_setup=true and revoked_at is null and expires_at>now()',[caller.sid,caller.sub])).rows[0];
+      if(!session)fail(401,'Authentication required');
+      await db.query('update user_profiles set password_hash=$1,must_change_password=false where auth_user_id=$2',[passwordHash,caller.sub]);
+      await db.query('update auth_sessions set revoked_at=now() where auth_user_id=$1',[caller.sub]);
+      await db.query('delete from refresh_tokens where auth_user_id=$1',[caller.sub]);
+      const sid=crypto.randomUUID();await db.query('insert into auth_sessions(id,auth_user_id) values($1,$2)',[sid,caller.sub]);
+      return issue(db,caller.sub,sid);
+    }));
+  }));
   app.post('/auth/v1/logout',wrap(async(req,res)=>{
     // A valid signature may revoke its own session even after access expiry; no new access is granted.
     const user=decode(req,true);
@@ -146,7 +174,7 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
       if(!uuid.test(req.body.authUserId))fail(400,'Invalid user ID');
       await userTransaction(req.body.authUserId,async(db,user)=>{
         if(!user)fail(404,'User not found');
-        await db.query('update user_profiles set password_hash=$1 where auth_user_id=$2',[passwordHash,user.auth_user_id]);
+        await db.query('update user_profiles set password_hash=$1,must_change_password=true where auth_user_id=$2',[passwordHash,user.auth_user_id]);
         await db.query('update auth_sessions set revoked_at=now() where auth_user_id=$1',[user.auth_user_id]);
         await db.query('delete from refresh_tokens where auth_user_id=$1',[user.auth_user_id]);
       });return res.json({success:true});
@@ -161,7 +189,7 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
         if((await db.query('select count(*)::int n from user_profiles')).rows[0].n>0)fail(409,'Admin account already exists');
         if(String(req.body.username).trim().toLowerCase()!=='supergary')fail(400,'Initial administrator username must be supergary');
       }
-      const {rows}=await db.query(`insert into user_profiles(auth_user_id,username,display_name,password_hash,role,allowed_event_types,allowed_competition_ids) values($1,$2,$3,$4,$5,$6,$7) returning ${profileColumns}`,[crypto.randomUUID(),String(req.body.username).trim().toLowerCase(),req.body.displayName,passwordHash,action==='bootstrap_admin'?'admin':req.body.role,req.body.allowedEventTypes||null,req.body.allowedCompetitionIds||null]);
+      const {rows}=await db.query(`insert into user_profiles(auth_user_id,username,display_name,password_hash,role,allowed_event_types,allowed_competition_ids,must_change_password) values($1,$2,$3,$4,$5,$6,$7,$8) returning ${profileColumns}`,[crypto.randomUUID(),String(req.body.username).trim().toLowerCase(),req.body.displayName,passwordHash,action==='bootstrap_admin'?'admin':req.body.role,req.body.allowedEventTypes||null,req.body.allowedCompetitionIds||null,action!=='bootstrap_admin']);
       await db.query('commit');res.json({profile:rows[0],success:true});
     }catch(e){await db.query('rollback');throw e;}finally{db.release();}
   }));

@@ -1,8 +1,8 @@
 {
   "id": "/MakeXRank/",
-  "name": "机器人青训俱乐部 · 俱乐部工作台",
-  "short_name": "俱乐部工作台",
-  "description": "手机上的俱乐部统一入口：快速点名与完整网站。",
+  "name": "Kclub内部工作台",
+  "short_name": "Kclub内部工作台",
+  "description": "Kclub内部统一工作入口：快速点名与完整网站。",
   "start_url": "/MakeXRank/#view=coach-workbench",
   "scope": "/MakeXRank/",
   "display": "standalone",

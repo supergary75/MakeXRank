@@ -208,7 +208,7 @@ export function AuthPanel({
 
         {!authAvailable && (
           <div className={styles.notice}>
-            当前环境还没有完整配置 Supabase Auth，登录界面已经准备好，等函数和环境变量接通后即可启用。
+            当前环境尚未连接内部账号服务，请联系管理员检查服务器配置。
           </div>
         )}
 
@@ -264,7 +264,7 @@ export function AuthPanel({
             <section className={styles.card}>
               <h3>账号说明</h3>
               <p className={styles.helper}>
-                当前版本支持管理员直接重置密码、删除用户，并且可以限制某个用户只看指定赛项或指定比赛。
+                首次使用初始密码验证后，必须由本人设置个人密码。管理员重置密码后，也会撤销旧登录并要求重新设置个人密码。可以限制账号只看指定赛项或指定比赛。
                 赛项留空表示可见全部；比赛 ID 留空表示不再单独限制比赛卡片。
               </p>
               {!canManageUsers && (
@@ -282,7 +282,7 @@ export function AuthPanel({
               <div>
                 <h3>管理员分配账号</h3>
                 <p className={styles.helper}>
-                  由你统一分配用户名和密码。现在也支持限制某个用户只看指定赛项、指定比赛。
+                  由你分配登录名及独立初始密码，成员首次登录后自行设置个人密码。支持限制指定赛项与比赛。
                 </p>
               </div>
             </div>
@@ -293,7 +293,7 @@ export function AuthPanel({
                 <input
                   value={userForm.username}
                   onChange={(event) => setUserForm((previous) => ({ ...previous, username: event.target.value }))}
-                  placeholder="例如：judge_01"
+                  placeholder="例如：kclub-vincent"
                 />
               </label>
               <label className={styles.field}>
@@ -310,7 +310,7 @@ export function AuthPanel({
                   type="password"
                   value={userForm.password}
                   onChange={(event) => setUserForm((previous) => ({ ...previous, password: event.target.value }))}
-                  placeholder="例如：Kclub2026!"
+                  placeholder="独立临时密码，请单独分发"
                 />
               </label>
               <label className={styles.field}>
@@ -388,6 +388,7 @@ export function AuthPanel({
                       <div>
                         <strong>{user.displayName}</strong>
                         <span>{user.username}</span>
+                        {user.mustChangePassword&&<span>首次改密待完成</span>}
                         <span>{formatScopeSummary(user)}</span>
                       </div>
                       <div className={styles.userMeta}>
@@ -451,7 +452,7 @@ export function AuthPanel({
                             ...current,
                             resetPassword: event.target.value,
                           }))}
-                          placeholder="输入 8–128 位新密码后点击重置"
+                          placeholder="设置 8–128 位临时密码，下次登录必须改密"
                         />
                       </label>
                     </div>

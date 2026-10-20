@@ -136,6 +136,7 @@ export interface AuthUserProfile {
   createdAt: string;
   allowedEventTypes: EventType[] | null;
   allowedCompetitionIds: string[] | null;
+  mustChangePassword?: boolean;
 }
 export type TabName = 'ranking' | 'playoff' | 'focusSchedule';
 export type ViewMode =

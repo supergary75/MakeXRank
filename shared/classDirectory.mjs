@@ -1,5 +1,5 @@
 // Schedules only. Never put student identities in this public module.
-export const coachNames = { B: 'Brook', V: 'Vincent', G: 'Gary', J: 'Jason', L: 'Lyu' };
+export const coachNames = { B: 'Brook', V: 'Vincent', G: 'Gary', J: 'Jason', L: 'Lyu', A: 'Amber' };
 export const classes = [
   { id: 'U12A-06', day: '周四', time: '18:00–20:00', coach: 'V', count: 8, seats: 0 },
   { id: 'U12A-05', day: '周五', time: '17:00–19:00', coach: 'V', count: 7, seats: 1 },
@@ -20,7 +20,7 @@ export const classes = [
 export function academicAccess(profile) {
   const active = profile?.isActive ?? profile?.is_active;
   const username = profile?.username?.trim().toLowerCase();
-  const coach = active ? ({supergary:'G',gary:'G',brook:'B',brooky:'B',vincent:'V',vincentc:'V',jason:'J',jasonz:'J',lyu:'L'})[username] ?? null : null;
-  const all = Boolean(active && ['supergary','gary','lisa','lisaw'].includes(username));
+  const coach = active ? ({supergary:'G',gary:'G',brook:'B',brooky:'B','kclub-brook':'B',vincent:'V',vincentc:'V','kclub-vincent':'V',jason:'J',jasonz:'J','kclub-jason':'J','kclub-amber':'A',lyu:'L'})[username] ?? null : null;
+  const all = Boolean(active && ['supergary','gary','lisa','lisaw','kclub-lisa'].includes(username));
   return { all, coach, write: Boolean(active && ['admin','editor'].includes(profile.role) && (all || coach)) };
 }

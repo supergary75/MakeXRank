@@ -201,3 +201,82 @@ test('malformed hashes fail closed and concurrent KDF work is bounded without bl
   assert(results.some(r=>r.status===429));assert(results.every(r=>[200,429].includes(r.status)));
   assert.equal((await request('/health')).status,200);
 });
+
+test('initial login is a restricted ten-minute password-setup session; private data and management stay blocked',async()=>{
+  await db.query('update user_profiles set must_change_password=true where auth_user_id=$1',[users.editor]);
+  const signed=await login();assert.equal(signed.status,200);const tokens=signed.data;
+  assert.equal(tokens.must_change_password,true);assert.equal(tokens.profile.must_change_password,true);
+  assert(!JSON.stringify(tokens).includes('password_hash'));assert(!JSON.stringify(tokens).includes(hash));
+  const session=(await db.query('select * from auth_sessions')).rows[0];
+  assert.equal(session.password_setup,true);assert.equal(new Date(session.expires_at)-new Date(session.created_at),10*60*1000);
+  assert.equal((await request('/auth/v1/user',{token:tokens.access_token})).status,200);
+  for(const endpoint of ['/fixture-private','/rest/v1/logistics_sync','/rest/v1/user_profiles'])assert.equal((await request(endpoint,{token:tokens.access_token})).status,401);
+  assert.equal((await request('/functions/v1/manage-users',{method:'POST',token:tokens.access_token,body:{action:'create_user',username:'blocked',displayName:'Blocked',role:'admin',password}})).status,403);
+  const refreshed=await refresh(tokens.refresh_token);assert.equal(refreshed.status,200);assert.equal(refreshed.data.must_change_password,true);
+  assert.equal(refreshed.data.session_expires_at,tokens.session_expires_at);
+  await db.query("update auth_sessions set expires_at=now()-interval '1 second'");
+  assert.equal((await request('/auth/v1/password-setup',{method:'POST',token:refreshed.data.access_token,body:{password:'PersonalPassphrase123!'}})).status,401);
+});
+
+test('personal password setup preserves identity/scopes, revokes all setup credentials and creates a seven-day normal session',async()=>{
+  await db.query('update user_profiles set must_change_password=true where auth_user_id=$1',[users.scoped]);
+  const first=(await login('scoped')).data,second=(await login('scoped')).data;
+  const setup=pass=>request('/auth/v1/password-setup',{method:'POST',token:first.access_token,body:{password:pass}});
+  assert.equal((await setup('short')).status,400);assert.equal((await setup(password)).status,400);
+  const before=(await db.query('select auth_user_id,username,role,allowed_event_types,allowed_competition_ids from user_profiles where auth_user_id=$1',[users.scoped])).rows[0];
+  const result=await setup('My personal long phrase 2026!');assert.equal(result.status,200);assert.equal(result.data.must_change_password,false);
+  const after=(await db.query('select auth_user_id,username,role,allowed_event_types,allowed_competition_ids from user_profiles where auth_user_id=$1',[users.scoped])).rows[0];assert.deepEqual(after,before);
+  assert.equal((await request('/fixture-private',{token:result.data.access_token})).status,200);
+  assert.equal((await request('/fixture-private',{token:second.access_token})).status,401);
+  assert.equal((await refresh(first.refresh_token)).status,401);assert.equal((await refresh(second.refresh_token)).status,401);
+  const active=(await db.query('select created_at,expires_at from auth_sessions where revoked_at is null')).rows[0];
+  assert.equal(new Date(active.expires_at)-new Date(active.created_at),7*86400000);
+  assert.equal((await login('scoped',password)).status,400);
+  const signed=await login('scoped','My personal long phrase 2026!');assert.equal(signed.status,200);assert.equal(signed.data.must_change_password,false);
+  assert.equal((await request('/auth/v1/password-setup',{method:'POST',token:signed.data.access_token,body:{password:'Another long password 2026!'}})).status,409);
+});
+
+test('admin reset and logout defeat in-flight initial password changes',async()=>{
+  const admin=(await login('admin')).data.access_token;
+  await db.query('update user_profiles set must_change_password=true where auth_user_id=$1',[users.editor]);
+  const signed=(await login()).data;
+  let release,reached;const gate=new Promise(resolve=>{release=resolve;});const hit=new Promise(resolve=>{reached=resolve;});
+  hook=async sql=>{if(sql==='select * from user_profiles where auth_user_id=$1'){hook=null;reached();await gate;}};
+  const pending=request('/auth/v1/password-setup',{method:'POST',token:signed.access_token,body:{password:'User chose this long phrase!'}});await hit;
+  assert.equal((await request('/functions/v1/manage-users',{method:'POST',token:admin,body:{action:'reset_password',authUserId:users.editor,password:'A different initial password!'}})).status,200);
+  release();assert.equal((await pending).status,401);
+  const next=(await login('editor','A different initial password!')).data;assert.equal(next.must_change_password,true);
+  await request('/auth/v1/logout',{method:'POST',token:next.access_token});
+  assert.equal((await request('/auth/v1/password-setup',{method:'POST',token:next.access_token,body:{password:'Personal phrase after logout!'}})).status,401);
+});
+
+async function fixtureOnboarding(){
+  const sql=await readFile(new URL('./ops/onboard-staff.sql',import.meta.url),'utf8');
+  await db.exec('begin');
+  try {await db.query("select set_config('makexrank.amber_hash',$1,true)",[hash]);await db.exec(sql);await db.exec('commit');}
+  catch(error){await db.exec('rollback');throw error;}
+}
+
+test('staff onboarding keeps the four existing identities, password hashes and roles, creates only Amber and is retry-safe',async()=>{
+  const oldNames=['vincentc','brooky','jasonz','lisaw'],keys=['editor','viewer','scoped','disabled'];
+  for(let i=0;i<4;i++)await db.query('update user_profiles set username=$1 where auth_user_id=$2',[oldNames[i],users[keys[i]]]);
+  const ownerBefore=(await db.query('select * from user_profiles where auth_user_id=$1',[users.admin])).rows[0];
+  const originals=(await db.query('select auth_user_id,password_hash,role,is_active,allowed_event_types,allowed_competition_ids from user_profiles order by auth_user_id')).rows;
+  await fixtureOnboarding();
+  assert.equal((await db.query('select count(*)::int n from user_profiles')).rows[0].n,6);
+  assert.deepEqual((await db.query('select * from user_profiles where auth_user_id=$1',[users.admin])).rows[0],ownerBefore);
+  for(const row of originals){const actual=(await db.query('select auth_user_id,password_hash,role,is_active,allowed_event_types,allowed_competition_ids from user_profiles where auth_user_id=$1',[row.auth_user_id])).rows[0];assert.deepEqual(actual,row);}
+  const amber=(await db.query("select * from user_profiles where username='kclub-amber'")).rows[0];assert.equal(amber.role,'editor');assert.equal(amber.must_change_password,true);
+  assert.equal((await login('vincentc')).status,400);assert.equal((await login('kclub-vincent')).data.must_change_password,true);
+  await db.query("update user_profiles set must_change_password=false,password_hash='fixture-already-changed' where username='kclub-amber'");
+  await fixtureOnboarding();assert.equal((await db.query("select password_hash from user_profiles where username='kclub-amber'")).rows[0].password_hash,'fixture-already-changed');
+});
+
+test('a conflicting staff login aborts the entire onboarding rather than merging or deleting accounts',async()=>{
+  const oldNames=['vincentc','brooky','jasonz','lisaw'],keys=['editor','viewer','scoped','disabled'];
+  for(let i=0;i<4;i++)await db.query('update user_profiles set username=$1 where auth_user_id=$2',[oldNames[i],users[keys[i]]]);
+  await db.query("insert into user_profiles(auth_user_id,username,display_name,password_hash) values($1,'kclub-brook','Unrelated fixture',$2)",[crypto.randomUUID(),hash]);
+  await assert.rejects(fixtureOnboarding(),/Target login already exists/);
+  assert.equal((await db.query("select username from user_profiles where auth_user_id=$1",[users.editor])).rows[0].username,'vincentc');
+  assert.equal((await db.query("select count(*)::int n from user_profiles where username='kclub-amber'")).rows[0].n,0);
+});

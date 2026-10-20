@@ -1,4 +1,5 @@
 -- Additive migration: existing account hashes, roles and scopes are unchanged.
+alter table user_profiles add column if not exists must_change_password boolean not null default false;
 create table if not exists auth_sessions (
   id uuid primary key,
   auth_user_id uuid not null references user_profiles(auth_user_id) on delete cascade,
@@ -7,6 +8,7 @@ create table if not exists auth_sessions (
   revoked_at timestamptz
 );
 create index if not exists auth_sessions_user_idx on auth_sessions(auth_user_id);
+alter table auth_sessions add column if not exists password_setup boolean not null default false;
 alter table refresh_tokens add column if not exists session_id uuid references auth_sessions(id) on delete cascade;
 -- Fixed seven days from sign-in, never extended by refresh or app reopening.
 alter table auth_sessions alter column expires_at set default (now()+interval '7 days');

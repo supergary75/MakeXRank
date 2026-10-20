@@ -42,6 +42,7 @@ import {
 import { readXlsxRows } from './utils/spreadsheetReader';
 import {
   bootstrapAdminUser,
+  completeInitialPassword,
   createManagedUser,
   deleteManagedUser,
   fetchManagedUsers,
@@ -104,13 +105,10 @@ import { NotificationContainer } from './components/ui/Notification';
 import { SimulationSystem } from './components/simulation/SimulationSystem';
 import { ExplorerScheduleGenerator, PracticeEventHub } from './components/practice/PracticeEventHub';
 import { ScoreCalculator } from './components/scoring/ScoreCalculator';
-import {
-  INSTALL_READY_EVENT,
-  canPromptPwaInstall,
-  getPwaInstallInstructions,
-  isStandalonePwa,
-  requestPwaInstall,
-} from './pwaInstall';
+import {isStandalonePwa} from './pwaInstall';
+import PwaInstallControl from './components/PwaInstallControl';
+import InitialPasswordSetup from './components/InitialPasswordSetup';
+import {WORKSPACE_NAME} from './workspaceBrand';
 
 import styles from './App.module.css';
 import MechaWorkHub from './components/MechaWorkHub';
@@ -2516,12 +2514,11 @@ export default function App() {
   const [awaitingPaste, setAwaitingPaste] = useState(false);
   const [storageMode, setStorageMode] = useState<StorageMode>(() => getPreferredStorageMode());
   const [authUser, setAuthUser] = useState<AuthUserProfile | null>(null);
+  const [passwordSetupUser, setPasswordSetupUser] = useState<AuthUserProfile | null>(null);
   const [managedUsers, setManagedUsers] = useState<AuthUserProfile[]>([]);
   const [authPanelOpen, setAuthPanelOpen] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  const [installGuideOpen, setInstallGuideOpen] = useState(false);
-  const [pwaInstallAvailable, setPwaInstallAvailable] = useState(false);
   const [teamTags, setTeamTags] = useState<TeamTagMap>(() => loadTeamTags());
   const [teamTagOptions, setTeamTagOptions] = useState<string[]>(() => loadTeamTagOptions());
   const [teamTagCloudReady, setTeamTagCloudReady] = useState(false);
@@ -2649,18 +2646,6 @@ export default function App() {
     logisticsDeletedEventIdsRef.current = logisticsDeletedEventIds;
   }, [logisticsDeletedEventIds]);
   const { featuredTeams, addTeam, removeTeam, toggleTeam } = useFeaturedTeams();
-
-  useEffect(() => {
-    const syncInstallAvailability = () => {
-      setPwaInstallAvailable(canPromptPwaInstall());
-    };
-
-    syncInstallAvailability();
-    window.addEventListener(INSTALL_READY_EVENT, syncInstallAvailability);
-    return () => {
-      window.removeEventListener(INSTALL_READY_EVENT, syncInstallAvailability);
-    };
-  }, []);
 
   const activeCompetition =
     competitions.find((competition) => competition.id === activeCompetitionId) ?? null;
@@ -3069,6 +3054,7 @@ export default function App() {
     const clearUser = () => {
       generation++;
       setAuthUser(null);
+      setPasswordSetupUser(null);
       setManagedUsers([]);
       setAuthPanelOpen(false);
       setAuthReady(true);
@@ -3088,13 +3074,14 @@ export default function App() {
         return;
       }
 
-      setAuthUser(restoredUser);
+      setPasswordSetupUser(restoredUser?.mustChangePassword ? restoredUser : null);
+      setAuthUser(restoredUser?.mustChangePassword ? null : restoredUser);
       setAuthReady(true);
     };
     const otherTabChanged = (event: StorageEvent) => {
       if (event.key !== AUTH_SESSION_STORAGE_KEY) return;
       if (event.newValue === null) clearUser();
-      else { setAuthUser(null); void restore(); }
+      else { setAuthUser(null);setPasswordSetupUser(null);void restore(); }
     };
     window.addEventListener(AUTH_SESSION_CLEARED_EVENT, clearUser);
     window.addEventListener('storage', otherTabChanged);
@@ -3655,10 +3642,11 @@ export default function App() {
     async (username: string, password: string) => {
       await runAuthTask(async () => {
         const profile = await signInWithUsername(username, password);
-        setAuthUser(profile);
+        setPasswordSetupUser(profile.mustChangePassword ? profile : null);
+        setAuthUser(profile.mustChangePassword ? null : profile);
         setViewMode(current => current === 'login' ? 'coach-workbench' : current);
         setAuthPanelOpen(false);
-        showNotification(`欢迎回来，${profile.displayName}。`, 'success');
+        showNotification(profile.mustChangePassword ? '身份已验证，请先设置个人密码。' : `欢迎回来，${profile.displayName}。`, 'success');
       });
     },
     [runAuthTask, showNotification],
@@ -3675,6 +3663,15 @@ export default function App() {
     },
     [runAuthTask, showNotification],
   );
+
+  const handleInitialPassword = useCallback(async(password:string)=>{
+    setAuthBusy(true);
+    try {
+      const profile=await completeInitialPassword(password);
+      setPasswordSetupUser(null);setAuthUser(profile);setViewMode('coach-workbench');setAuthPanelOpen(false);
+      showNotification('个人密码已设置，已进入内部工作台。','success');
+    } finally {setAuthBusy(false);}
+  },[showNotification]);
 
   const handleBootstrapAdmin = useCallback(
     async (input: {
@@ -4008,23 +4005,6 @@ export default function App() {
     setAwaitingPaste(false);
     setPracticeExplorerAwaitingPaste(false);
   }, []);
-
-  const handleInstallShortcut = useCallback(async () => {
-    if (isStandalonePwa()) {
-      showNotification('当前已经是桌面应用模式。', 'success');
-      return;
-    }
-
-    const result = await requestPwaInstall();
-    setPwaInstallAvailable(canPromptPwaInstall());
-
-    if (result === 'prompted') {
-      showNotification('已打开安装提示，请按浏览器提示确认。', 'success');
-      return;
-    }
-
-    setInstallGuideOpen(true);
-  }, [showNotification]);
 
   const handleOpenLogisticsRosterLibrary = useCallback(() => {
     setViewMode('logistics-roster');
@@ -6718,7 +6698,7 @@ export default function App() {
 
   const accountAction = (
     <div className={styles.accountActions}>
-      {viewMode!=='coach-workbench'&&viewMode!=='weekly-roll-call'&&<button className={styles.backButton} onClick={()=>setViewMode('coach-workbench')}>俱乐部工作台</button>}
+      {viewMode!=='coach-workbench'&&viewMode!=='weekly-roll-call'&&<button className={styles.backButton} onClick={()=>setViewMode('coach-workbench')}>{WORKSPACE_NAME}</button>}
       {authEnabled ? (
         <>
           {authReady && authUser ? (
@@ -6750,6 +6730,8 @@ export default function App() {
       ) : null}
     </div>
   );
+
+  if(passwordSetupUser)return <div className={styles.app}><div className={styles.container}><InitialPasswordSetup username={passwordSetupUser.username} busy={authBusy} onSave={handleInitialPassword} onLogout={()=>void handleLogout()}/></div><NotificationContainer notifications={notifications}/></div>;
 
   return (
     <div data-blueprint={viewMode} className={`${styles.app} ${viewMode === 'product-center' || viewMode === 'curriculum-system' ? styles.tiangongPreview : ''}`}>
@@ -6881,9 +6863,7 @@ export default function App() {
                     添加后可以像内部 App 一样从手机桌面直接打开，适合教练现场点名、查看任务和录入数据。
                   </p>
                 </div>
-                <button className={styles.portalButton} type="button" onClick={handleInstallShortcut}>
-                  {pwaInstallAvailable ? '一键添加到桌面' : '查看添加方法'}
-                </button>
+                <PwaInstallControl className={styles.portalButton}/>
               </article>
 
               <div className={styles.portalGrid}>
@@ -10857,38 +10837,6 @@ export default function App() {
           onDeleteUser={handleDeleteManagedUser}
           onToggleUserActive={handleToggleUserActive}
         />
-      )}
-
-      {installGuideOpen && (
-        <div className={styles.installGuideOverlay} role="dialog" aria-modal="true" aria-label="添加到手机桌面">
-          <article className={styles.installGuidePanel}>
-            <div className={styles.portalCardTop}>
-              <div>
-                <p className={styles.portalCardLabel}>Install Guide</p>
-                <h2>添加到手机桌面</h2>
-              </div>
-              <button
-                className={styles.closeButton}
-                type="button"
-                onClick={() => setInstallGuideOpen(false)}
-                aria-label="关闭添加说明"
-              >
-                ×
-              </button>
-            </div>
-            <p className={styles.portalCardText}>
-              当前浏览器没有直接弹出安装按钮，可以按下面步骤手动添加。添加后桌面会出现 MakeXRank 图标。
-            </p>
-            <ol className={styles.installGuideSteps}>
-              {getPwaInstallInstructions().map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-            <button className={styles.portalButton} type="button" onClick={() => setInstallGuideOpen(false)}>
-              我知道了
-            </button>
-          </article>
-        </div>
       )}
 
       <NotificationContainer notifications={notifications} />

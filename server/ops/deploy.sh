@@ -22,6 +22,8 @@ console.log('RELEASE_CONTENT_VERIFIED',m.commit);
 VERIFY
 install -d -o root -g root -m 0755 /usr/local/lib/makexrank
 install -o root -g root -m 0755 "$release/server/ops/backup.mjs" /usr/local/lib/makexrank/backup.mjs
+install -o root -g root -m 0755 "$release/server/ops/onboard-staff.mjs" /usr/local/lib/makexrank/onboard-staff.mjs
+install -o root -g root -m 0600 "$release/server/ops/onboard-staff.sql" /usr/local/lib/makexrank/onboard-staff.sql
 node /usr/local/lib/makexrank/backup.mjs release
 backup=$(cat /home/ubuntu/makexrank-backups/latest-release)
 [[ "$backup" == /home/ubuntu/makexrank-backups/release/* ]]

@@ -5,6 +5,8 @@ import express from 'express';
 import { PGlite } from '@electric-sql/pglite';
 import { mountAcademicRoutes } from './academic.mjs';
 import { attendanceRecord, importedRecord, members, validDate } from './academic-workflow.mjs';
+import {academicAccess} from '../shared/classDirectory.mjs';
+import {allowedClasses} from './academic-workflow.mjs';
 
 let db,server,url;
 const fixture={id:'fixture-student',name:'Fixture Student'};
@@ -45,6 +47,14 @@ test('teacher snapshots contain only assigned classes; server rejects cross-coac
   assert.deepEqual(result.data.rosters.map(r=>r.class_id),['U12B-07']);assert(!result.data.classIds.includes(classId));
   assert.equal((await saveRoster(classId,'brook')).status,403);
   assert.equal((await saveRoster(classId,'viewer')).status,403);
+});
+test('new staff login names preserve existing teaching scopes; Amber has no unassigned class access',()=>{
+  for(const [oldName,newName] of [['brooky','kclub-brook'],['vincentc','kclub-vincent'],['jasonz','kclub-jason'],['lisaw','kclub-lisa']]){
+    const old={username:oldName,role:'editor',is_active:true},next={...old,username:newName};
+    assert.deepEqual(academicAccess(next),academicAccess(old));assert.deepEqual(allowedClasses(next),allowedClasses(old));
+  }
+  const amber={username:'kclub-amber',role:'editor',is_active:true};
+  assert.deepEqual(academicAccess(amber),{all:false,coach:'A',write:true});assert.deepEqual(allowedClasses(amber),[]);
 });
 test('stale roster revision cannot overwrite another device; batch save rolls back atomically',async()=>{
   assert.equal((await saveRoster()).status,200);

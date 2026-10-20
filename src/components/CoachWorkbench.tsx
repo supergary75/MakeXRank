@@ -1,27 +1,24 @@
-import { useState } from 'react';
 import type { AuthUserProfile } from '../types';
-import { getPwaInstallInstructions, isStandalonePwa, requestPwaInstall } from '../pwaInstall';
 import { academicAccess } from '../../shared/classDirectory.mjs';
 import { AcademicCloudPanel, AcademicDataGate } from './AcademicCloudPanel';
 import WeeklyRollCall from './WeeklyRollCall';
 import css from './CoachWorkbench.module.css';
 import CoachLogin from './CoachLogin';
+import PwaInstallControl from './PwaInstallControl';
+import {WORKSPACE_NAME} from '../workspaceBrand';
 
 export default function CoachWorkbench({user,onLogin,onSignIn,onManage,onSummary,onBack,onRollCall,onHome,attendance=false,ready=true,busy=false}:{user:AuthUserProfile|null;onLogin:()=>void;onSignIn:(username:string,password:string)=>Promise<void>|void;onManage:()=>void;onSummary:()=>void;onBack:()=>void;onRollCall:()=>void;onHome:()=>void;attendance?:boolean;ready?:boolean;busy?:boolean}) {
-  const [instructions,setInstructions]=useState<string[]>([]);
-  const [installMessage,setInstallMessage]=useState('');
   const access=academicAccess(user);
   if(!ready)return <main className={css.workbench}><p role="status" className={css.loading}>正在验证登录状态…</p></main>;
   if(!user?.isActive)return <CoachLogin busy={busy} onSignIn={onSignIn}/>;
+  if(user.mustChangePassword)return <main className={css.workbench}><h1>请先设置个人密码</h1><p>完成首次改密后才能使用工作台。</p></main>;
   return <main className={css.workbench}>
-    <header className={css.header}><div><span className={css.eyebrow}>ROBOTICS YOUTH TRAINING CLUB</span><h1>{attendance?'快速点名':'俱乐部工作台'}</h1><p>{attendance?'查看本人当日课程，点班级直接展开名单。':user?`${user.displayName}，请选择要使用的功能。`:'点名和完整网站，一个工作台就够了。'}</p></div>{attendance&&<button onClick={onHome}>← 返回工作台</button>}</header>
+    <header className={css.header}><div><span className={css.eyebrow}>KCLUB INTERNAL WORKSPACE</span><h1>{attendance?'快速点名':WORKSPACE_NAME}</h1><p>{attendance?'查看本人当日课程，点班级直接展开名单。':user?`${user.displayName}，请选择要使用的功能。`:'点名和完整网站，一个工作台就够了。'}</p></div>{attendance&&<button onClick={onHome}>← 返回工作台</button>}</header>
     <div className={css.actions}>
-      <button onClick={async()=>{try{const result=await requestPwaInstall();if(result==='standalone')setInstallMessage('当前已经是桌面应用模式。');else if(result==='manual')setInstructions(getPwaInstallInstructions());}catch{setInstructions(getPwaInstallInstructions());}}}>{isStandalonePwa()?'已添加到桌面':'添加到手机桌面'}</button>
+      <PwaInstallControl/>
       {user&&<button onClick={onLogin}>当前账号 / 退出</button>}
       {user&&access.all&&attendance&&<button onClick={onSummary}>全班出勤汇总</button>}
     </div>
-    {instructions.length>0&&<section className={css.install}><h2>添加一次，以后直接点桌面图标</h2><ol>{instructions.map(step=><li key={step}>{step}</li>)}</ol><p>请使用正式线上地址；127.0.0.1 仅用于这台电脑的本地预览。桌面安装后的首次登录，需要再次输入账号。</p><button onClick={()=>setInstructions([])}>知道了</button></section>}
-    {installMessage&&<p role="status">{installMessage}</p>}
     {!attendance&&<section className={css.entries} aria-label="俱乐部功能入口">
       <button type="button" className={css.entry} data-workbench-entry="attendance" aria-label="进入快速点名" onClick={onRollCall}>
         <span className={css.entryTop}><span className={css.entryCode}>01 / ATTENDANCE</span><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="5" width="20" height="24" rx="3"/><path d="M12 4h10v5H12zM11 18l4 4 9-10"/></svg></span>

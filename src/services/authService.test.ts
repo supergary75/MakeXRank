@@ -62,3 +62,40 @@ it('a refresh completing after explicit sign-out cannot restore the cached sessi
   vi.stubGlobal('fetch',vi.fn(async(url:string)=>url.includes('/logout')?new Response(null,{status:204}):new Promise<Response>(resolve=>{finish=resolve;})));
   const pending=api.getValidAccessToken();expect(finish).toBeTypeOf('function');await api.signOutCurrentUser();finish(json(tokenResponse()));expect(await pending).toBeNull();expect(memory.has(key)).toBe(false);
 });
+
+const pendingResponse=()=>({...tokenResponse(),must_change_password:true,session_expires_at:new Date(start+600000).toISOString(),profile:{...profile,must_change_password:true}});
+
+it('initial verification restores only a password-setup profile and never exposes a business access token',async()=>{
+  const fetch=vi.fn(async(url:string)=>url.includes('/token')?json(pendingResponse()):json({id:profile.auth_user_id,profile:{...profile,must_change_password:true}}));vi.stubGlobal('fetch',fetch);
+  expect((await api.signInWithUsername('kclub-vincent','Temporary fixture password!')).mustChangePassword).toBe(true);
+  expect(api.getStoredAccessToken()).toBeNull();expect(await api.getValidAccessToken()).toBeNull();
+  expect((await api.restoreAuthUser())?.mustChangePassword).toBe(true);
+  expect(fetch.mock.calls.every(([url])=>!url.includes('/rest/'))).toBe(true);
+  expect(memory.get(key)).not.toContain('Temporary fixture password!');
+});
+
+it('personal password setup persists only a new normal session and never stores the chosen password',async()=>{
+  vi.stubGlobal('fetch',vi.fn(async()=>json(pendingResponse())));await api.signInWithUsername('kclub-vincent','Initial fixture password!');
+  const fetch=vi.fn(async(_url:string)=>json({...tokenResponse(),access_token:'normal-access',must_change_password:false,profile:{...profile,must_change_password:false}}));vi.stubGlobal('fetch',fetch);
+  expect((await api.completeInitialPassword('My long personal phrase 2026!')).mustChangePassword).toBe(false);
+  expect(await api.getValidAccessToken()).toBe('normal-access');expect(memory.get(key)).not.toContain('My long personal phrase');
+  expect(fetch.mock.calls[0][0]).toContain('/auth/v1/password-setup');
+});
+
+it('expired setup verification or server revocation returns to login rather than granting access',async()=>{
+  vi.stubGlobal('fetch',vi.fn(async()=>json(pendingResponse())));await api.signInWithUsername('fixture','Initial fixture password!');
+  vi.setSystemTime(start+600000);
+  await expect(api.completeInitialPassword('My long personal phrase 2026!')).rejects.toThrow('重新登录');expect(memory.has(key)).toBe(false);
+  vi.setSystemTime(start);await api.signInWithUsername('fixture','Initial fixture password!');
+  vi.stubGlobal('fetch',vi.fn(async()=>json({message:'Authentication required'},401)));
+  await expect(api.completeInitialPassword('My long personal phrase 2026!')).rejects.toThrow('失效');expect(memory.has(key)).toBe(false);
+});
+
+it('a late successful password setup cannot revive a session after logout',async()=>{
+  vi.stubGlobal('fetch',vi.fn(async()=>json(pendingResponse())));await api.signInWithUsername('fixture','Initial fixture password!');
+  let finish!:(value:Response)=>void;
+  vi.stubGlobal('fetch',vi.fn(async(url:string)=>url.includes('/logout')?new Response(null,{status:204}):new Promise<Response>(resolve=>{finish=resolve;})));
+  const pending=api.completeInitialPassword('My long personal phrase 2026!');
+  await Promise.resolve();await api.signOutCurrentUser();
+  finish(json({...tokenResponse(),must_change_password:false,profile}));await expect(pending).rejects.toThrow('登录状态已变化');expect(memory.has(key)).toBe(false);
+});

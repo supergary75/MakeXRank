@@ -3,7 +3,7 @@ export function curriculumPermissions(actor, level) {
   const name = actor?.username?.trim().toLowerCase();
   const reviewer = actor?.is_active === true && actor.role === 'admin' && name === 'supergary';
   const editor = actor?.is_active === true && curriculumLevels.includes(level) && (reviewer ||
-    (['brooky','jasonz'].includes(name) && ['U9','U12B','U12A'].includes(level)) || (name === 'vincentc' && level === 'U15B'));
+    (['brooky','jasonz','kclub-brook','kclub-jason'].includes(name) && ['U9','U12B','U12A'].includes(level)) || (['vincentc','kclub-vincent'].includes(name) && level === 'U15B'));
   return { edit: !!editor, publish: !!reviewer };
 }
 export function curriculumFail(status, message) { throw Object.assign(new Error(message), {status}); }

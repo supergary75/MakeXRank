@@ -13,8 +13,10 @@ const fail=(fn,status)=>assert.throws(fn,e=>e.status===status);
 test('权限矩阵不依赖显示名，停用账户没有权限',()=>{
   for(const level of curriculumLevels){
     assert.equal(curriculumPermissions(gary,level).publish,true);
-    for(const name of ['brooky','JasonZ'])assert.equal(curriculumPermissions(actor(name),level).edit,['U9','U12B','U12A'].includes(level));
+    for(const name of ['brooky','JasonZ','kclub-brook','kclub-jason'])assert.equal(curriculumPermissions(actor(name),level).edit,['U9','U12B','U12A'].includes(level));
     assert.equal(curriculumPermissions(actor('VincentC'),level).edit,level==='U15B');
+    assert.equal(curriculumPermissions(actor('kclub-vincent'),level).edit,level==='U15B');
+    for(const name of ['kclub-lisa','kclub-amber'])assert.equal(curriculumPermissions(actor(name,'editor'),level).edit,false);
     assert.equal(curriculumPermissions(actor('lisaW','admin'),level).edit,false);
     assert.equal(curriculumPermissions({...gary,is_active:false},level).edit,false);
     assert.equal(curriculumPermissions({...actor('other','admin'),display_name:'supergary'},level).publish,false);
