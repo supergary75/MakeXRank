@@ -9,6 +9,7 @@ import type { AuthUserProfile } from '../types';
 import { assignedCoach, classAccess } from './classAccess';
 import { readHolidays } from './clubHolidays';
 import { nextRegularClass, scheduleSlots, sessionMinutes, shanghaiDate as today, shanghaiMinutes, validDate, weekday, type RollCallMode } from './rollCallSchedule';
+import LessonAttendanceSummary from './LessonAttendanceSummary';
 export default function WeeklyRollCall({user, onManageClasses, onAttendanceSummary}: {user: AuthUserProfile | null; onManageClasses?: () => void; onAttendanceSummary?: () => void}) {
   const access = classAccess(user);
   const allowed = classes.filter(c => access.all || c.coach === access.coach);
@@ -91,6 +92,7 @@ export default function WeeklyRollCall({user, onManageClasses, onAttendanceSumma
           {r.status==='absent' && r.reason==='自定义' && <label>简要原因 <input aria-label={r.name+'原因'} maxLength={200} value={r.detail} onChange={e=>setRecord({...record,rows:record.rows.map(row=>row.id===r.id?{...row,detail:e.target.value}:row)})} onBlur={()=>void persist(record.rows)} placeholder="填写后离开输入框保存" /></label>}
         </div>}
       </article>)}</div>
+      <LessonAttendanceSummary record={record}/>
       {(!record.rows.length || record.rows.some(r=>!r.name.trim())) && <div className={mobile.emptySchedule}><p>班级名单尚未准备好，请在班级队员管理中补录姓名后再点名。</p>{onManageClasses && <button onClick={onManageClasses}>前往班级队员管理</button>}</div>}
       <details className={mobile.help}><summary>课次与临时补课设置</summary>
       <div className={styles.filters}><label>课次 <select value={session} onChange={e => open(date,id,e.target.value)}><option value="regular">常规课</option><option value="extra1">加课 1</option><option value="extra2">加课 2</option></select></label><button onClick={() => open(date,id,session)}>重新加载记录</button></div>

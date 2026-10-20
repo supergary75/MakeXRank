@@ -8,6 +8,7 @@
 .workbench button:disabled,.syncPanel button:disabled { opacity:.55; cursor:wait; }
 :global(#root) .workbench .primary { background:#19354b !important; color:#fff !important; border-color:#19354b !important; }
 .actions { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0; }
+.reportEntry { width:100%; text-align:left; line-height:1.7; margin-bottom:12px; }
 .entries { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:22px 0; }
 :global(#root) .workbench .entry { display:flex; flex-direction:column; align-items:stretch; gap:12px; min-width:0; min-height:216px; padding:20px; text-align:left; white-space:normal; background:#fbfcfa!important; color:#203341!important; border:1px solid #9baeb5!important; border-top:3px solid #ffd700!important; border-radius:12px; }
 :global(#root) .workbench .entry:hover { background:#f0f5f3!important; border-color:#51767d!important; border-top-color:#ffd700!important; }

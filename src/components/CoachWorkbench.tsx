@@ -29,6 +29,7 @@ export default function CoachWorkbench({user,onLogin,onSignIn,onManage,onSummary
         <span className={css.entryTitle}>完整网站</span><span className={css.entryDescription}>赛事管理、集训安排、课程体系、教务管理等全部工作模块。</span><span className={css.entryAction}>进入网站 <span aria-hidden="true">↗</span></span>
       </button>
     </section>}
+    {!attendance && access.all && <button type="button" className={css.reportEntry} onClick={onSummary}>出勤汇总 / 每周周报 · Lisa 可查看全部班级并导出表格</button>}
     <AcademicCloudPanel user={user}/>
     {attendance&&<AcademicDataGate accountId={user?.isActive?user.authUserId:undefined}>{user?.isActive?<WeeklyRollCall key={user.authUserId} user={user} onManageClasses={onManage} onAttendanceSummary={onSummary}/>:<section className={css.loading}><h2>登录后直接点名</h2><p>系统按教练账号匹配班级，默认显示今天的课程；没有课时可查看本周安排。</p></section>}</AcademicDataGate>}
     <footer className={css.footer}>{attendance?'点班级展开名单 → 点姓名确认到课 → 核对并提交。请假在姓名旁操作。':'两个入口共用同一账号和权限，手机、平板和电脑都能打开。添加到手机桌面后，直接进入这个工作台。'}</footer>

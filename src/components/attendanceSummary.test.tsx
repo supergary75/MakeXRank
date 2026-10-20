@@ -64,7 +64,8 @@ it('Gary 默认今日汇总表包含15个班级且没有学员姓名', () => {
   expect((html.match(/data-summary-class=/g) || []).length).toBe(15);
   expect(html).toContain('全班级出勤汇总表'); expect(html).toContain('返回今日点名');
   expect(html).toContain('value="2026-10-11"'); expect(html).not.toContain('U12B-10');
-  const summary = html.slice(html.indexOf('data-attendance-summary'), html.indexOf('</table>'));
+  const start = html.indexOf('data-attendance-summary');
+  const summary = html.slice(start, html.indexOf('</table>', start));
   expect(summary).not.toContain(row.name); expect(summary).toContain('—');
 });
 it('教练只能看到本人班级，未登录不显示汇总', () => {
@@ -72,6 +73,15 @@ it('教练只能看到本人班级，未登录不显示汇总', () => {
   expect((html.match(/data-summary-class=/g) || []).length).toBe(6);
   expect(html).toContain('我的班级出勤汇总表'); expect(html).not.toContain('data-summary-class="U18-01"');
   expect(renderToStaticMarkup(<AttendanceDashboard user={null} />)).not.toContain('data-summary-class');
+});
+it('Lisa可直接查看全部15班周报，Brook周报限于自己的6班', () => {
+  const lisa = renderToStaticMarkup(<AttendanceDashboard user={account('kclub-lisa')}/>);
+  const brook = renderToStaticMarkup(<AttendanceDashboard user={account('kclub-brook')}/>);
+  expect((lisa.match(/data-weekly-class=/g)||[]).length).toBe(15);
+  expect(lisa).toContain('Lisa 教务出勤周报');expect(lisa).toContain('导出本周表格（CSV）');
+  expect((brook.match(/data-weekly-class=/g)||[]).length).toBe(6);
+  expect(brook).not.toContain('data-weekly-class="U18-01"');
+  expect(brook).not.toContain('data-weekly-class="U12A-06"');
 });
 it('只有已登录用户显示点名页面的汇总入口', () => {
   expect(renderToStaticMarkup(<WeeklyRollCall user={account('supergary')} onAttendanceSummary={() => {}} />)).toContain('查看出勤汇总表');

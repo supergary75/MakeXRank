@@ -11,6 +11,7 @@ import { shanghaiDate as dayString, validDate } from './rollCallSchedule';
 import { readHolidays } from './clubHolidays';
 import { academicCloudEnabled, refreshAcademic } from '../services/academicCloud';
 import LeaveMakeupTable from './LeaveMakeupTable';
+import WeeklyAttendanceReport from './WeeklyAttendanceReport';
 type Followup = { status: string; actor: string; at: string };
 const followKey='makexrank-attendance-followups-v1';
 const rulesKey='makexrank-attendance-rules-v1';
@@ -59,6 +60,7 @@ export default function AttendanceDashboard({user, onRollCall}: {user: AuthUserP
   if(!user || !allowed.length)return <div className={styles.root}><h2>出勤统计与预警</h2><p>{user?'当前账号没有可访问班级。':'请先登录查看统计。'}</p></div>;
   return <div className={styles.root}>
     <h2>出勤统计与预警 <span className={styles.warning}>{pending} 项待跟进</span></h2>
+    <WeeklyAttendanceReport key={user.authUserId} user={user}/>
     <div className={styles.filters}>{(['today','week','month'] as const).map((period,i)=>{const r=attendanceRange(period);return <button key={period} data-roll-call-mode aria-pressed={from===r[0] && to===r[1]} onClick={()=>{setFrom(r[0]);setTo(r[1]);}}>{['今日','本周','本月'][i]}</button>;})}<label>从 <input type="date" value={from} onChange={e=>setFrom(e.target.value)} /></label><label>至 <input type="date" value={to} onChange={e=>setTo(e.target.value)} /></label>
       {access.all && <label>教练 <select value={coach} onChange={e=>setCoach(e.target.value)}><option value="">全部</option>{Object.entries(coachNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>}
       <label>班级 <select value={cid} onChange={e=>setCid(e.target.value)}><option value="">全部</option>{allowed.map(c=><option key={c.id}>{c.id}</option>)}</select></label><button onClick={()=>{void refreshAcademic();setTick(Date.now());setRevision(n=>n+1);}}>刷新统计</button>{onRollCall && <button onClick={onRollCall}>返回今日点名</button>}
