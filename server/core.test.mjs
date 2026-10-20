@@ -39,7 +39,7 @@ before(async()=>{
 },{timeout:30000});
 beforeEach(async()=>{
   hook=null;now=Date.now();
-  await db.exec('truncate user_profiles,refresh_tokens,auth_sessions,auth_attempts,competitions,competition_deletions,practice_sync,training_sync,team_tag_sync,logistics_sync,inspire_sync cascade');
+  await db.exec('truncate auth_access_events,auth_access_history,user_profiles,refresh_tokens,auth_sessions,auth_attempts,competitions,competition_deletions,practice_sync,training_sync,team_tag_sync,logistics_sync,inspire_sync cascade');
   for(const [key,id] of Object.entries(users))await db.query(`insert into user_profiles(auth_user_id,username,display_name,password_hash,role,is_active,allowed_event_types,allowed_competition_ids) values($1,$2,$2,$3,$4,$5,$6,$7)`,[id,key==='admin'?'supergary':key,hash,key==='scoped'?'editor':key==='disabled'?'editor':key,key!=='disabled',key==='scoped'?['FRC']:null,key==='scoped'?['allowed']:null]);
 });
 after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));if(db)await db.close();});
@@ -293,4 +293,109 @@ test('a conflicting staff login aborts the entire onboarding rather than merging
   await assert.rejects(fixtureOnboarding(),/Target login already exists/);
   assert.equal((await db.query("select username from user_profiles where auth_user_id=$1",[users.editor])).rows[0].username,'vincentc');
   assert.equal((await db.query("select count(*)::int n from user_profiles where username='kclub-amber'")).rows[0].n,0);
+});
+
+const activityToday=()=>new Date(Date.now()+8*3600000).toISOString().slice(0,10);
+const activityLog=(token,extra='')=>request(`/auth/v1/access-log?from=${activityToday()}&to=${activityToday()}${extra}`,{token});
+test('only the owner can read login history or notifications; successful login is atomic and refresh is not another login',async()=>{
+  const owner=(await login('admin')).data,staff=(await login()).data;
+  await login('editor','wrong');await refresh(staff.refresh_token);
+  assert.equal((await db.query('select count(*)::int n from auth_access_history')).rows[0].n,2);
+  assert.equal((await db.query('select count(*)::int n from auth_access_events')).rows[0].n,2);
+  assert.equal((await activityLog()).status,401);assert.equal((await activityLog(staff.access_token)).status,403);
+  await db.query("update user_profiles set role='admin' where auth_user_id=$1",[users.viewer]);
+  const otherAdmin=(await login('viewer')).data.access_token;
+  assert.equal((await activityLog(otherAdmin)).status,403);
+  assert.equal((await request('/auth/v1/access-events',{token:staff.access_token})).status,403);
+  assert.equal((await request('/auth/v1/access-events/seen',{method:'POST',token:staff.access_token,body:{through:'1'}})).status,403);
+  const result=await activityLog(owner.access_token);assert.equal(result.status,200);assert.equal(result.data.total,3);
+  assert(result.data.rows.every(row=>row.endedAt===null&&row.endReason===null&&!row.legacy));
+  const wire=JSON.stringify(result.data);for(const privateKey of ['session_id','auth_user_id','password_hash','access_token','refresh_token'])assert(!wire.includes(privateKey));
+  assert.equal((await request('/rest/v1/auth_access_history',{token:owner.access_token})).status,404);
+});
+
+test('logout is recorded once for the exact session; receipt clearing never hides later logins',async()=>{
+  const owner=(await login('admin')).data.access_token;
+  const first=(await login()).data,second=(await login()).data;
+  for(let i=0;i<2;i++)assert.equal((await request('/auth/v1/logout',{method:'POST',token:first.access_token})).status,204);
+  const rows=(await activityLog(owner,'&username=editor')).data.rows;
+  assert.equal(rows.length,2);assert.equal(rows.filter(row=>row.endReason==='logout').length,1);assert.equal(rows.filter(row=>row.endedAt===null).length,1);
+  assert.equal((await db.query("select count(*)::int n from auth_access_events where event_type='logout'")).rows[0].n,1);
+  const inbox=(await request('/auth/v1/access-events',{token:owner})).data;assert.equal(inbox.unreadCount,4);
+  await login('viewer');
+  assert.equal((await request('/auth/v1/access-events/seen',{method:'POST',token:owner,body:{through:inbox.latestId}})).status,200);
+  const remaining=(await request('/auth/v1/access-events',{token:owner})).data;assert.equal(remaining.unreadCount,1);assert.equal(remaining.events[0].username,'viewer');
+  assert.equal((await request('/fixture-private',{token:second.access_token})).status,200);
+});
+
+test('expiration has the real deadline, not an invented page-close/logout time, and is announced only once',async()=>{
+  const owner=(await login('admin')).data.access_token,staff=(await login()).data;
+  const cutoff=(await db.query("update auth_sessions set expires_at=now()-interval '1 minute' where auth_user_id=$1 returning expires_at",[users.editor])).rows[0].expires_at;
+  const before=(await db.query('select ended_at from auth_access_history where auth_user_id=$1',[users.editor])).rows[0];assert.equal(before.ended_at,null);
+  const first=(await activityLog(owner,'&username=editor')).data.rows[0];assert.equal(first.endReason,'expired');assert.equal(new Date(first.endedAt).getTime(),new Date(cutoff).getTime());
+  await activityLog(owner);await request('/auth/v1/access-events',{token:owner});await request('/auth/v1/logout',{method:'POST',token:staff.access_token});
+  const events=(await db.query("select event_type from auth_access_events e join auth_access_history h on h.id=e.history_id where h.auth_user_id=$1 and phase='ended'",[users.editor])).rows;
+  assert.deepEqual(events,[{event_type:'expired'}]);
+});
+
+test('password reset, initial verification and completed password setup remain distinct activity types',async()=>{
+  const owner=(await login('admin')).data.access_token;await login();
+  assert.equal((await request('/functions/v1/manage-users',{method:'POST',token:owner,body:{action:'reset_password',authUserId:users.editor,password:'InitialFixture2026!'}})).status,200);
+  const pending=(await login('editor','InitialFixture2026!')).data;
+  assert.equal((await request('/auth/v1/access-events',{token:pending.access_token})).status,401);
+  assert.equal((await request('/auth/v1/password-setup',{method:'POST',token:pending.access_token,body:{password:'Test2026'}})).status,200);
+  const rows=(await activityLog(owner,'&username=editor')).data.rows;
+  assert.equal(rows.length,3);assert.equal(rows.filter(row=>row.endReason==='password_reset').length,1);
+  assert.equal(rows.filter(row=>row.passwordSetup&&row.endReason==='password_changed').length,1);
+  assert.equal(rows.filter(row=>!row.passwordSetup&&!row.endedAt).length,1);
+  const events=(await db.query('select event_type from auth_access_events e join auth_access_history h on h.id=e.history_id where h.auth_user_id=$1 order by e.id',[users.editor])).rows.map(row=>row.event_type);
+  assert.deepEqual(events,['login','password_reset','initial_verification','password_changed','login']);
+});
+
+test('disable and deletion retain identity snapshots and exact termination reasons; reloading migration is idempotent',async()=>{
+  const owner=(await login('admin')).data.access_token;await login();await login('viewer');
+  await db.query("update user_profiles set display_name='Renamed later' where auth_user_id=$1",[users.editor]);
+  assert.equal((await request(`/rest/v1/user_profiles?auth_user_id=eq.${users.editor}`,{method:'PATCH',token:owner,body:{is_active:false}})).status,204);
+  assert.equal((await request('/functions/v1/manage-users',{method:'POST',token:owner,body:{action:'delete_user',authUserId:users.viewer}})).status,200);
+  const rows=(await activityLog(owner)).data.rows;
+  assert.equal(rows.find(row=>row.username==='editor').displayName,'editor');assert.equal(rows.find(row=>row.username==='editor').endReason,'account_disabled');
+  assert.equal(rows.find(row=>row.username==='viewer').endReason,'account_deleted');
+  const count=Number((await db.query('select count(*) n from auth_access_events')).rows[0].n);
+  await db.exec(await readFile(new URL('./access-activity.sql',import.meta.url),'utf8'));
+  assert.equal(Number((await db.query('select count(*) n from auth_access_events')).rows[0].n),count);
+  assert.equal((await activityLog(owner)).data.total,3);
+});
+
+test('login date filtering uses Beijing midnight, validates input, and paginates without duplicate sessions',async()=>{
+  const owner=(await login('admin')).data.access_token;
+  const insert=(date)=>db.query("insert into auth_sessions(id,auth_user_id,created_at,expires_at) values($1,$2,$3,'2026-12-01T00:00:00Z')",[crypto.randomUUID(),users.viewer,date]);
+  for(const date of ['2026-10-19T15:59:59Z','2026-10-19T16:00:00Z','2026-10-20T15:59:59Z','2026-10-20T16:00:00Z'])await insert(date);
+  const result=await request('/auth/v1/access-log?from=2026-10-20&to=2026-10-20&username=viewer',{token:owner});assert.equal(result.status,200);assert.equal(result.data.total,2);
+  for(let i=0;i<53;i++)await insert('2026-10-20T08:00:00Z');
+  const first=(await request('/auth/v1/access-log?from=2026-10-20&to=2026-10-20&username=viewer',{token:owner})).data;
+  assert.equal(first.total,55);assert.equal(first.rows.length,50);assert(first.nextBefore);
+  const second=(await request(`/auth/v1/access-log?from=2026-10-20&to=2026-10-20&username=viewer&before=${first.nextBefore}`,{token:owner})).data;
+  assert.equal(second.rows.length,5);assert.equal(second.nextBefore,null);assert.equal(new Set([...first.rows,...second.rows].map(row=>row.id)).size,55);
+  for(const params of ['from=2026-02-30&to=2026-03-01','from=2026-01-01&to=2026-10-20','from=2026-10-21&to=2026-10-20','from=2026-10-20&to=2026-10-20&before=1;drop'])assert.equal((await request(`/auth/v1/access-log?${params}`,{token:owner})).status,400);
+  assert.equal((await request('/auth/v1/access-events/seen',{method:'POST',token:owner,body:{through:1}})).status,400);
+});
+
+test('rolled-back session writes leave no phantom login history or notifications',async()=>{
+  await db.exec('begin');
+  await db.query('insert into auth_sessions(id,auth_user_id) values($1,$2)',[crypto.randomUUID(),users.editor]);
+  await db.exec('rollback');
+  assert.equal((await db.query('select count(*)::int n from auth_access_history')).rows[0].n,0);
+  assert.equal((await db.query('select count(*)::int n from auth_access_events')).rows[0].n,0);
+});
+
+test('pre-upgrade sessions are labeled historical without fabricating logout reasons or new notifications',async()=>{
+  await db.exec('drop trigger makexrank_access_session_trigger on auth_sessions');
+  const before=(await db.query('select * from user_profiles order by auth_user_id')).rows;
+  for(const kind of ['active','revoked','expired'])await db.query(`insert into auth_sessions(id,auth_user_id,created_at,expires_at,revoked_at)
+    values($1,$2,now()-interval '2 days',case when $3='expired' then now()-interval '1 day' else now()+interval '5 days' end,case when $3='revoked' then now()-interval '1 hour' end)`,[crypto.randomUUID(),users.viewer,kind]);
+  await db.exec(await readFile(new URL('./access-activity.sql',import.meta.url),'utf8'));
+  const rows=(await db.query('select legacy,end_reason from auth_access_history')).rows;
+  assert.equal(rows.length,3);assert(rows.every(row=>row.legacy));assert.deepEqual(new Set(rows.map(row=>row.end_reason)),new Set([null,'legacy_revoked','expired']));
+  assert.equal((await db.query('select count(*)::int n from auth_access_events')).rows[0].n,0);
+  assert.deepEqual((await db.query('select * from user_profiles order by auth_user_id')).rows,before);
 });

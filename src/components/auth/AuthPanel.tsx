@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { AuthUserProfile, EventType, UserRole } from '../../types';
 import styles from './AuthPanel.module.css';
 import { canManageStaff } from '../../services/staffAccess';
+import LoginActivity from './LoginActivity';
 
 const EVENT_TYPE_OPTIONS: EventType[] = ['MakeX Inspire', 'MakeX Explorer', 'MakeX Challenge'];
 
@@ -278,6 +279,7 @@ export function AuthPanel({
 
         {currentUser && canManageUsers && (
           <section className={styles.adminArea}>
+            <LoginActivity user={currentUser} users={[currentUser,...managedUsers]}/>
             <div className={styles.adminHeader}>
               <div>
                 <h3>管理员分配账号</h3>

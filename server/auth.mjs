@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import {promisify} from 'node:util';
 import {readFile} from 'node:fs/promises';
 import {canManageStaff} from './staff-access.mjs';
+import {mountAccessActivity} from './access-activity.mjs';
 
 const scrypt=promisify(crypto.scrypt);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -139,7 +140,7 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
       const session=(await db.query('select id from auth_sessions where id=$1 and auth_user_id=$2 and password_setup=true and revoked_at is null and expires_at>now()',[caller.sid,caller.sub])).rows[0];
       if(!session)fail(401,'Authentication required');
       await db.query('update user_profiles set password_hash=$1,must_change_password=false where auth_user_id=$2',[passwordHash,caller.sub]);
-      await db.query('update auth_sessions set revoked_at=now() where auth_user_id=$1',[caller.sub]);
+      await db.query("update auth_sessions set revoked_at=now(),revoked_reason='password_changed' where auth_user_id=$1 and revoked_at is null",[caller.sub]);
       await db.query('delete from refresh_tokens where auth_user_id=$1',[caller.sub]);
       const sid=crypto.randomUUID();await db.query('insert into auth_sessions(id,auth_user_id) values($1,$2)',[sid,caller.sub]);
       return issue(db,caller.sub,sid);
@@ -149,7 +150,7 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
     // A valid signature may revoke its own session even after access expiry; no new access is granted.
     const user=decode(req,true);
     if(user)await userTransaction(user.sub,async db=>{
-      await db.query('update auth_sessions set revoked_at=now() where id=$1 and auth_user_id=$2',[user.sid,user.sub]);
+      await db.query("update auth_sessions set revoked_at=now(),revoked_reason='logout' where id=$1 and auth_user_id=$2 and revoked_at is null",[user.sid,user.sub]);
       await db.query('delete from refresh_tokens where session_id=$1 and auth_user_id=$2',[user.sid,user.sub]);
     });
     res.status(204).end();
@@ -166,7 +167,10 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
     if(action==='delete_user'){
       if(!uuid.test(req.body.authUserId))fail(400,'Invalid user ID');
       if(req.body.authUserId.toLowerCase()===caller?.sub.toLowerCase())fail(400,'Cannot delete your own account');
-      await userTransaction(req.body.authUserId,db=>db.query('delete from user_profiles where auth_user_id=$1',[req.body.authUserId]));return res.json({success:true});
+      await userTransaction(req.body.authUserId,async db=>{
+        await db.query("update auth_sessions set revoked_at=now(),revoked_reason='account_deleted' where auth_user_id=$1 and revoked_at is null",[req.body.authUserId]);
+        await db.query('delete from user_profiles where auth_user_id=$1',[req.body.authUserId]);
+      });return res.json({success:true});
     }
     if(typeof req.body.password!=='string'||req.body.password.length<8||req.body.password.length>128)fail(400,'Password must be 8-128 characters');
     const passwordHash=await hashPassword(req.body.password);
@@ -175,7 +179,7 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
       await userTransaction(req.body.authUserId,async(db,user)=>{
         if(!user)fail(404,'User not found');
         await db.query('update user_profiles set password_hash=$1,must_change_password=true where auth_user_id=$2',[passwordHash,user.auth_user_id]);
-        await db.query('update auth_sessions set revoked_at=now() where auth_user_id=$1',[user.auth_user_id]);
+        await db.query("update auth_sessions set revoked_at=now(),revoked_reason='password_reset' where auth_user_id=$1 and revoked_at is null",[user.auth_user_id]);
         await db.query('delete from refresh_tokens where auth_user_id=$1',[user.auth_user_id]);
       });return res.json({success:true});
     }
@@ -193,6 +197,7 @@ export async function mountAuth(app,pool,secret,{now=Date.now}={}) {
       await db.query('commit');res.json({profile:rows[0],success:true});
     }catch(e){await db.query('rollback');throw e;}finally{db.release();}
   }));
+  await mountAccessActivity(app,pool,{auth,profile});
   // Keep one durable validator for requireAuth, generic REST, and management callers.
   return {auth,requireAuth:guard,profile};
 }

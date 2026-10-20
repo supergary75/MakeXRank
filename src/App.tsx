@@ -99,6 +99,7 @@ import { RankingTable } from './components/ranking/RankingTable';
 import { PlayoffView } from './components/playoff/PlayoffView';
 import { FocusScheduleView } from './components/schedule/FocusScheduleView';
 import { AuthPanel } from './components/auth/AuthPanel';
+import AccessActivityNotifier from './components/auth/AccessActivityNotifier';
 import { InterviewCenter } from './components/interview/InterviewCenter';
 import { CurriculumSystem, curriculumModules, curriculumRoutes } from './components/CurriculumSystem';
 import { NotificationContainer } from './components/ui/Notification';
@@ -6718,6 +6719,7 @@ export default function App() {
   return (
     <div data-blueprint={viewMode} className={`${styles.app} ${viewMode === 'product-center' || viewMode === 'curriculum-system' ? styles.tiangongPreview : ''}`}>
       <div className={styles.container}>
+        <AccessActivityNotifier user={authUser} onOpen={()=>setViewMode('staff-admin')} onNotify={showNotification}/>
         {viewMode === 'coach-workbench'||viewMode === 'weekly-roll-call'||viewMode === 'login' ? (
           <CoachWorkbench key={authUser?.authUserId||'guest'} user={authUser} ready={authReady} busy={authBusy} attendance={viewMode==='weekly-roll-call'} onSignIn={handleLogin} onLogin={()=>setAuthPanelOpen(true)} onManage={()=>setViewMode('class-member-management')} onSummary={()=>setViewMode('attendance-dashboard')} onBack={()=>setViewMode('work-hub')} onRollCall={()=>setViewMode('weekly-roll-call')} onHome={()=>setViewMode('coach-workbench')}/>
         ) : viewMode === 'work-hub' ? (

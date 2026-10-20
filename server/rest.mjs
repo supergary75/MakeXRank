@@ -91,6 +91,10 @@ export function mountRest(app,pool,{auth,profile}) {
         }else if(req.method==='PATCH'){
           const keys=Object.keys(item).filter(k=>cols.includes(k)&&k!==idCol);if(!keys.length)fail(400,'No writable fields');
           await db.query(`update ${table} set ${keys.map((k,i)=>`${k}=$${i+1}`).join(',')} where ${idCol}=$${keys.length+1}`,[...keys.map(k=>sqlValue(table,k,item[k])),id]);
+          if(table==='user_profiles'&&item.is_active===false){
+            await db.query("update auth_sessions set revoked_at=now(),revoked_reason='account_disabled' where auth_user_id=$1 and revoked_at is null",[id]);
+            await db.query('delete from refresh_tokens where auth_user_id=$1',[id]);
+          }
         }else{
           if(table==='competitions')await db.query('insert into competition_deletions(id) values($1) on conflict(id) do update set deleted_at=now()',[id]);
           await db.query(`delete from ${table} where ${idCol}=$1`,[id]);
