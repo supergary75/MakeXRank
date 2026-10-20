@@ -72,13 +72,13 @@ export default function WeeklyRollCall({user, onManageClasses, onAttendanceSumma
   const candidates = allowed.flatMap(c => roster[c.id] ?? []).filter((m,i,a) => m.name && a.findIndex(n => n.id === m.id) === i && !record.rows.some(r => r.id === m.id));
   const renderRoster = () => active ? <div id={`roll-call-${date}-${id}`} className={mobile.inlineRoster} role="region" aria-label={`${id} 队员点名`}>
       <fieldset className={mobile.controls} disabled={saving||!writable}>
-      <p className={mobile.inlineHint}>点姓名直接记录到课；迟到、请假在姓名旁修改。</p>
+      <p className={mobile.inlineHint}>点姓名直接记录到课；请假在姓名旁操作。</p>
       <div className={mobile.lessonSummary}><strong>已确认 {record.rows.length-pending} / {record.rows.length} 人</strong><span>到课（含迟到）{arrived} · 请假 {record.rows.filter(r=>r.status==='absent').length} · 未到待核实 {record.rows.filter(r=>r.status==='unverified').length}</span><progress className={mobile.progress} aria-label="本次课堂点名进度" value={record.rows.length-pending} max={Math.max(record.rows.length,1)} /></div>
-      <details className={mobile.help}><summary>点姓名确认出勤，再点取消 · 自动保存草稿</summary><p>{record.phase==='submitted' ? '更正时保留原正式统计，重新提交后替换。' : record.submittedRows ? '更正草稿已保存，统计暂用上次提交版本。' : '逐人操作自动保存，全部确认后提交。'} 取消出勤后恢复待确认；迟到和请假通过右侧入口修改。历史课次保留当时名单。</p></details>
+      <details className={mobile.help}><summary>点姓名确认出勤，再点取消 · 自动保存草稿</summary><p>{record.phase==='submitted' ? '更正时保留原正式统计，重新提交后替换。' : record.submittedRows ? '更正草稿已保存，统计暂用上次提交版本。' : '逐人操作自动保存，全部确认后提交。'} 取消出勤后恢复待确认；请假通过右侧入口操作。历史课次保留当时名单。</p></details>
       <div className={mobile.roster}>{record.rows.map(r => <article data-attendance-row={r.status || 'pending'} className={`${mobile.student} ${r.status==='present' || r.status==='late' ? mobile.arrived : ''}`} key={r.id}>
         <div className={mobile.rowTop}>
         <button className={mobile.studentName} aria-label={`${r.name || '姓名待补录'}，${r.status==='present' ? '已到，点击取消出勤' : r.status ? statusLabel(r) : '点击确认出勤'}`} aria-pressed={r.status==='present' || r.status==='late'} disabled={blocked || !r.name || (!!r.status && r.status!=='present')} onClick={async () => {if(await update(r.id,{status:r.status==='present'?'':'present',reason:'',detail:'',lateMinutes:undefined}))setUndo(r);}}><span aria-hidden="true">{r.status==='present' || r.status==='late' ? '✓' : '○'}</span><span>{r.name || '姓名待补录'}</span></button>
-        <button className={mobile.editButton} aria-label={`${r.name} 迟到请假更正`} aria-expanded={editing===r.id} aria-controls={`attendance-edit-${r.id}`} onClick={() => setEditing(editing===r.id ? '' : r.id)}>{editing===r.id ? '收起' : '迟到/请假'}</button>
+        <button className={mobile.editButton} aria-label={`${r.name} 请假`} aria-expanded={editing===r.id} aria-controls={`attendance-edit-${r.id}`} onClick={() => setEditing(editing===r.id ? '' : r.id)}>{editing===r.id ? '收起' : '请假'}</button>
         </div>
         <p className={mobile.status}><span data-attendance-state={r.status || 'pending'} className={mobile.attendanceState}>{r.status ? statusLabel(r) : '待确认'}</span></p>
         {r.temporary && <button onClick={()=>{if(window.confirm('从本次课撤销临时补课队员 '+r.name+'？不改变长期分班。'))persist(record.rows.filter(row=>row.id!==r.id));}}>撤销临时补课</button>}
