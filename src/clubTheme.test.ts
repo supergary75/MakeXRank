@@ -21,3 +21,9 @@ it('容量与考勤状态仍用红绿语义；全卡点击遮罩仍透明，日�
   expect(theme).toContain('background:transparent!important; border:0!important; box-shadow:none!important;');
   expect(theme).toContain('height:auto; min-height:90px');
 });
+it('较矮的电脑窗口允许侧栏滚动，不压缩品牌与导航导致文字重叠',()=>{
+  const shell=readFileSync(new URL('./components/layout/ClubShell.module.css',import.meta.url),'utf8');
+  expect(shell).toContain('overflow-y:auto');
+  expect(shell).toContain('.sidebar > * { flex-shrink:0; }');
+  expect(shell).toContain('overflow-y:visible');
+});

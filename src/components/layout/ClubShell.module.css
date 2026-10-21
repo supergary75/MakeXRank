@@ -1,6 +1,7 @@
 .shell { display:grid; grid-template-columns:218px minmax(0,1fr); max-width:1600px; margin:0 auto; min-height:calc(100dvh - 32px); background:var(--club-paper); border-radius:16px; overflow:clip; border:1px solid var(--club-line); box-shadow:0 18px 70px #29251e0c; }
 .guest { max-width:1440px; margin:0 auto; }
-.sidebar { --club-ink:#f4eddf; --club-muted:#b5ad9f; --club-line:#ffffff16; position:sticky; top:16px; height:calc(100dvh - 32px); display:flex; flex-direction:column; padding:32px 12px 22px; background:#1a1c1e; background-image:radial-gradient(ellipse at 0 100%,#9c80431b,transparent 65%); }
+.sidebar { --club-ink:#f4eddf; --club-muted:#b5ad9f; --club-line:#ffffff16; position:sticky; top:16px; height:calc(100dvh - 32px); display:flex; flex-direction:column; padding:32px 12px 22px; background:#1a1c1e; background-image:radial-gradient(ellipse at 0 100%,#9c80431b,transparent 65%); overflow-y:auto; scrollbar-width:thin; scrollbar-color:#b69a6266 transparent; }
+.sidebar > * { flex-shrink:0; }
 :global(#root) .brand { --club-ink:#d5b778; padding:0 18px 28px; border:0; background:transparent; text-align:left; }
 .brand strong { font-size:34px; letter-spacing:.07em; line-height:1; font-weight:800; }
 .brand small { display:block; margin-top:10px; font-size:11px; letter-spacing:.2em; }
@@ -21,7 +22,7 @@
 @media(max-width:1000px) { .shell { grid-template-columns:184px minmax(0,1fr); } .sidebar { padding-left:8px; padding-right:8px; } .brand strong { font-size:29px; } :global(#root) .navigation button { gap:10px; padding:11px 13px; } }
 @media(max-width:760px) {
   .shell { display:block; border-radius:0; border:0; min-height:100dvh; }
-  .sidebar { position:static; height:auto; padding:17px 12px 0; gap:12px; }
+  .sidebar { position:static; height:auto; padding:17px 12px 0; gap:12px; overflow-y:visible; }
   :global(#root) .brand { padding:0 6px; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:35px; }
   .brand strong { font-size:27px; } .brand small { margin:0; font-size:10px; letter-spacing:.15em; }
   .sectionLabel,.sidebarBottom { display:none; }
