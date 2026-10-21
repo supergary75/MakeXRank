@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import ClassMemberManagement from './components/ClassMemberManagement';
 import CoachWorkbench from './components/CoachWorkbench';
+import ClubShell from './components/layout/ClubShell';
 import { AcademicCloudPanel, AcademicDataGate } from './components/AcademicCloudPanel';
 import { academicCloudEnabled, refreshAcademic, startAcademicCloud } from './services/academicCloud';
 import AttendanceDashboard from './components/AttendanceDashboard';
@@ -6718,10 +6719,11 @@ export default function App() {
 
   return (
     <div data-blueprint={viewMode} className={`${styles.app} ${viewMode === 'product-center' || viewMode === 'curriculum-system' ? styles.tiangongPreview : ''}`}>
+      <ClubShell user={authUser} view={viewMode} onNavigate={setViewMode}>
       <div className={styles.container}>
         <AccessActivityNotifier user={authUser} onOpen={()=>setViewMode('staff-admin')} onNotify={showNotification}/>
         {viewMode === 'coach-workbench'||viewMode === 'weekly-roll-call'||viewMode === 'login' ? (
-          <CoachWorkbench key={authUser?.authUserId||'guest'} user={authUser} ready={authReady} busy={authBusy} attendance={viewMode==='weekly-roll-call'} onSignIn={handleLogin} onLogin={()=>setAuthPanelOpen(true)} onManage={()=>setViewMode('class-member-management')} onSummary={()=>setViewMode('attendance-dashboard')} onBack={()=>setViewMode('work-hub')} onRollCall={()=>setViewMode('weekly-roll-call')} onHome={()=>setViewMode('coach-workbench')}/>
+          <CoachWorkbench key={authUser?.authUserId||'guest'} user={authUser} ready={authReady} busy={authBusy} attendance={viewMode==='weekly-roll-call'} onSignIn={handleLogin} onLogin={()=>setAuthPanelOpen(true)} onManage={()=>setViewMode('class-member-management')} onSummary={()=>setViewMode('attendance-dashboard')} onBack={()=>setViewMode('work-hub')} onRollCall={()=>setViewMode('weekly-roll-call')} onHome={()=>setViewMode('coach-workbench')} onTraining={()=>setViewMode('training-plan')}/>
         ) : viewMode === 'work-hub' ? (
           <MechaWorkHub action={accountAction} onNavigate={setViewMode} onRollCall={authUser?.isActive ? () => setViewMode('weekly-roll-call') : undefined} />
         ) : viewMode === 'staff-admin' ? (
@@ -10799,6 +10801,7 @@ export default function App() {
         ) : null}
       </div>
 
+      </ClubShell>
       {(authPanelOpen || (viewMode==='staff-admin' && canManageUsers)) && (
         <AuthPanel
           embedded={viewMode==='staff-admin'}

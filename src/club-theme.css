@@ -1,0 +1,185 @@
+/* Kclub / warm gold. One active theme; operational status colours remain semantic. */
+:root {
+  color-scheme:light;
+  --club-charcoal:#1a1c1e; --club-paper:#f6f3ec; --club-surface:#fffdfa;
+  --club-ink:#292720; --club-muted:#756e60; --club-line:#ded7c9;
+  --club-gold:#c4a265; --club-gold-light:#e4cea0; --club-gold-dark:#796038;
+  --primary:#80663d; --primary-dark:#5e492a; --primary-light:#b69a62; --primary-bg:#f0e7d5;
+  --secondary:#655b49; --accent:#c4a265; --info:#486579;
+  --success:#2d6947; --success-dark:#205337; --danger:#a23c35; --danger-dark:#842c27; --warning:#80602c;
+  --gray-50:#fffdfa; --gray-100:#f6f3ec; --gray-200:#e9e2d6; --gray-300:#d2c8b7;
+  --gray-400:#8b8271; --gray-500:#756c5e; --gray-600:#625a4d; --gray-700:#4d473e; --gray-800:#37332c; --gray-900:#25231e;
+  --bg-dark:#f6f3ec; --bg-mid:#efeae0; --bg-panel:#fffdfa; --bg-panel-soft:#f2ede3;
+  --bg-steel:linear-gradient(135deg,#fffdfa,#f2ede3); --bg-steel-soft:linear-gradient(135deg,#fffdfa,#f6f2ea);
+  --line-strong:#c8bba5; --line-soft:#e6dfd3; --radius-sm:6px; --radius-md:9px; --radius-lg:12px; --radius-xl:16px; --radius-full:999px;
+  --shadow-sm:0 3px 12px #2d291408; --shadow-md:0 8px 25px #2d29140b; --shadow-lg:0 16px 40px #2d29140e; --shadow-xl:0 24px 60px #2d291412;
+  --glow-cyan:none; --glow-amber:0 6px 25px #b69a6220;
+  --transition-fast:150ms ease; --transition-base:220ms ease; --transition-slow:300ms ease;
+}
+body { background:#ece8df; color:var(--club-ink); }
+body::before { display:none; }
+::selection { background:#e4cea0; color:#25231e; }
+
+/* Paired ink/surfaces adapt historical literal colours without stacking old themes.
+   Custom properties let dark chrome and genuine status states own their contrast. */
+#root :where(div,section,article,main,header,footer,nav,aside,details,summary,figure,figcaption,span,p,small,strong,b,i,em,label,li,ul,ol,h1,h2,h3,h4,h5,h6,a,button,form,fieldset,legend,table,thead,tbody,tr,th,td) {
+  color:var(--club-ink)!important; -webkit-text-fill-color:currentColor; text-shadow:none!important; border-color:var(--club-line);
+}
+#root :is(h1,h2,h3,h4,h5,h6,button,summary) { font-family:Arial,'PingFang SC','Microsoft YaHei',sans-serif!important; }
+#root [class*='_app_'] { padding:16px; background:#ece8df!important; }
+#root [class*='_app_']::before,#root [class*='_app_']::after,#root [class*='_container_']::before { display:none; }
+#root [class*='_container_'] { width:100%; max-width:none; min-width:0; margin:0; background:var(--club-paper)!important; border-radius:0; backdrop-filter:none; overflow:clip; }
+#root [data-club-shell='guest'] > [class*='_container_'] { border-radius:14px; }
+#root :is([class*='_card_'],[class*='Card_'],[class*='_panel_'],[class*='_section_'],[class*='_modal_'],[class*='_student_'],[class*='_dialog_'],[class*='_content_']) {
+  background:var(--club-surface)!important; border-color:var(--club-line)!important; border-radius:10px; box-shadow:var(--shadow-sm);
+}
+#root :is([class*='_shell_'],[class*='_root_']) { background:var(--club-paper); }
+#root :is([class*='_productCenterSection_'],[class*='_portalSection_'],[class*='_workHubSection_'],[class*='_productRedesign_']) { background:var(--club-paper)!important; }
+#root :is([class*='_card_'],[class*='Card_']) { border-top-color:#c8b58f!important; }
+#root :is([class*='_card_'],[class*='Card_']):hover { border-color:#b69a62!important; }
+#root :is([class*='_eyebrow_'],[class*='_kicker_'],[class*='_english_'],[class*='_number_'],[class*='_portalCardLabel_']) { color:var(--club-gold-dark)!important; }
+#root :is([class*='_description_'],[class*='_subtitle_'],[class*='_footnote_'],[class*='_entryDescription_']) { color:var(--club-muted)!important; }
+#root :is([class*='_decorStickers_'],[class*='_mechaBackdrop_'],[class*='_craftArt_']) { display:none!important; }
+#root :is([class*='_overlay_'],[class*='_backdrop_']) { background:#161718a8!important; backdrop-filter:blur(5px); }
+
+#root :where(button,a[role='button']) { --club-ink:#342c1e; min-height:40px; background:#fffdfa; border:1px solid #c8bba5; border-radius:7px; transition:background .18s ease,border-color .18s ease,box-shadow .18s ease; }
+#root button:hover:not(:disabled) { background:#f1e8d6; border-color:#ad8a50; }
+#root button:disabled { --club-ink:#867e70; background:#ece8df; border-color:#dbd4c8; opacity:.68; cursor:not-allowed; }
+#root :is(input,textarea,select,option) { background:#fffefa!important; color:#302b23!important; -webkit-text-fill-color:#302b23!important; border-color:#c8bba5!important; border-radius:6px; color-scheme:light; }
+#root :is(input,select,textarea):focus { border-color:#90703f!important; outline:2px solid #c4a26566; outline-offset:2px; }
+#root ::placeholder { color:#877c69!important; opacity:1; }
+#root :focus-visible { outline:3px solid #8b6b36!important; outline-offset:3px; }
+#root a { color:#795c2e!important; }
+#root :is(code,pre) { background:#eee8dc!important; color:#453a26!important; }
+#root :is(thead,thead th,caption) { --club-ink:#52432b; background:#eae1cf!important; }
+#root tbody :is(th,td) { background:#fffdfa; border-color:#e5ded2!important; }
+#root tbody tr:nth-child(even) :is(th,td) { background:#fbf8f2; }
+#root tfoot :is(th,td) { background:#efe7d8!important; font-weight:700; }
+#root :is([class*='_badge_'],[class*='_status_'],[class*='_tag_']) { background:#eee6d8; --club-ink:#685337; }
+
+/* Dark brand chrome, never darken forms and long working tables. */
+#root header[class*='_header_']:not([data-workbench-header]),#root [class*='_hub_'] > header > [class*='_nav_'],#root [class*='_hero_'] > [class*='_nav_'] {
+  --club-ink:#f8f2e8; --club-muted:#c8bda9; --club-line:#ffffff22; background:#1d1f21!important; border-bottom:1px solid #b69a6255!important;
+}
+#root header[class*='_header_']:not([data-workbench-header]) :is(h1,h2),#root header[class*='_header_']:not([data-workbench-header]) [class*='_logoTitle_'] { color:#f8f2e8!important; }
+#root header[class*='_header_']:not([data-workbench-header])::after { background:#b69a62!important; box-shadow:none; height:2px; }
+#root header[class*='_header_']:not([data-workbench-header]) :is([class*='_eyebrow_'],[class*='_logoMark_'],[class*='_logoSub_']) { color:#d5b778!important; }
+#root [class*='_logoBadge_'] { background:#ffffff08; border-color:#b69a6244!important; box-shadow:none; }
+#root [class*='_accountChip_'] { background:#ffffff0b; border-color:#b69a6244; }
+#root [data-club-sidebar] { background-color:#1a1c1e!important; }
+#root [data-club-sidebar] button { background:transparent; }
+#root [data-club-sidebar] button:hover:not(:disabled) { --club-ink:#f8f0df; background:#ffffff0b; border-color:#b69a6255; }
+#root [data-club-sidebar] button[aria-current='page'] { background:linear-gradient(90deg,#b59a6330,#b59a6308); }
+#root [data-club-sidebar] :focus-visible { outline-color:#e4cea0!important; }
+
+/* Working modules share a restrained ivory/gold system. */
+#root [data-hud-home] { background:var(--club-paper)!important; border:0; padding:0; }
+#root [data-hud-home] [class*='_centers_'] { background:var(--club-paper)!important; padding-top:30px; }
+#root [data-hud-home] [class*='_card_'] { --club-ink:#292720; background:#fffdfa!important; border-top:2px solid #c4a265!important; box-shadow:var(--shadow-sm)!important; }
+#root [data-hud-home] [class*='_card_']::before,#root [data-hud-home] [class*='_card_']::after { display:none; }
+#root [data-hud-home] [class*='_cardArt_'] { opacity:.18; right:0; width:75%; bottom:5%; mask-image:linear-gradient(90deg,transparent,#000); }
+#root [data-hud-home] [class*='_cardArt_'] img { filter:grayscale(1); }
+#root [data-hud-home] [class*='_brand_'] { color:#e1c78f!important; }
+#root [data-hud-home] [class*='_brandMark_'] { border-color:#c4a265; }
+#root [data-hud-home] [class*='_navLinks_'] button { --club-ink:#e6d8be; background:transparent!important; border:0; }
+#root [data-hud-home] [class*='_cardBottom_'] > span:last-child { background:#d5ba83!important; color:#2b2418!important; border-color:#b69a62!important; }
+#root [data-hud-home] [class*='_card_'] p { max-width:86%; }
+#root [data-team-banner] { --club-ink:#f8f1e6; --club-muted:#c7bdac; background:#202223!important; }
+#root [data-team-banner] .team-banner-layout { background:#202223!important; }
+#root [data-team-banner] :is(h1,.team-banner-description,.team-banner-motto,.team-banner-eyebrow,figcaption) { color:var(--club-ink)!important; }
+#root [data-team-banner] .team-banner-eyebrow { color:#d9bf8d!important; }
+#root [data-team-banner] .team-banner-description { color:#d0c6b5!important; }
+#root [data-team-banner] .team-banner-rule { background:#c4a265!important; }
+#root [data-team-banner] .team-banner-actions { background:#202223!important; border-color:#c4a26544!important; }
+#root [data-team-banner] .team-banner-image::after { background:linear-gradient(90deg,#202223,transparent 17%,transparent 96%,#202223),linear-gradient(180deg,#202223,transparent 9%,transparent 88%,#202223)!important; }
+#root [data-team-banner] .team-banner-photo { background:transparent!important; box-shadow:none; }
+
+/* Transparent hit areas must not obscure card copy or become gold on hover. */
+#root button[class*='_cardOpen_'][aria-label],#root button[class*='_cardOpen_'][aria-label]:hover:not(:disabled),#root button[class*='_cardOpen_'][aria-label]:disabled { background:transparent!important; border:0!important; box-shadow:none!important; }
+#root :is([class*='_studentName_'],[class*='_identity_']) { background:transparent!important; }
+#root button[data-roll-call-mode][aria-pressed='true'] { --club-ink:#f9f2e5; background:#33312a!important; border-color:#33312a!important; }
+#root button[data-attendance-submit],#root button[data-roll-call-entry] { --club-ink:#302616; background:linear-gradient(115deg,#dfc78f,#bc995b)!important; border-color:#ac8749!important; font-weight:700; }
+#root button[data-attendance-submit]:disabled { --club-ink:#817663; background:#e9e2d4!important; border-color:#d5cbb9!important; }
+#root [data-roll-call-list] article[data-roll-call-card] { background:#fffdfa!important; }
+#root [class*='_expandedCard_'] { outline-color:#c4a265; }
+#root [class*='_coachHeading_']::before { background:#b69a62; }
+#root [data-class-directory] :is([class*='_gauge_'],[class*='_instruments_'] > div) { background:#f4f0e7!important; border-color:#d8cdb9; }
+#root [data-class-directory] [class*='_title_'] > span { background:#ece5d7; }
+#root [data-class-directory] [class*='_occupied_'] { background:#8d7e61; border-color:#8d7e61; box-shadow:inset 0 -3px #655943; }
+
+/* Course content follows the brand; the seven-level growth-chart asset is unchanged. */
+#root [data-blueprint] .syllabus { --club-ink:#292720; }
+#root [data-blueprint] .syllabus :is(p,li,b,h2,h3,h4,summary) { color:var(--club-ink)!important; }
+#root [data-blueprint] .syllabus .syllabus-stages>section,
+#root [data-blueprint] .syllabus .syllabus-dimensions>section,
+#root [data-blueprint] .syllabus .syllabus-cycle,
+#root [data-blueprint] .syllabus .syllabus-month { background:#fffdfa!important; border-color:#d8ccb5!important; box-shadow:0 5px 16px #3b332308; }
+#root [data-blueprint] .syllabus .syllabus-stages>section:first-child,
+#root [data-blueprint] .syllabus .syllabus-stages>section:nth-child(2),
+#root [data-blueprint] .syllabus .syllabus-stages>section:nth-child(3) { background:#fffdfa!important; border-color:#d8ccb5!important; }
+#root [data-blueprint] .syllabus .syllabus-stages>section>h3,
+#root [data-blueprint] .syllabus .syllabus-dimensions>section>h4,
+#root [data-blueprint] .syllabus .syllabus-cycle>h3 { --club-ink:#f8f1e3; background:#2c2d2b!important; color:#f8f1e3!important; border-bottom-color:#b69a62!important; }
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-first .syllabus-month-group { background:#eee1c5!important; border-color:#d5c19a!important; border-left-color:#b69a62!important; color:#403522!important; }
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-second .syllabus-month-group { background:#e9e5dc!important; border-color:#ccc5b7!important; border-left-color:#58564e!important; color:#403b30!important; }
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-first .syllabus-month { background:#fffdfa!important; border-top-color:#c4a265!important; }
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-second .syllabus-month { background:#fffdfa!important; border-top-color:#777265!important; }
+#root [data-blueprint] .syllabus .syllabus-month-number { background:#dec795!important; color:#3e3220!important; border-color:#bda16a!important; }
+#root [data-blueprint] .syllabus .syllabus-months>.curriculum-cycle-second .syllabus-month-number { background:#48473f!important; color:#faf4e7!important; border-color:#48473f!important; }
+#root [data-blueprint] .syllabus .syllabus-month summary { border-color:#ded7c9!important; }
+#root [data-blueprint] .syllabus .curriculum-month-editor { background:#f2ede2!important; border-color:#c9b58e; border-top-color:#b69a62; }
+#root [data-blueprint] .syllabus .curriculum-month-editor :is(input,textarea) { color:#292720!important; border-color:#c8baa0; }
+#root .syllabus .syllabus-months button { background:#3c3c35!important; color:#faf4e7!important; border-color:#3c3c35; }
+#root .syllabus .syllabus-months button:disabled { background:#e8e2d6!important; color:#776d5a!important; border-color:#cfc4b2; }
+#root [class*='_radarSection_'] { --club-ink:#f7f0e1; --club-muted:#c8bda9; background:#242628!important; }
+#root [class*='_radarSection_'] :is(th,td,thead,caption) { --club-ink:#f7f0e1; color:#f7f0e1!important; background:#242628!important; }
+#root [class*='_radarSection_'] h4 { color:#d5b778!important; }
+#root [class*='_cardVisual_'] { --club-ink:#40392c; background:#eee6d6!important; border-color:#d5c7ad!important; }
+
+/* Red/green class capacity and attendance colours are business information. */
+#root [data-class-directory] article[data-class-card] { background:#fffdfa!important; }
+#root [data-class-directory] article[data-class-card][data-class-full='true'] { background:#eaf4ec!important; border-color:#6e9c7b!important; }
+#root [data-class-directory] span[data-class-full='true'] { background:#d4e8da!important; --club-ink:#275d3a; }
+#root [data-class-directory] [data-class-full='true'] [data-class-count] { color:#275d3a!important; }
+#root [data-class-directory] article[data-class-card][data-class-underfilled='true'] { background:#fff0ed!important; border-color:#bd6b60!important; }
+#root [data-class-directory] [data-class-warning='true'] { background:#f6dbd5!important; --club-ink:#91352c; }
+#root [data-class-directory] [data-class-underfilled='true'] [data-class-count] { color:#91352c!important; }
+#root [data-attendance-row='present'] { background:#eaf4ec!important; border-color:#6b9e7a!important; }
+#root [data-attendance-row='late'] { background:#fcf0d8!important; border-color:#c5a56c!important; }
+#root [data-attendance-row='absent'] { background:#edf1f6!important; border-color:#94a7bc!important; }
+#root [data-attendance-row='unverified'] { background:#fae9e5!important; border-color:#bb8176!important; }
+#root [data-attendance-state='present'],#root [data-roll-call-phase='submitted'],#root [data-attendance-summary-status='submitted'] { background:#d8eadd!important; --club-ink:#255336; }
+#root [data-attendance-state='late'],#root [data-attendance-summary-status='draft'],#root [data-attendance-summary-status='missing'] { background:#f4e3bb!important; --club-ink:#6c4e1d; }
+#root [data-attendance-state='absent'] { background:#dce5f0!important; --club-ink:#34516c; }
+#root [data-attendance-state='unverified'] { background:#f0d4cd!important; --club-ink:#84382d; }
+#root [data-attendance-summary-status='off'] { background:#e9e6df!important; --club-ink:#6b6255; }
+#root :is([class*='_error_'],[class*='_danger_'],[role='alert']) { --club-ink:#91362e; }
+
+/* Training dates retain multiple parallel sessions and level-specific colours. */
+#root button[data-training-day='training'] { --club-ink:#59421f; background:#ecd8a9!important; border:2px solid #ad8647!important; opacity:1; }
+#root button[data-training-day='self'] { --club-ink:#28553f; background:#d9eade!important; border:2px solid #6d957b!important; opacity:1; }
+#root button[data-training-day] :is(span,strong,small) { color:inherit!important; background:transparent!important; }
+#root button[data-training-editing='true'] { outline:3px solid #8b6b36!important; outline-offset:3px; box-shadow:0 0 0 5px #fffdfa!important; }
+#root [data-training-overview-day] { min-height:140px; height:auto; min-width:0; padding:10px; border:1px solid #ded7c9!important; border-radius:9px; background:#fffdfa; display:flex; flex-direction:column; gap:8px; overflow:visible; }
+#root [data-training-overview-day][data-outside-month] { background:#eae6de; }
+#root button[data-training-overview-entry] { --club-ink:#263429; width:100%; height:auto; min-height:90px; white-space:normal; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:5px; padding:10px; border:1px solid var(--group-line,#a68e65)!important; border-left:4px solid var(--group-line,#a68e65)!important; background:var(--group-bg,#f0e7d7)!important; overflow:visible; }
+#root [data-training-overview-entry] :is(strong,span,small) { white-space:normal; overflow:visible; overflow-wrap:anywhere; display:block; -webkit-line-clamp:unset; line-height:1.4; }
+#root [data-training-group='MakeX Inspire小低组'],#root [data-training-group='Inspire'] { --group-bg:#f5e8c2; --group-line:#ac883c; }
+#root [data-training-group='MakeX Inspire小高组'] { --group-bg:#f7ddcb; --group-line:#b77c51; }
+#root [data-training-group='MakeX Explorer小学组'] { --group-bg:#dcecdf; --group-line:#66916d; }
+#root [data-training-group='MakeX Explorer初中组'],#root [data-training-group='Explorer'] { --group-bg:#dce7f2; --group-line:#6585a7; }
+#root [data-training-group='MakeX Challenge'] { --group-bg:#e8e0ef; --group-line:#9680aa; }
+#root [data-training-group='FRC'] { --group-bg:#f0dce3; --group-line:#ac788d; }
+@media(max-width:760px) {
+  #root [class*='_app_'] { padding:0; }
+  #root [data-team-banner] .team-banner-image::after { background:linear-gradient(180deg,#202223,transparent 9%,transparent 90%,#202223)!important; }
+  #root :is(button,a[role='button']) { min-height:44px; }
+  /* On small screens a tall sticky submit panel must not cover the roster. */
+  #root [class*='_submitBar_'] { position:static; padding:12px; gap:8px; }
+  #root [class*='_submitBar_'] strong { font-size:17px; }
+  #root [class*='_submitBar_'] :is(span,p) { font-size:12px; }
+}
+@media print {
+  body,#root [class*='_app_'],#root [class*='_container_'] { background:#fff!important; }
+  #root :where(div,section,article,main,header,footer,nav,aside,span,p,small,strong,h1,h2,h3,h4,th,td) { color:#000!important; }
+}

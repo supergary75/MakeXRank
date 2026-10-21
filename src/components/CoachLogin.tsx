@@ -10,7 +10,9 @@ export default function CoachLogin({busy,onSignIn}:{busy:boolean;onSignIn:(usern
     void onSignIn(String(data.get('username')||''),String(data.get('password')||''));
   };
   return <main className={`${css.workbench} ${css.login}`}>
-    <header className={css.header}><div><span className={css.eyebrow}>KCLUB INTERNAL WORKSPACE</span><h1>{WORKSPACE_NAME}</h1><p>使用内部账号登录，进入点名和完整网站。</p></div></header>
+    <aside className={css.loginBrand} aria-label="Kclub机器人俱乐部"><strong>KCLUB</strong><span>机器人青训俱乐部</span><div><p>BUILD. COMPETE. GROW.</p><h2>让每一次实践<br/>连接更好的成长</h2><small>俱乐部内部协作空间</small></div></aside>
+    <div className={css.loginBody}>
+    <header className={css.header} data-workbench-header><div><span className={css.eyebrow}>MEMBERS ACCESS</span><h1>{WORKSPACE_NAME}</h1><p>使用内部账号登录，进入点名和完整网站。</p></div></header>
     <form className={css.loginForm} aria-label={`${WORKSPACE_NAME}登录`} onSubmit={submit}>
       <label>登录名<input name="username" placeholder="例如：kclub-vincent" autoComplete="username" autoCapitalize="none" spellCheck={false} required disabled={busy}/></label>
       <label>密码<input name="password" type="password" autoComplete="current-password" required disabled={busy}/></label>
@@ -20,5 +22,6 @@ export default function CoachLogin({busy,onSignIn}:{busy:boolean;onSignIn:(usern
       <p className={css.footer}>仅在本人设备上使用；无痕模式、清除网站数据或更换浏览器需要重新登录。</p>
     </form>
     <PwaInstallControl/>
+    </div>
   </main>;
 }
